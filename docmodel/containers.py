@@ -32,17 +32,41 @@ NL = os.linesep
 class Sentence(list):
     """Represents a POS-tagged stemmed sentence."""
 
-    def __init__(self, tokens):
-        super().__init__(tokens)
+    def __init__(self, *tokens):
+        super().__init__(*tokens)
         self.score = None
 
     def __str__(self):
         return SENTENCE_SEP.join([str(x) for x in self])
 
-    # Nem kell, mert a list tartalmazza.
+    # Nem kell, mert a list tartalmazza. todo: törölni
     # def __eq__(self, other):
     #     if other is not None and isinstance(other, Sentence):
     #         return len(self) == len(other) and
     #     else:
     #         return False
 
+
+class Paragraph(list):
+    """Represents a parapraph of tagged, stemmed sentences."""
+
+    def __init__(self, *sentences):
+        super().__init__(*sentences)
+
+    def __str__(self):
+        return NL.join([str(x) for x in self])
+
+
+class Document(list):
+    """Represents a document object which are built of paragraphes."""
+
+    def __init__(self, *paragraphes):
+        super().__init__(*paragraphes)
+
+    def __str__(self):
+        return NL.join([str(x) for x in self])
+
+    def sentences(self):
+        ret = []
+        for p in self:
+            ret.extend(p)
