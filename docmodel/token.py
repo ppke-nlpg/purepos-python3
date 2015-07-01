@@ -36,7 +36,7 @@ class Token:
 
     def __str__(self):
         if self.token is None and self.stem is None:
-            return None  # todo: esetleg inkább ""
+            return None # todo: esetleg inkább ""
         if self.tag is not None and self.stem is None:
             return self.token + SEP + self.tag
         else:
@@ -54,4 +54,4 @@ class Token:
 class ModToken(Token):
     def __init__(self, token: str, tag: str=None, stem: str=None, original_stem: str=None):
         self.original_stem = original_stem
-        super().__init__(self, token, tag, stem)
+        super().__init__(token, tag, stem)
