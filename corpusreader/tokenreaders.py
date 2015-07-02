@@ -27,6 +27,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import _io
 import os
 from docmodel.token import Token
+from docmodel.containers import Sentence
 
 
 LINE_SEPARATOR = os.linesep
@@ -84,6 +85,23 @@ class SentenceReader(BaseReader):
         self.word_parser = word_parser
 
     def read(self, text: str):
-        pass
-        # todo
+        if not text:
+            return Sentence()
+        tokens = Sentence()
+        for word in text.split(self.separator):
+            if len(word) == 0:
+                raise ParsingException("Empty word in '{}'".format(text))
+            # token = self.word_parser.read(word)
+            # if token is not None:  # todo: token lehet none? Ha nem, nem kell None check.
+            #     tokens.append(token)
+            tokens.append(self.word_parser.read(word))
+        return tokens
+
+
+
+
+
+
+
+
 
