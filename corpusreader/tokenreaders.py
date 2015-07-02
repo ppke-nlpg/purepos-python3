@@ -25,13 +25,8 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import _io
-import os
 from docmodel.token import Token
 from docmodel.containers import Sentence
-
-
-LINE_SEPARATOR = os.linesep
-FILE_ENCODING = "UTF-8"
 
 
 class ParsingException(Exception):
@@ -41,15 +36,18 @@ class ParsingException(Exception):
 class BaseReader:
     def __init__(self, separator: str="#"):
         self.separator = separator
+        self.linesep = "\n"
+        self.encoding = "UTF-8"
 
     def read(self, text: str):
         ...
 
     def read_from_file(self, file: _io.TextIOWrapper):
-        # todo: Biztos jó ötlet az egész fájlt beolvasni?
+        # todo: Biztos jó ötlet az egész fájlt beolvasni? Esetleg yield?
+        # todo: itt kéne az encoding-ot használni. Kell?
         return self.read(file.read())
     # todo: Ez nem kell Pythonba.
-    # Mert ami hülyeség, az nemigaz. Hánem? Háde!
+    # todo: line separator
     # def read_from_scanner(self, scanner):
     #     def read_scanner(sc):
     #
@@ -80,7 +78,7 @@ class StemmedTaggedTokenReader(BaseReader):
 
 
 class SentenceReader(BaseReader):
-    def __init__(self, word_parser: BaseReader, separator: str="\\s"):
+    def __init__(self, word_parser: BaseReader, separator: str="\s"):
         super().__init__(separator)
         self.word_parser = word_parser
 
