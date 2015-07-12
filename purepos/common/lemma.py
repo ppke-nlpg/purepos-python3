@@ -1,4 +1,5 @@
 #!/usr/bin/env Python3
+# todo nincs kész
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -28,7 +29,7 @@ import re
 from docmodel.token import Token
 from purepos.model.combiner import BaseCombiner, LogLinearBiCombiner
 from purepos.model.vocabulary import BaseVocabulary
-from purepos.model.model import ModelData, CompiledModelData
+from purepos.model.modeldata import ModelData, RawModelData, CompiledModelData
 
 
 main_pos_pat = re.compile("\\[([^.\\]]*)[.\\]]")  # todo: ez csak át lett másolva. \? Jól működik!
@@ -59,12 +60,12 @@ def store_lemma(
         lemma: str,
         tag: int,
         tagstring: str,
-        raw_modeldata: AbstractRawModelData):
-    # todo ilyen nem létezik. A raw_modeldatá-t szerkeszti
-    raw_modeldata.lemmaUnigramModel.increment(lemma)
+        raw_modeldata: RawModelData):
+    raw_modeldata.lemma_unigram_model.increment(lemma)
     cnt = 1
     lemmatrans = def_lemma_representation(word, lemma, tag)
-    raw_modeldata.lemmaSuffixTree.addWord(word, lemmatrans, cnt, lemmatrans.min_cut_length())
+    raw_modeldata.lemma_suffix_tree.add_word(word, lemmatrans, cnt, lemmatrans.min_cut_length())
+    # todo ilyen nem létezik.
 
 
 def main_pos_tag(tag: str):
@@ -118,8 +119,7 @@ def lower_transformed(word: str, lemma: str) -> bool:
 
 
 class LemmaComparator:
-    def __init__(self, compilde_model_data: CompiledModelData, model_data, ModelData):
-    # todo ilyen nem létezik.
+    def __init__(self, compilde_model_data: CompiledModelData, model_data: ModelData):
         self.comp_model_data = compilde_model_data
         self.model_data = model_data
 
@@ -195,11 +195,11 @@ class GeneralizedLemmaTransformation(BaseLemmaTransformation):
 
         def __eq__(self, other):
             return isinstance(other, GeneralizedLemmaTransformation.Transformation) and \
-                   self.remove_start == other.remove_start and \
-                   self.remove_end == other.remove_end and \
-                   self.add_start == other.add_start and \
-                   self.add_end == other.add_end and \
-                   self.tag == other.tag
+                self.remove_start == other.remove_start and \
+                self.remove_end == other.remove_end and \
+                self.add_start == other.add_start and \
+                self.add_end == other.add_end and \
+                self.tag == other.tag
 
 
     def __init__(self, word: str, lemma: str, tag: int):
