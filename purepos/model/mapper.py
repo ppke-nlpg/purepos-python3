@@ -1,5 +1,4 @@
 #!/usr/bin/env Python3
-# todo nincs kész, csak a stringmapper
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -37,6 +36,7 @@ def stringmapping(pattern: str, replacement: str):
 class BaseMapper:
     def map(self, element):
         ...
+
     def map_list(self, elements: list):
         ...
 
@@ -53,7 +53,7 @@ class StringMapper(BaseMapper):
         for m in self.mappings:
             # pattern = m[0]
             # replacement = m[1]
-            return  m[0].sub(m[1], element)
+            return m[0].sub(m[1], element)
         return element
 
     def map_list(self, elements: str):
@@ -71,8 +71,7 @@ class TagMapper(BaseTagMapper):
         if self.vocabulary.max_index() < tag:
             tag_str = self.vocabulary.word(tag)
             for mapping in self.tag_mappings:
-                #p = mapping[0]
-                p = re.compile("\n")
+                p = mapping[0]
                 if p.fullmatch(tag_str):
                     rep_tagstr = p.sub(mapping[1], tag_str)
                     ret_tag = self.vocabulary.index(rep_tagstr)
