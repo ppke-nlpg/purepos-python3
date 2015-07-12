@@ -25,45 +25,63 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
+import os
 from docmodel import token
+from purepos.common.analysisqueue import AnalysisQueue
+from purepos.model.modeldata import CompiledModelData
+from purepos.model.mapper import TagMapper
+from purepos.model.vocabulary import BaseVocabulary
+from purepos.decoder.stemfilter import StemFilter
 
 
-STEM_FILTER_FILE = "purepos_stems.txt"
+STEM_FILTER_FILE = "purepos_stems.txt"  # todo: be kell égetni?
 STEM_FILTER_PROPERTY = ""  # todo: System.getProperty("stems.path");
 UNKOWN_VALUE = -99
-LEMMA_MAPPER = None  # todo implement class
-analysis_queue = None  # todo implement class and construct an object. Here?
-CONFIGURATION = None  # todo implement class and construct an object. Here?
+LEMMA_MAPPER = None  # StringMapper
+analysis_queue = AnalysisQueue()
+CONFIGURATION = None  # todo implement class and construct an object. Where?
 
 
-def create_stem_filter():
-    raise NotImplementedError()
-    # todo: implement at StemFilter
+def create_stem_filter() -> StemFilter:
+    path = None
+    if STEM_FILTER_PROPERTY and os.path.isfile(STEM_FILTER_PROPERTY):
+        path = os.path.abspath(STEM_FILTER_PROPERTY)
+
+    if os.path.isfile(STEM_FILTER_FILE):
+        path = os.path.abspath(STEM_FILTER_FILE)
+    # todo: ezt végképp nem értem!!!
+
+    if path is None:
+        return None
+    return StemFilter(path)
 
 
-def find_max(d: dict):
-    return max(d.values())
-    # todo: inline instead of call.
-    # maximum = 0.0
-    # for v in d.values():
-    #     if v > d:
-    #         max = v
-    # return maximum
+def find_max(d: dict) -> tuple:
+    return max(d.items(), key=lambda e: e[1])  # select the value of order key.
 
 
-def find_max_pair(d: dict):
+def find_max_pair(d: dict) -> tuple:
     max_k = None
     max_v = float("-inf")
     for v in d.values():
         if v[1] > max_v:
             max_k = v[0]
             max_v = v[1]
-    return (max_k, max_v)
+    return max_k, max_v
 
 
-def add_mappings(comp_modeldata, tag_vocabulary, tag_mappings):
-    raise NotImplementedError()
-    # todo: implement
+def add_mappings(comp_modeldata: CompiledModelData,
+                 tag_vocabulary: BaseVocabulary,
+                 tag_mappings: list):
+    mapper = TagMapper(tag_vocabulary, tag_mappings)
+    comp_modeldata.standard_emission_model.context_mapper = mapper
+    comp_modeldata.spec_tokens_emission_model.context_mapper = mapper
+    comp_modeldata.tag_transition_model.context_mapper = mapper
+    comp_modeldata.tag_transition_model.element_mapper = mapper
+    comp_modeldata.lower_case_suffix_guesser.tag_mapper = mapper
+    comp_modeldata.upper_case_suffix_guesser.tag_mapper = mapper
+    # todo: implement attributes
+
 
 
 def simplify_lemma(t: token.Token):
