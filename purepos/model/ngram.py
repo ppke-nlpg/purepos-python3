@@ -1,5 +1,4 @@
 #!/usr/bin/env Python3
-# todo nincs kész
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -57,7 +56,6 @@ class NGramModel:
         self.root = IntTrieNode(IntVocabulary.extremal_element())
         self.lambdas = []
 
-    # todo ezt használjuk?
     def add_word(self, context: list, word):
         act = self.root
         i = 0
@@ -88,7 +86,8 @@ class NGramModel:
                     act_node = None
         return ret
 
-    def calculate_modified_freq_val(self, node_list: list, position: int, word) -> float:
+    @staticmethod
+    def calculate_modified_freq_val(node_list: list, position: int, word) -> float:
         context_freq = node_list[position].num
         word_freq = node_list[position].words[word]
         if context_freq == 1 or word_freq == 1:
@@ -109,7 +108,7 @@ class NGramModel:
         return max_pos, max_val
 
     def calculat_ngram_lambdas(self):
-        self.lambdas = [0.0 for c in range(0, self.n+1, 1)]
+        self.lambdas = [0.0 for _ in range(0, self.n+1, 1)]
         acc = []
         self.iterate(self.root, acc)
 
@@ -123,7 +122,7 @@ class NGramModel:
         if node.child_nodes is None or len(node.child_nodes) == 0:
             for word in node.words.keys():
                 mx = self.find_max(acc, word)
-                index = mx[0] +1
+                index = mx[0] + 1
                 if mx[1] != -1:
                     self.lambdas[index] = self.lambdas[index] + node.get_word(word)
         else:
@@ -134,43 +133,10 @@ class NGramModel:
     def create_probability_model(self) -> ProbModel:
         self.calculat_ngram_lambdas()
         return ProbModel(self.root, self.lambdas)
-        # todo finish class
 
-    def word_apriori_probs(self):
+    def word_apriori_probs(self) -> dict:
         ret = dict()
         sum_freg = self.root.num
         for k, v in self.root.words.items():
             ret[k] = v / sum_freg
         return ret
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

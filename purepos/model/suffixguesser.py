@@ -1,5 +1,4 @@
 #!/usr/bin/env Python3
-# todo nincs kész
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -26,7 +25,7 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
-from purepos.model.mapper import TagMapper
+
 
 class BaseSuffixGuesser:
 
@@ -36,13 +35,14 @@ class BaseSuffixGuesser:
         return m[0]
 
     def tag_probability(self, word, tag) -> float:
-        ...
+        pass
 
     def tag_log_probability(self, word, tag) -> float:
-        ...
+        pass
 
     def tag_log_probabilities(self, word) -> dict:
-        ...
+        pass
+
 
 class HashSuffixGuesser(BaseSuffixGuesser):
     def __init__(self, freq_table: dict, theta: float):
@@ -74,7 +74,6 @@ class HashSuffixGuesser(BaseSuffixGuesser):
                     rel_freq = tag_suff_freq_d / suffix_value[1]
                     mret[tag] = (ret + (rel_freq*self.theta))/self.theta_plus_one
         return mret
-
 
     def tag_log_probability(self, word, tag) -> float:
         return math.log(self.tag_probability(word, tag))

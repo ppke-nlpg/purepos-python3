@@ -1,5 +1,4 @@
 #!/usr/bin/env Python3
-# todo nincs kész
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -26,6 +25,8 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from purepos.common.util import BiDict
+from purepos.model.ngram import NGram
+
 
 class BaseVocabulary:
     def __init__(self):
@@ -48,7 +49,7 @@ class BaseVocabulary:
             if val is None:
                 return None
             lst.append(val)
-        return NGram(lst)  # todo implement
+        return NGram(lst)
 
     def add_element(self, element):
         key = self.voc.get(element)
@@ -75,10 +76,11 @@ class BaseVocabulary:
 
 class IntVocabulary(BaseVocabulary):
     def add_vocabulary_element(self, element):
-        self.voc[element, len(self.voc)]
+        self.voc[element] = len(self.voc)
         return self.voc[element]
 
-    def extremal_element(self):
+    @staticmethod
+    def extremal_element():
         return -1
 
     def store_max_element(self):

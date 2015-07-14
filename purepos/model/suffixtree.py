@@ -1,5 +1,4 @@
 #!/usr/bin/env Python3
-# todo nincs kész
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -34,10 +33,10 @@ class BaseSuffixTree:
         self.max_suffix_length = max_suff_len
 
     def add_word(self, word, tag, count: int, min_len: int=0):
-        ...
+        pass
 
     def create_guesser(self, theta: float) -> BaseSuffixGuesser:
-        ...
+        pass
 
     @staticmethod
     def calculate_theta(apriori_probs: dict):
@@ -89,37 +88,3 @@ class HashLemmaTree(HashSuffixTree):
 
     def add_word(self, suff_str: str, tag: BaseLemmaTransformation, count: int, min_len: int=0):
         self.increment(suff_str, tag, count)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

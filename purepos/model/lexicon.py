@@ -56,4 +56,3 @@ class Lexicon:
 
     def wordcount_for_tag(self, word, tag):
         return self.representation.get(word, {}).get(tag, 0)
-

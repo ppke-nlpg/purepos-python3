@@ -27,6 +27,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import re
 from purepos.model.vocabulary import BaseVocabulary
 
+
 # StringMapping:
 # (tagPattern, replacement)
 def stringmapping(pattern: str, replacement: str):
@@ -35,18 +36,20 @@ def stringmapping(pattern: str, replacement: str):
 
 class BaseMapper:
     def map(self, element):
-        ...
+        pass
 
+    # todo megnézni, hogy jól hívják-e
     def map_list(self, elements: list):
-        ...
+        pass
+
 
 class BaseTagMapper(BaseMapper):
     def filter(self, morph_anals: list, possible_tags: list):
-        ...
+        pass
 
 
 class StringMapper(BaseMapper):
-    def __init__(self, mappings: list=None):
+    def __init__(self, mappings: list):
         self.mappings = mappings
 
     def map(self, element: str):

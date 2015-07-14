@@ -1,5 +1,4 @@
 #!/usr/bin/env Python3
-# todo nincs kész
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -26,8 +25,8 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
-from purepos.model.mapper import BaseTagMapper
 from purepos.model.trienode import IntTrieNode, FloatTrieNode
+
 
 class BaseProbabilityModel:
     def __init__(self):
@@ -35,9 +34,10 @@ class BaseProbabilityModel:
         self.context_mapper = None
 
     def prob(self, context: list, word) -> float:
-        ...
+        pass
+
     def log_prob(self, context: list, word) -> float:
-        ...
+        pass
 
 
 class OneWordLexicalModel(BaseProbabilityModel):
@@ -100,7 +100,7 @@ class ProbModel(BaseProbabilityModel):
         for child in node.child_nodes.values():
             ch = self.create_child(child, words, lambdas, 2)
             # new_root.add_child(ch)
-            new_root.child_nodes[ch._id] = ch
+            new_root.child_nodes[ch.id_] = ch
         return new_root
 
     def create_child(self,
@@ -118,14 +118,15 @@ class ProbModel(BaseProbabilityModel):
                 ch = self.create_child(child, node.words, lambdas, level+1)
                 if ch is not None:
                     # node.add_child(ch)
-                    node.child_nodes[ch._id] = ch
+                    node.child_nodes[ch.id_] = ch
             return node
         else:
             return None
 
-    def calc_probs(self, node: IntTrieNode) -> FloatTrieNode:
-        new_root = FloatTrieNode(node._id)
+    @staticmethod
+    def calc_probs(node: IntTrieNode) -> FloatTrieNode:
+        new_root = FloatTrieNode(node.id_)
         for word in node.words.keys():
             tmp_prb = node.apriori_prob(word)
-            new_root.add_word(word)
+            new_root.add_word_prob(word, tmp_prb)
         return new_root

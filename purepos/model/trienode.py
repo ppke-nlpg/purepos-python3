@@ -26,7 +26,7 @@
 # todo nagyon nagyon jávás megközelítés.
 class BaseTrieNode:
     def __init__(self, _id, word=None):
-        self._id = _id
+        self.id_ = _id
         self.words = dict()
         self.num = self.zero()
         self.child_nodes = dict()
@@ -35,13 +35,13 @@ class BaseTrieNode:
             self.add_word(word)
 
     def zero(self):
-        ...
+        pass
 
     def increment(self, num):
-        ...
+        pass
 
     def create_node(self, _id):
-        ...
+        pass
 
     def add_word(self, word):
         if word in self.words.keys():
@@ -74,7 +74,7 @@ class BaseTrieNode:
         return self.words.get(word)
 
     def __str__(self):
-        return "(id: {}, words: {})".format(self._id, str(self.words))
+        return "(id: {}, words: {})".format(self.id_, str(self.words))
 
     # todo: getReprString csak ha kell.
 
@@ -120,24 +120,5 @@ class FloatTrieNode(BaseTrieNode):
     # todo ez nem valódi leszármazott, mást csinál!
     # todo ezért INLINE!!!
     def add_child(self, child):
-        self.child_nodes[child._id] = child
+        self.child_nodes[child.id_] = child
         raise Warning("Ezt a függvényt ne hívd meg! Inlájnold!")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
