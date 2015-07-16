@@ -409,3 +409,78 @@ class BeamSearch(BaseDecoder):
 
 # def create_initial_element(self) -> NGram:
 #     pass
+
+
+class BeamedViterbi(BaseDecoder):
+    def __init__(self, model: CompiledModel,
+                 morph_analyser: BaseMorphologicalAnalyser,
+                 log_theta: float,
+                 suf_theta: float,
+                 max_guessed_tags: int):
+        super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags)
+
+    def decode(self, observations: list, max_res_num: int) -> list:
+        obs = self.prepare_observations(observations)
+        start_ngram = self.create_initial_element()
+        tag_seq_list = self.beamed_search(start_ngram, obs, max_res_num)
+        return self.clean_results(tag_seq_list)
+
+    def beamed_search(self, start: NGram, observations: list, results_num: int) -> list:
+        beam = dict()
+        beam[start] = self.start_node(start)
+        first = True
+        pos = 0
+        for obs in observations:
+            new_beam = dict()
+            next_probs = dict()  # table: (r, c) -> v trololo :)
+            obs_probs = dict()
+            contexts = set(beam.keys())
+            nexts = self.next_probs(contexts, obs, pos, first)
+            for context, next_context_probs in nexts.items():
+                for tag, pair in next_context_probs.items():
+                    next_probs[(context, tag)] = pair[0]
+                    obs_probs[context.add(tag)] = pair[1]
+            for cell_index, trans_val in next_probs.items():
+                next_tag = cell_index[1]
+                context = cell_index[0]
+                new_state = context.add(next_tag)
+                from_node = beam[context]
+                new_val = trans_val + from_node.weight
+                self.update(new_beam, new_state, new_val, from_node)
+            # adding observation probabilities
+            if len(next_probs) > 1:
+                for tag_seq in new_beam.keys():
+                    new_beam[tag_seq].weight += obs_probs[tag_seq]
+
+            beam = self.prune(new_beam)
+            first = False
+            pos += 1
+        return self.find_max(beam, results_num)
+
+    def find_max(self, beam: dict, results_num: int) -> list:
+        sorted_nodes = sorted(beam.values(), key=lambda node: node.weight)
+        ret = []
+        for i in range(results_num):
+            if len(sorted_nodes) == 0:
+                break
+            max_node = sorted_nodes.pop()
+            max_tag_seq = self.decompose(max_node)
+            ret.append(max_tag_seq)
+        return ret
+
+    def prune(self, beam: dict) -> dict:
+        ret = dict()
+        max_node = max(beam.values(), key=lambda n: n.weight)
+        for ngram, act_node in beam.items():
+            if act_node.weight >= max_node.weight - self.log_theta:
+                ret[ngram] = act_node
+        return ret
+
+    def update(self, beam: dict, new_state: NGram, new_weight: float, from_node: Node):
+        if new_state not in beam.keys():
+            beam[new_state] = Node(new_state, new_weight, from_node)
+        elif beam[new_state].weight < new_weight:
+            beam[new_state].prev = from_node
+            beam[new_state].weight = new_weight
+        else:
+            pass
