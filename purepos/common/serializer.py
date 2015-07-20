@@ -1,4 +1,4 @@
-#!/usr/bin/env Python3
+#!/usr/bin/env python3
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -24,7 +24,6 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from io import IOBase
 import pickle
 import os
 from purepos.model.model import RawModel
@@ -37,7 +36,6 @@ class StandardSerializer:
             return pickle.load(file)
 
     @staticmethod
-    # todo nem kell letörölni, ha esetleg már létezik?
     def write_model(model: RawModel, filename: str):
         with open(filename, mode="wb") as file:
             pickle.dump(model, file)

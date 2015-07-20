@@ -1,4 +1,4 @@
-#!/usr/bin/env Python3
+#!/usr/bin/env python3
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -28,48 +28,51 @@ from docmodel.token import Token
 from purepos.model.vocabulary import BaseVocabulary
 from purepos.model.probmodel import BaseProbabilityModel, OneWordLexicalModel
 
-# todo ANAL_SPLIT_RE = "\|\|"
-ANAL_SPLIT_RE = "||"
-
-def parse(token: str) -> tuple:
-    # todo beégetett szepartor?
-    word_rb = token.find("{{")
-    anal_rb = token.find("}}")
-    word = token[:word_rb]
-    anals_strs = token[word_rb+2:anal_rb]  # todo beégetett szepartor? +2!
-    anals_list = anals_strs.split(ANAL_SPLIT_RE)
-    return word, anals_list
-
-
-def ispreanalysed(word: str) -> bool:
-    return word.find("{{") > 0 and word.rfind("}}") > 0  # todo beégetett szepartor?
-
-
-def clean(word: str) -> str:
-    return word[:word.find("{{")]  # todo beégetett szepartor?
-
-
-def anal2tag(anal: str) -> str:
-    return anal[anal.find("["):]  # todo beégetett szepartor?
-
-
-def anal2lemma(anal: str) -> str:
-    return anal[:anal.find("[")]  # todo beégetett szepartor?
-
 
 class AnalysisQueue:
+    ANAL_SPLIT_RE = "||"
+    ANAL_OPEN = "{{"
+    ANAL_CLOSE = "}}"
+    ANAL_TAG_OPEN = "["
+    DOLLARS = "$$"  # todo: ezt is ki kell vezetni?
+
+    @staticmethod
+    def parse(token: str) -> tuple:
+        word_rb = token.find(AnalysisQueue.ANAL_OPEN)
+        anal_rb = token.find(AnalysisQueue.ANAL_CLOSE)
+        word = token[:word_rb]
+        anals_strs = token[word_rb+len(AnalysisQueue.ANAL_OPEN):anal_rb]
+        anals_list = anals_strs.split(AnalysisQueue.ANAL_SPLIT_RE)
+        return word, anals_list
+
+    @staticmethod
+    def ispreanalysed(word: str) -> bool:
+        return word.find(AnalysisQueue.ANAL_OPEN) > 0 and word.rfind(AnalysisQueue.ANAL_CLOSE) > 0
+
+    @staticmethod
+    def clean(word: str) -> str:
+        return word[:word.find(AnalysisQueue.ANAL_OPEN)]
+
+    @staticmethod
+    def anal2tag(anal: str) -> str:
+        return anal[anal.find(AnalysisQueue.ANAL_TAG_OPEN):]
+
+    @staticmethod
+    def anal2lemma(anal: str) -> str:
+        return anal[:anal.find(AnalysisQueue.ANAL_TAG_OPEN)]
+
     def __init__(self):
         self.anals = []
         self.use_prob = []
         self.words = []
 
     def init(self, capacity: int):
-        self.anals = [None for x in range(capacity)]
-        self.use_prob = [None for x in range(capacity)]
-        self.words = [None for x in range(capacity)]
+        self.anals = [None for _ in range(capacity)]
+        self.use_prob = [None for _ in range(capacity)]
+        self.words = [None for _ in range(capacity)]
 
-    def add_word(self, input: str, position: int):
-        r = parse(input())
+    def add_word(self, inp: str, position: int):
+        r = self.parse(inp)
         word = r[0]
         anals_list = r[1]
 
@@ -77,19 +80,17 @@ class AnalysisQueue:
         self.anals[position] = {}
 
         for anal in anals_list:
-            val_sep_index = anal.find("$$")  # todo beégetett szepartor?
+            val_sep_index = anal.find(self.DOLLARS)
             lemmatag = anal
             prob = 1.0
             if val_sep_index > -1:
                 self.use_prob[position] = True
-                prob = float(anal[val_sep_index+2:])
+                prob = float(anal[val_sep_index+len(self.DOLLARS):])
                 lemmatag = anal[:val_sep_index]
+            self.anals[position][lemmatag] = prob
 
     def has_anal(self, position: int) -> bool:
         return len(self.anals) > position and self.anals[position] is not None
-
-    # def getAnals(self, position):
-    # anals.[position]
 
     def use_probabilities(self, pos: int) -> bool:
         if len(self.use_prob) > pos:
@@ -98,18 +99,18 @@ class AnalysisQueue:
             return False
 
     def lexical_model_for_word(self, pos: int, tag_voc: BaseVocabulary) -> BaseProbabilityModel:
-        map = self.transform_tags(pos, tag_voc)
-        return OneWordLexicalModel(map, self.words[pos])
+        mp = self.transform_tags(pos, tag_voc)
+        return OneWordLexicalModel(mp, self.words[pos])
 
     def transform_tags(self, pos: int, tag_voc: BaseVocabulary) -> dict:
-        map = {}
+        mp = {}
         for k, v in self.anals[pos]:
-            tagstr = anal2tag(k)
+            tagstr = self.anal2tag(k)
             tag = tag_voc.index(tagstr)
             if tag is None:
                 tag = tag_voc.add_element(tagstr)
-            map[tag] = v
-        return map
+            mp[tag] = v
+        return mp
 
     def tags(self, pos: int, tag_voc: BaseVocabulary) -> set:
         return set(self.transform_tags(pos, tag_voc).keys())
@@ -118,7 +119,5 @@ class AnalysisQueue:
         fanals = self.anals[pos].keys()
         ret = set()
         for fa in fanals:
-            ret.add(Token(self.words[pos], anal2lemma(fa), anal2tag(fa)))
+            ret.add(Token(self.words[pos], self.anal2lemma(fa), self.anal2tag(fa)))
         return ret
-
-

@@ -1,4 +1,4 @@
-#!/usr/bin/env Python3
+#!/usr/bin/env python3
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -32,8 +32,8 @@ from docmodel.containers import Paragraph, Document
 
 class CorpusReader(BaseReader):
     def __init__(self, token_reader: BaseReader, linesep: str=os.linesep):
+        super().__init__(linesep=linesep)
         self.token_reader = token_reader
-        self.linesep = linesep
         self.sentence_parser = SentenceReader(self.token_reader)
 
     def read(self, text: str):

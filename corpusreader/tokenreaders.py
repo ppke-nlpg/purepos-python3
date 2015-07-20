@@ -1,4 +1,4 @@
-#!/usr/bin/env Python3
+#!/usr/bin/env python3
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -83,12 +83,3 @@ class SentenceReader(BaseReader):
                 raise ParsingException("Empty word in '{}'".format(text))
             tokens.append(self.word_parser.read(word))
         return tokens
-
-
-
-
-
-
-
-
-

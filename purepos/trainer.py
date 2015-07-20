@@ -1,4 +1,4 @@
-#!/usr/bin/env Python3
+#!/usr/bin/env python3
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -29,6 +29,7 @@ from corpusreader.corpus_reader import CorpusReader
 from purepos.common.statistics import Statistics
 from purepos.model.model import RawModel
 from purepos.model.modeldata import ModelData
+
 
 class Trainer:
     def __init__(self, source: io.TextIOWrapper, reader: CorpusReader):

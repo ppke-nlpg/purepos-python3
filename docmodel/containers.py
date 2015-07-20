@@ -1,4 +1,4 @@
-#!/usr/bin/env Python3
+#!/usr/bin/env python3
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -29,6 +29,7 @@ import os
 SENTENCE_SEP = " "
 NL = os.linesep
 
+
 class Sentence(list):
     """Represents a POS-tagged stemmed sentence."""
 
@@ -38,13 +39,6 @@ class Sentence(list):
 
     def __str__(self):
         return SENTENCE_SEP.join([str(x) for x in self])
-
-    # Nem kell, mert a list tartalmazza. todo: törölni
-    # def __eq__(self, other):
-    #     if other is not None and isinstance(other, Sentence):
-    #         return len(self) == len(other) and
-    #     else:
-    #         return False
 
 
 class Paragraph(list):

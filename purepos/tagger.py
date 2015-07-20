@@ -1,4 +1,4 @@
-#!/usr/bin/env Python3
+#!/usr/bin/env python3
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -28,7 +28,7 @@ import io
 from docmodel.containers import Sentence
 from docmodel.token import Token, ModToken
 from purepos.common import util
-from purepos.common.analysisqueue import ispreanalysed, clean
+from purepos.common.analysisqueue import AnalysisQueue
 from purepos.common.lemma import LemmaComparator, batch_convert, def_lemma_representation_by_token
 from purepos.model.model import CompiledModel
 from purepos.morphology import BaseMorphologicalAnalyser
@@ -47,9 +47,9 @@ class POSTagger(BaseTagger):
         ret = []
         i = 0
         for word in sentence:
-            if ispreanalysed(word):
+            if AnalysisQueue.ispreanalysed(word):
                 util.analysis_queue.add_word(word, i)
-                ret.append(clean(word))
+                ret.append(AnalysisQueue.clean(word))
             else:
                 ret.append(word)
             i += 1

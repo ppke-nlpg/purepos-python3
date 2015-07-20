@@ -1,4 +1,4 @@
-#!/usr/bin/env Python3
+#!/usr/bin/env python3
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -66,8 +66,8 @@ theta {}""".format(self.tokens,
 
     def __eq__(self, other):
         return isinstance(other, Statistics) and \
-               self.sentences == other.sentences and \
-               self.tokens == other.tokens and \
-               self.l_guesser_items == other.l_guesser_items and \
-               self.u_guesser_items == other.u_guesser_items and \
-               self.theta == other.theta
+            self.sentences == other.sentences and \
+            self.tokens == other.tokens and \
+            self.l_guesser_items == other.l_guesser_items and \
+            self.u_guesser_items == other.u_guesser_items and \
+            self.theta == other.theta

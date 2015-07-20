@@ -1,4 +1,4 @@
-#!/usr/bin/env Python3
+#!/usr/bin/env python3
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -24,16 +24,15 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-import os
 from corpusreader.tokenreaders import BaseReader
 from corpusreader.tokenreaders import SentenceReader
 from corpusreader.tokenreaders import TaggedTokenReader
-from docmodel.containers import Sentence, Paragraph, Document
+from docmodel.containers import Paragraph, Document
 
 
 class HunPosCorpusReader(BaseReader):
     def __init__(self):
-        self.encoding = "ISO-8859-2"
+        super().__init__(encoding="ISO-8859-2")
         self.word_parser = TaggedTokenReader("\t")
         self.sentence_parser = SentenceReader(self.word_parser, self.linesep)
 
@@ -46,4 +45,3 @@ class HunPosCorpusReader(BaseReader):
         document = Document()
         document.append(paragraph)
         return document
-

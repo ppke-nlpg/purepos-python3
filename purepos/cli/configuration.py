@@ -1,4 +1,4 @@
-#!/usr/bin/env Python3
+#!/usr/bin/env python3
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -24,17 +24,14 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.model.mapper import stringmapping
-from xml.etree import ElementTree
 
-# todo Ez mi?
 class Configuration:
-    def __init__(self, tag_mappings: list=[],  # stringmapping
-                 lemma_mappings: list=[],  # stringmapping
+    def __init__(self, tag_mappings: list=None,  # stringmapping
+                 lemma_mappings: list=None,  # stringmapping
                  guessed_lemma_marker: str="",
                  weight: float=None):
-        self.tag_mappings = tag_mappings
-        self.lemma_mappings = lemma_mappings
+        self.tag_mappings = tag_mappings if tag_mappings is not None else []
+        self.lemma_mappings = lemma_mappings if lemma_mappings is not None else []
         self.guessed_lemma_marker = guessed_lemma_marker
         self.weight = weight
 
@@ -47,5 +44,4 @@ class Configuration:
 
     @staticmethod
     def read(filename: str):
-        tree = ElementTree.parse(filename).getroot()
-        #  todo implement?
+        raise NotImplementedError("This feature is not (yet) implemented in this version.")

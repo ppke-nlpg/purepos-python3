@@ -1,5 +1,4 @@
-#!/usr/bin/env Python3
-# todo nincs kész
+#!/usr/bin/env python3
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -27,12 +26,12 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 import re
 from docmodel.token import Token
-from purepos.model.combiner import BaseCombiner, LogLinearBiCombiner
+from purepos.model.combiner import LogLinearBiCombiner
 from purepos.model.vocabulary import BaseVocabulary
 from purepos.model.modeldata import ModelData, RawModelData, CompiledModelData
 
 
-main_pos_pat = re.compile("\\[([^.\\]]*)[.\\]]")  # todo: ez csak át lett másolva. \? Jól működik!
+main_pos_pat = re.compile("\[([^.\]]*)[.\]]")  # todo: ez csak át lett másolva. \? Jól működik!
 
 
 def batch_convert(prob_map: dict, word: str, vocab: BaseVocabulary) -> dict:
@@ -47,7 +46,7 @@ def def_lemma_representation(word, stem, tag):
     return SuffixLemmaTransformation(word, stem, tag)
 
 
-def def_lemma_representation_by_token(token: Token, data: ModelData):  # todo inline!
+def def_lemma_representation_by_token(token: Token, data: ModelData):
     return def_lemma_representation(token.token, token.stem, data.tag_vocabulary.index(token.tag))
 
 
@@ -59,13 +58,12 @@ def store_lemma(
         word: str,
         lemma: str,
         tag: int,
-        tagstring: str,
+        _: str,  # tagstring
         raw_modeldata: RawModelData):
     raw_modeldata.lemma_unigram_model.increment(lemma)
     cnt = 1
     lemmatrans = def_lemma_representation(word, lemma, tag)
     raw_modeldata.lemma_suffix_tree.add_word(word, lemmatrans, cnt, lemmatrans.min_cut_length())
-    # todo ilyen nem létezik.
 
 
 def main_pos_tag(tag: str):
@@ -88,7 +86,7 @@ def longest_substring(str1: str, str2: str) -> tuple:
     sb = []
     str1 = str1.lower()
     str2 = str2.lower()
-    num = [[0 for x in range(len(str1))] for x in range(str2)]
+    num = [[0 for _ in range(len(str1))] for _ in range(len(str2))]
     maxlen = 0
     last_begin = 0
 
@@ -123,17 +121,17 @@ class LemmaComparator:
         self.comp_model_data = compilde_model_data
         self.model_data = model_data
 
-    def compare(self, t1: tuple, t2: tuple):
-        # todo Java comparable interfész. Hol használjuk? Mire kell átírni?
-        combiner = self.comp_model_data.combiner
-        final_score1 = combiner.combine(t1[0], t1[1], self.comp_model_data, self.model_data)
-        final_score2 = combiner.combine(t2[0], t2[1], self.comp_model_data, self.model_data)
-        if final_score1 == final_score2:
-            return 0
-        if final_score1 < final_score2:
-            return -1
-        else:
-            return 1
+    # def compare(self, t1: tuple, t2: tuple):
+    #     # Java comparable interfész. E helyett itt callable.
+    #     combiner = self.comp_model_data.combiner
+    #     final_score1 = combiner.combine(t1[0], t1[1], self.comp_model_data, self.model_data)
+    #     final_score2 = combiner.combine(t2[0], t2[1], self.comp_model_data, self.model_data)
+    #     if final_score1 == final_score2:
+    #         return 0
+    #     if final_score1 < final_score2:
+    #         return -1
+    #     else:
+    #         return 1
 
     def __call__(self, pair):
         return self.comp_model_data.combiner.combine(pair[0], pair[1],
@@ -156,27 +154,27 @@ class BaseLemmaTransformation:
         tag = vocab.word(anal[1])
         return Token(word, anal[0], tag)
 
-    # def __str__(self) -> str:
-    #     return self.representation.__str__()
-    # todo unkomment, ha kell.
+    def __str__(self) -> str:
+        return str(self.representation)
 
     def __eq__(self, other) -> bool:
         return isinstance(other, type(self)) and self.representation == other.representation
-        # todd: leszármazottakkal újra áttekinteni
 
     def decode(self, word: str, lemma: str, tag: int):
-        ...
+        pass
 
     def encode(self, word: str, rep) -> tuple:
-        ...
+        pass
 
-    def postprocess(self, lemma: str) -> str:
+    @staticmethod
+    def postprocess(lemma: str) -> str:
         if len(lemma) > 1 and lemma[-1] == '-':
             return lemma[:-1]
         return lemma
         # todo ehelyett esetleg return lemma.rstrip('-')
 
-    def token(self, word: str, lemma: str, tag: int) -> Token:
+    @staticmethod
+    def token(word: str, lemma: str, tag: str) -> Token:
         return Token(word, lemma, tag)
 
 
@@ -204,7 +202,6 @@ class GeneralizedLemmaTransformation(BaseLemmaTransformation):
                 self.add_start == other.add_start and \
                 self.add_end == other.add_end and \
                 self.tag == other.tag
-
 
     def __init__(self, word: str, lemma: str, tag: int):
         super().__init__(word, lemma, tag)
@@ -258,9 +255,8 @@ class SuffixLemmaTransformation(BaseLemmaTransformation):
         tag_code = rep[1] / SuffixLemmaTransformation.SHIFT
         cut_size = rep[1] % SuffixLemmaTransformation.SHIFT
         add = rep[0]
-        lemma = word[0:len(word)-cut_size]
+        lemma = word[0:len(word)-cut_size] + add
         return lemma, tag_code
 
     def min_cut_length(self):
         return self.representation[1] % SuffixLemmaTransformation.SHIFT
-

@@ -38,6 +38,7 @@ from purepos.common import util
 from purepos.tagger import BaseTagger, POSTagger, MorphTagger
 from purepos.cli.configuration import Configuration
 from purepos.morphology import NullAnalyser, MorphologicalTable, HumorAnalyser
+from purepos.common.analysisqueue import AnalysisQueue
 
 
 def parse_arguments():
@@ -228,6 +229,11 @@ class PurePos:
 
     def __init__(self, options: dict):
         self.options = options
+        seps = options["input_separator"].split()
+        AnalysisQueue.ANAL_OPEN = seps[0]
+        AnalysisQueue.ANAL_SPLIT_RE = seps[1]
+        AnalysisQueue.ANAL_CLOSE = seps[2]
+        AnalysisQueue.ANAL_TAG_OPEN = seps[3]
 
     def run(self):
         if self.options.get("config_file") is None:
