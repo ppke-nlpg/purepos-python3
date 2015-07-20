@@ -36,7 +36,8 @@ from purepos.decoder.basedecoder import BeamSearch, BeamedViterbi
 
 
 class BaseTagger:
-    pass
+    def tag(self, source, output, max_res_num):
+        pass
 
 
 class POSTagger(BaseTagger):
@@ -63,13 +64,13 @@ class POSTagger(BaseTagger):
         self.model = model
         self.analyser = analyser
         if use_beam_search:
-            # todo esetleg beam_size?
+            # todo esetleg beam_size a parancssorból?
             self.decoder = BeamSearch(model, analyser, log_theta, suf_theta, max_guessed_tags)
         else:
             self.decoder = BeamedViterbi(model, analyser, log_theta, suf_theta, max_guessed_tags)
 
-    # todo tag_sentence java overload
-    def tag_sentence(self, sentence: list, max_res: int) -> Sentence:
+    def tag_sentence(self, sentence: list,  # list of strings
+                     max_res: int) -> Sentence:
         sentence = self.preprocess_sentence(sentence)
         tag_list = self.decoder.decode(sentence, max_res)
         ret = []
@@ -91,7 +92,6 @@ class POSTagger(BaseTagger):
             tokens.append(tok)
         return tokens
 
-    # todo tag_sentence java overload
     def tag(self, source: io.TextIOWrapper, dest: io.TextIOWrapper, max_results_number: int=1):
         for line in source:
             sent_str = self.tag_and_format(line, max_results_number)
@@ -101,7 +101,7 @@ class POSTagger(BaseTagger):
         sent_str = ""
         show_prb = (max_res_num > 1)
         if line.strip() != "":
-            s = self.tag_sentence(line.split(), max_res_num)  # list of Sentences
+            s = self.tag_sentence(line.split(), max_res_num)
             sent_str = self.sentences_to_string(s, show_prb)
         return sent_str
 
@@ -165,7 +165,7 @@ class MorphTagger(POSTagger):
             stems = self.simplify_lemma(util.analysis_queue.analysises(position))
             self.is_last_guessed = False
         else:
-            stems = self.analyser.analyse(t)
+            stems = self.analyser.analyse(t.token)
             self.is_last_guessed = False
 
         tag_log_probs = self.model.compiled_data.lemma_guesser.tag_log_probabilities(t.token)

@@ -31,14 +31,16 @@ from purepos.model.model import RawModel
 
 
 class StandardSerializer:
-    # todo esetleg file helyett filename?
     @staticmethod
-    def read_model(file: IOBase) -> RawModel:
-        return pickle.load(file)
+    def read_model(filename: str) -> RawModel:
+        with open(filename, mode="rb") as file:
+            return pickle.load(file)
 
     @staticmethod
-    def write_model(model: RawModel, file: IOBase):
-        pickle.dump(model, file)
+    # todo nem kell letörölni, ha esetleg már létezik?
+    def write_model(model: RawModel, filename: str):
+        with open(filename, mode="wb") as file:
+            pickle.dump(model, file)
 
     @staticmethod
     def delete_model(filename: str):

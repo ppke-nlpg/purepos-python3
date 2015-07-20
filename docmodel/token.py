@@ -1,4 +1,5 @@
 #!/usr/bin/env Python3
+# todo nincs kész
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -24,23 +25,23 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-SEP = "#"  # todo: változtatható legyen!
 
 class Token:
     """Class representing a stemmed tagged token in a sentence."""
+    SEP = "#"
 
-    def __init__(self, token: str, tag: str=None, stem: str=None):
+    def __init__(self, token: str, stem: str=None, tag: str=None):
         self.token = token
         self.tag = tag
         self.stem = stem
 
     def __str__(self):
         if self.token is None and self.stem is None:
-            return None # todo: esetleg inkább ""
+            return None  # todo: esetleg inkább ""
         if self.tag is not None and self.stem is None:
-            return self.token + SEP + self.tag
+            return self.token + self.SEP + self.tag
         else:
-            return self.token + SEP + self.stem + SEP + self.tag
+            return self.token + self.SEP + self.stem + self.SEP + self.tag
 
     def __eq__(self, other):
         if other is not None and isinstance(other, Token):
@@ -52,6 +53,6 @@ class Token:
 
 
 class ModToken(Token):
-    def __init__(self, token: str, tag: str=None, stem: str=None, original_stem: str=None):
+    def __init__(self, token: str, original_stem: str=None, stem: str=None, tag: str=None):
         self.original_stem = original_stem
-        super().__init__(token, tag, stem)
+        super().__init__(token, stem, tag)

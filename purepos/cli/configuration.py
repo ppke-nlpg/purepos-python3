@@ -45,7 +45,7 @@ class Configuration:
     GUESSED_MARKER = "guessed_marker"
     SUFFIX_MODEL_PARAMETERS = "suffix_model_weight"
 
-    # @staticmethod
-    # def read(filename: str):
-    #     tree = ElementTree.parse(filename).getroot()
-    #     tag_mappings
+    @staticmethod
+    def read(filename: str):
+        tree = ElementTree.parse(filename).getroot()
+        #  todo implement?

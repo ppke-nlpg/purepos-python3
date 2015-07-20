@@ -30,8 +30,13 @@ from purepos.model.ngram import NGram
 class History:
     def __init__(self, tag_seq: NGram, log_prob: float):
         self.tag_seq = tag_seq
-        self.log_prob = log_prob
+        self.log_prob = log_prob  # compare with.
 
     def __eq__(self, other):
-        return isinstance(other, History) and\
-            self.tag_seq.token_list == other.tag_seq.token_list
+        return self.log_prob == other.log_prob
+
+    def __lt__(self, other):
+        return self.log_prob < other.log_prob
+
+    def __gt__(self, other):
+        return self.log_prob > other.log_prob

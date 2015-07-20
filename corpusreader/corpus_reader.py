@@ -27,17 +27,14 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import os
 from corpusreader.tokenreaders import BaseReader
 from corpusreader.tokenreaders import SentenceReader
-from docmodel.containers import Sentence, Paragraph, Document
+from docmodel.containers import Paragraph, Document
 
 
 class CorpusReader(BaseReader):
     def __init__(self, token_reader: BaseReader, linesep: str=os.linesep):
         self.token_reader = token_reader
-        self.linesep = linesep  # todo: kell? van default. os.linesep vs "\n"
+        self.linesep = linesep
         self.sentence_parser = SentenceReader(self.token_reader)
-        # todo: ha nem kell máshol a token_reader, akkor ne legyen attribute.
-        # A sentence_parser jó, ha attribute, vagy legyen read szintű? Hasonlóan a
-        # hunpos_corpusr_readerben
 
     def read(self, text: str):
         sentences = list()
@@ -48,5 +45,3 @@ class CorpusReader(BaseReader):
         document = Document()
         document.append(paragraph)
         return document
-    # todo: Na de hé! Ez egy bekezdésbe zúzza az összes mondatot!
-

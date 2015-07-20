@@ -35,7 +35,6 @@ class Statistics:
         self.u_guesser_items = 0
         self.theta = None  # todo float. Használjuk egyáltalán?
 
-# todo: maybe inline the followings:
     def increment_lower_guesser_items(self, num: int):
         self.l_guesser_items += num
 
@@ -58,8 +57,12 @@ class Statistics:
 Guesser trained with
 {} lowercase
 {} uppercase tokens
-theta {}""".format(self.tokens, self.sentences, len(model.data.tag_vocabulary), self.l_guesser_items,
-                       self.u_guesser_items, self.theta)
+theta {}""".format(self.tokens,
+                   self.sentences,
+                   len(model.data.tag_vocabulary),
+                   self.l_guesser_items,
+                   self.u_guesser_items,
+                   self.theta)
 
     def __eq__(self, other):
         return isinstance(other, Statistics) and \

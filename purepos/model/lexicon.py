@@ -41,10 +41,10 @@ class Lexicon:
             self.representation[token] = {tag, 1}
         self.size += 1
 
-    def tags(self, word):
-        return self.representation.get(word, {}).keys()
+    def tags(self, word) -> set:
+        return set(self.representation.get(word, {}).keys())
 
-    def word_count(self, word):
+    def word_count(self, word) -> int:
         total = 0
         for c in self.representation.get(word, {}).values():
             total += c

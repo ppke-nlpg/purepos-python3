@@ -24,7 +24,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-import _io
+import io
 from docmodel.token import Token
 from docmodel.containers import Sentence
 
@@ -34,26 +34,18 @@ class ParsingException(Exception):
 
 
 class BaseReader:
-    def __init__(self, separator: str="#"):
+    def __init__(self, separator: str="#", linesep="\n", encoding="utf-8"):
         self.separator = separator
-        self.linesep = "\n"
-        self.encoding = "UTF-8"
+        self.linesep = linesep
+        self.encoding = encoding
 
     def read(self, text: str):
-        ...
+        pass
 
-    def read_from_file(self, file: _io.TextIOWrapper):
-        # todo: Biztos jó ötlet az egész fájlt beolvasni? Esetleg yield?
-        # todo: itt kéne az encoding-ot használni. Kell?
+    def read_from_io(self, file: io.TextIOWrapper):
+        # todo: Biztos jó ötlet az egész fájlt beolvasni? Esetleg yield? NEM.
         return self.read(file.read())
-    # todo: Ez nem kell Pythonba.
     # todo: line separator
-    # def read_from_scanner(self, scanner):
-    #     def read_scanner(sc):
-    #
-    #         pass
-    #
-    #     return self.read(read_scanner(scanner))
 
 
 class SimpleTokenReader(BaseReader):
@@ -66,15 +58,15 @@ class TaggedTokenReader(BaseReader):
         w_parts = text.split(self.separator)
         if len(w_parts) != 2:
             raise ParsingException("Malformed input: '{}'".format(text))
-        return Token(w_parts[0], w_parts[1])
+        return Token(w_parts[0], None, w_parts[1])
 
 
 class StemmedTaggedTokenReader(BaseReader):
     def read(self, text: str):
         w_parts = text.split(self.separator)
-        if len(w_parts) < 3:  # todo: 3-nál hosszabb lehet?
+        if len(w_parts) < 3:
             raise ParsingException("Malformed input: '{}'".format(text))
-        return Token(w_parts[0], w_parts[2], w_parts[1].replace('_', ' '))
+        return Token(w_parts[0], w_parts[1].replace('_', ' '), w_parts[2])
 
 
 class SentenceReader(BaseReader):
@@ -89,9 +81,6 @@ class SentenceReader(BaseReader):
         for word in text.split(self.separator):
             if len(word) == 0:
                 raise ParsingException("Empty word in '{}'".format(text))
-            # token = self.word_parser.read(word)
-            # if token is not None:  # todo: token lehet none? Ha nem, nem kell None check.
-            #     tokens.append(token)
             tokens.append(self.word_parser.read(word))
         return tokens
 

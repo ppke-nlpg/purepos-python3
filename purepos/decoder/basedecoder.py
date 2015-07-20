@@ -1,5 +1,4 @@
 #!/usr/bin/env Python3
-# todo nincs kész
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -38,12 +37,12 @@ from purepos.model.suffixguesser import BaseSuffixGuesser, HashSuffixGuesser
 from purepos.model.history import History
 from purepos.decoder.node import Node
 
+# „enum” values
 SEEN = 0
 LOWER_CASED_SEEN = 1
 SPECIAL_TOKEN = 2
 UNSEEN = 3
 
-# todo ezek be vannak égetve?
 EOS_EMISSION_PROB = 1.0
 UNKNOWN_TAG_WEIGHT = -99.0
 UNKOWN_TAG_TRANSITION = -99.0
@@ -80,7 +79,7 @@ class BaseDecoder:
         # spec_name = ""
 
         str_anals = self.morphological_analyzer.tags(word)
-        if str_anals is not None and len(str_anals) > 0:
+        if len(str_anals) > 0:
             isoov = False
             for tag in str_anals:
                 i = self.model.data.tag_vocabulary.index(tag)
@@ -296,7 +295,6 @@ class BaseDecoder:
         return stack
 
     def decode(self, observations: list, max_res_num: int) -> list:
-        # todo később. új fv.
         pass
 
     @staticmethod
@@ -332,7 +330,6 @@ class BeamSearch(BaseDecoder):
                  suf_theta: float,
                  max_guessed_tags: int,
                  beam_size: int=None):
-        # todo favágó módja a konstruktor overridingnak. Cserébe kívülről nem látszik, hogy 10
         if beam_size is None:
             super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags)
             self.beam_size = 10
@@ -350,15 +347,15 @@ class BeamSearch(BaseDecoder):
     def k_top(self, beam: list, max_res_num: int) -> list:
         ret = []
         for i in range(min(max_res_num, len(beam))):
-            h = beam[-1]
-            beam[-1:] = []
+            # h = beam[-1]
+            # beam[-1:] = []
+            h = beam.pop()
             tag_seq = h.tag_seq.token_list
             cleaned = self.clean(tag_seq)
             ret.append((cleaned, h.log_prob))
         return ret
 
     def clean(self, tag_seq: list) -> list:
-        # todo inline?
         return tag_seq[self.model.data.tagging_order:]
 
     def beam_search(self, observations: list) -> list:
@@ -372,15 +369,12 @@ class BeamSearch(BaseDecoder):
             position += 1
         return beam
 
-    def collect_contexts(self, beam: list) -> set:
-        return {h.tag_seq for h in beam}  # trololo
-        # todo inline?
-        # ret = set()
-        # for h in beam:
-        #     ret.add(h.tag_seq)
-        # return ret
+    @staticmethod
+    def collect_contexts(beam: list) -> set:
+        return {h.tag_seq for h in beam}  # trololob :) inline?
 
-    def update_beam(self, beam, probs: dict) -> list:
+    @staticmethod
+    def update_beam(beam, probs: dict) -> list:
         new_beam = []
         for h in beam:
             context = h.tag_seq
@@ -390,7 +384,7 @@ class BeamSearch(BaseDecoder):
                 new_seq = context.add(next_tag)
                 new_prob = old_prob + prob_vals[0] + prob_vals[1]
                 new_beam.append(History(new_seq, new_prob))
-        new_beam.sort()  # todo meggyőződni, hogy tényleg növekvő-e a sorrend:
+        new_beam.sort()
         return new_beam
 
     def prune(self, beam: list):
@@ -399,7 +393,7 @@ class BeamSearch(BaseDecoder):
         else:
             maxh = beam[-1]
             while not beam[0].log_prob > (maxh.log_prob - self.log_theta):
-                beam[0:1] = []  # todo ez is egy sorba húzható esetleg.
+                beam[0:1] = []
 
     def init_beam(self) -> list:
         beam = []
@@ -476,7 +470,8 @@ class BeamedViterbi(BaseDecoder):
                 ret[ngram] = act_node
         return ret
 
-    def update(self, beam: dict, new_state: NGram, new_weight: float, from_node: Node):
+    @staticmethod
+    def update(beam: dict, new_state: NGram, new_weight: float, from_node: Node):
         if new_state not in beam.keys():
             beam[new_state] = Node(new_state, new_weight, from_node)
         elif beam[new_state].weight < new_weight:

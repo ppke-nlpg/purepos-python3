@@ -44,7 +44,7 @@ class BaseMapper:
 
 
 class BaseTagMapper(BaseMapper):
-    def filter(self, morph_anals: list, possible_tags: list):
+    def filter(self, morph_anals: list or set, possible_tags: list or set) -> list:
         pass
 
 
@@ -88,7 +88,7 @@ class TagMapper(BaseTagMapper):
             ret.append(self.map(e))
         return ret
 
-    def filter(self, morph_anals: list, possible_tags: list):
+    def filter(self, morph_anals: list or set, possible_tags: list or set) -> list:
         ret = []
         for anal in morph_anals:
             mapped_tag = self.map(anal)

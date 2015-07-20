@@ -35,8 +35,8 @@ from purepos.model.modeldata import ModelData, RawModelData, CompiledModelData
 main_pos_pat = re.compile("\\[([^.\\]]*)[.\\]]")  # todo: ez csak át lett másolva. \? Jól működik!
 
 
-def batch_convert(prob_map: dict, word: str, vocab: BaseVocabulary):
-    ret = {}
+def batch_convert(prob_map: dict, word: str, vocab: BaseVocabulary) -> dict:
+    ret = dict()
     for k, v in prob_map:
         lemma = k.convert(word, vocab)
         ret[lemma] = (k, v)
@@ -134,6 +134,10 @@ class LemmaComparator:
             return -1
         else:
             return 1
+
+    def __call__(self, pair):
+        return self.comp_model_data.combiner.combine(pair[0], pair[1],
+                                                     self.comp_model_data, self.model_data)
 
 
 class BaseLemmaTransformation:

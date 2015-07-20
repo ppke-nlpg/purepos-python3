@@ -24,25 +24,24 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from _io import TextIOWrapper
+from io import TextIOWrapper
+from docmodel.token import Token
 
 
 class BaseMorphologicalAnalyser:
-    # tokeneknél tok.token-nel hívható
     def tags(self, word: str) -> list:
-        ...
+        pass
 
     def analyse(self, word: str) -> list:
-        ...
+        pass
 
 
 class NullAnalyser(BaseMorphologicalAnalyser):
-    # todo: Na de hé! Ez kell egyáltalán?
-    def tags(self, word):
-        return None
+    def tags(self, word: str):
+        return []  # eredetileg None
 
-    def analyse(self, word):
-        return None
+    def analyse(self, word: str):
+        return []  # eredetileg None
 
 
 class MorphologicalTable(BaseMorphologicalAnalyser):
@@ -58,9 +57,27 @@ class MorphologicalTable(BaseMorphologicalAnalyser):
         file.close()
 
     def tags(self, word: str):
-        return self.morph_table.get(word)  # todo: lehetne itt [] default?
+        return self.morph_table.get(word, [])
 
     def analyse(self, word: str):
-    # todo: Na de hé! Ez kell egyáltalán?
-        return None
+        return []  # eredetileg None
 
+
+class HumorAnalyser(BaseMorphologicalAnalyser):
+    def __init__(self, humor):
+        self.humor = humor
+
+    def tags(self, word: str) -> list:
+        # return [anal[1] for anal in self.humor.analyze(word)]
+        tags = []
+        anals = self.humor.analyze(word)
+        for anal in anals:
+            tags.append(anal[1])
+        return tags
+
+    def analyse(self, word: str) -> list:
+        tokens = []
+        anals = self.humor.analyze(word)
+        for anal in anals:
+            tokens.append(Token(word, anal[0], anal[1]))
+        return tokens

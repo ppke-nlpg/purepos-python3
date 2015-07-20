@@ -29,7 +29,7 @@ import re
 
 class SpecTokenMatcher:
     def __init__(self):
-        self.patterns = {}
+        self.patterns = dict()
         self.patterns["@CARD"] = re.compile("^[0-9]+$")
         self.patterns["@CARDPUNCT"] = re.compile("^[0-9]+\\.$")
         self.patterns["@CARDSEPS"] = re.compile("^[0-9\\.,:-]+[0-9]+$")

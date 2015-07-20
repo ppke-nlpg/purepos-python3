@@ -30,7 +30,7 @@ import math
 class BaseSuffixGuesser:
 
     @staticmethod
-    def max_probability_tag(probabilities: dict):
+    def max_probability_tag(probabilities: dict) -> int:
         m = max(probabilities.items(), key=lambda x: x[1])
         return m[0]
 

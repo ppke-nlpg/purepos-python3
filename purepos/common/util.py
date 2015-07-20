@@ -1,5 +1,4 @@
 #!/usr/bin/env Python3
-# todo nincs kész
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -39,7 +38,12 @@ STEM_FILTER_PROPERTY = ""  # todo: System.getProperty("stems.path");
 UNKOWN_VALUE = -99
 LEMMA_MAPPER = None  # StringMapper
 analysis_queue = AnalysisQueue()
-CONFIGURATION = None  # todo implement class and construct an object. Where?
+CONFIGURATION = None
+
+
+class Constants:  # todo: ötlet minden konstan egy objektumba -> egy időben több különböző PurePOS
+    def __init__(self):
+        pass
 
 
 def create_stem_filter() -> StemFilter:
@@ -70,6 +74,13 @@ def find_max_pair(d: dict) -> tuple:
     return max_k, max_v
 
 
+def smooth(val: float):
+    if val is not None and val != float("-inf"):
+        return val
+    else:
+        return UNKOWN_VALUE
+
+
 def add_mappings(comp_modeldata: CompiledModelData,
                  tag_vocabulary: BaseVocabulary,
                  tag_mappings: list):
@@ -80,8 +91,6 @@ def add_mappings(comp_modeldata: CompiledModelData,
     comp_modeldata.tag_transition_model.element_mapper = mapper
     comp_modeldata.lower_case_suffix_guesser.tag_mapper = mapper
     comp_modeldata.upper_case_suffix_guesser.tag_mapper = mapper
-    # todo: implement attributes
-
 
 
 def simplify_lemma(t: token.Token):
@@ -92,6 +101,7 @@ def simplify_lemma(t: token.Token):
 
 class BiDict(dict):
     def __init__(self, *args, **kwargs):
+        super().__init__()
         d = dict(*args, **kwargs)
         self.inverse = {}
         for k, v in d.items():
@@ -114,4 +124,3 @@ class BiDict(dict):
             raise KeyError(key)
         self.inverse.__delitem__(v)
         super().__delitem__(key)
-
