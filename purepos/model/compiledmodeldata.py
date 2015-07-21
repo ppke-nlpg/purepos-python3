@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8, vim: expandtab:ts=4 -*-
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -36,7 +37,7 @@ class CompiledModelData:
         self.unigram_lemma_model = LemmaUnigramModel()
         self.lemma_guesser = BaseSuffixGuesser()
         self.suffix_lemma_model = BaseSuffixGuesser()
-        from purepos.model.combiner import BaseCombiner
+        from purepos.model.combiner import BaseCombiner  # todo jó ez?
         self.combiner = BaseCombiner()
         self.tag_transition_model = BaseProbabilityModel()
         self.standard_emission_model = BaseProbabilityModel()

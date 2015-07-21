@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8, vim: expandtab:ts=4 -*-
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials

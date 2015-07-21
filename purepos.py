@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8, vim: expandtab:ts=4 -*-
 ###############################################################################
 # Copyright (c) 2015 Móréh, Tamás
 # All rights reserved. This program and the accompanying materials
@@ -75,10 +76,10 @@ def parse_arguments():
                         metavar="<analyzer>", type=str, default="integrated", dest="morphology")
     parser.add_argument("-H", "--pyhumor-path",
                         help="Set the path of the PyHumor module where the Humor class is defined.",
-                        metavar="<path>", type=str, default=None)  # todo default path
+                        metavar="<path>", type=str, default="")  # todo default path
     parser.add_argument("-L", "--lex-path",
                         help="Set the path of the lex file used by the Humor analyser.",
-                        metavar="<path>", type=str, default=None)  # todo default path
+                        metavar="<path>", type=str, default="lex/")
     parser.add_argument("--only-pos-tags",
                         help="Do not perform stemming, output only POS tags. Tagging only option.",
                         action="store_true", dest="no_stemming")
