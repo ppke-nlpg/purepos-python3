@@ -79,7 +79,7 @@ def parse_arguments():
                         metavar="<path>", type=str, default="")  # todo default path
     parser.add_argument("-L", "--lex-path",
                         help="Set the path of the lex file used by the Humor analyser.",
-                        metavar="<path>", type=str, default="lex/")
+                        metavar="<path>", type=str, default="lex/")  # todo default path
     parser.add_argument("--only-pos-tags",
                         help="Do not perform stemming, output only POS tags. Tagging only option.",
                         action="store_true", dest="no_stemming")
@@ -104,8 +104,8 @@ def parse_arguments():
                         metavar="<encoding>", type=str, default=sys.getdefaultencoding())
     parser.add_argument("--input-separator",
                         help="Separator characters and tag starting character for annotated input "
-                             "(divided by spaces). Eg.: \"{{ || }} [\"",
-                        metavar="<separators>", type=str, default="{{ || }} [")
+                             "(divided by the first character cf. sed). Eg.: \"#{{#||#}}#[\"",
+                        metavar="<separators>", type=str, default=" {{ || }} [")
     parser.add_argument("-S", "--separator",
                         help="Separator character between word, lemma and tags. Default: '#'",
                         metavar="<separator>", type=str, default="#")
@@ -115,8 +115,8 @@ def parse_arguments():
                         metavar="<file>", type=str, default=None)
     parser.add_argument("-d", "--beam-decoder",
                         help="Use Beam Search decoder. The default is to employ the Viterbi "
-                             "algorithm. Tagging only option.", action="store_true")  # todo
-    #  a hatékonyabb legyen a defaut
+                             "algorithm. Tagging only option.", action="store_true")
+    # todo beam_size
     parser.add_argument("-f", "--config-file",
                         help="Configuratoin file containg tag mappings. "
                              "Defaults to do not map any tag.",
@@ -171,7 +171,7 @@ class PurePos:
             use_beam_search: bool,
             out_path: str,
             humor_path: str,
-            lex_path: str):
+            lex_path: str):  # todo IDÁIG KIHOZNI A HUMOR KONSTRUKTOR ELEMEIT *args, **kwargs
         if not input_path:
             source = sys.stdin
         else:
@@ -190,7 +190,7 @@ class PurePos:
     @staticmethod
     def load_humor(humor_path: str, lex_path: str) -> HumorAnalyser:
         humor_module = importlib.machinery.SourceFileLoader("humor", humor_path).load_module()
-        humor = humor_module.Humor(lex_path)
+        humor = humor_module.Humor(_lex_path=lex_path)
         return HumorAnalyser(humor)
 
     @staticmethod
@@ -230,7 +230,7 @@ class PurePos:
 
     def __init__(self, options: dict):
         self.options = options
-        seps = options["input_separator"].split()
+        seps = options["input_separator"][1:].split(options["input_separator"][0])
         AnalysisQueue.ANAL_OPEN = seps[0]
         AnalysisQueue.ANAL_SPLIT_RE = seps[1]
         AnalysisQueue.ANAL_CLOSE = seps[2]

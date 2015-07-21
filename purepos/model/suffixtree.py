@@ -76,7 +76,7 @@ class HashSuffixTree(BaseSuffixTree):
         else:
             tags_counts = dict()
             tags_counts[tag] = cnt
-            value = (tags_counts, cnt)
+            value = [tags_counts, cnt]
             self.representation[suffix] = value
 
     def create_guesser(self, theta: float) -> BaseSuffixGuesser:

@@ -99,6 +99,9 @@ class BaseLemmaTransformation:
     def __str__(self) -> str:
         return str(self.representation)
 
+    def __hash__(self):
+        return self.__str__().__hash__()
+
     def __eq__(self, other) -> bool:
         return isinstance(other, type(self)) and self.representation == other.representation
 
@@ -113,7 +116,7 @@ class BaseLemmaTransformation:
         if len(lemma) > 1 and lemma[-1] == '-':
             return lemma[:-1]
         return lemma
-        # todo ehelyett esetleg return lemma.rstrip('-')
+        # return lemma.rstrip('-', )
 
     @staticmethod
     def token(word: str, lemma: str, tag: str) -> Token:

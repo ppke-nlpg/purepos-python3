@@ -34,7 +34,7 @@ main_pos_pat = re.compile("\[([^.\]]*)[.\]]")  # todo: ez csak át lett másolva
 
 def batch_convert(prob_map: dict, word: str, vocab: BaseVocabulary) -> dict:
     ret = dict()
-    for k, v in prob_map:
+    for k, v in prob_map.items():
         lemma = k.convert(word, vocab)
         ret[lemma] = (k, v)
     return ret

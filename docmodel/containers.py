@@ -65,3 +65,4 @@ class Document(list):
         ret = []
         for p in self:
             ret.extend(p)
+        return ret

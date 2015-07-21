@@ -32,14 +32,14 @@ class Lexicon:
         self.size = 0
 
     def add_token(self, token, tag):
-        if token in self.representation:
+        if token in self.representation.keys():
             value = self.representation[token]
-            if tag in value:
+            if tag in value.keys():
                 value[tag] += 1
             else:
                 value[tag] = 1
         else:
-            self.representation[token] = {tag, 1}
+            self.representation[token] = {tag: 1}
         self.size += 1
 
     def tags(self, word) -> set:
@@ -51,9 +51,8 @@ class Lexicon:
             total += c
         return total
 
-    # todo: iterátor. egészen pontosan min kell végigmenni?
-    def iterator(self):
-        return self.representation.items()
+    # def iterator(self):
+    #     return self.representation.items()
 
     def wordcount_for_tag(self, word, tag):
         return self.representation.get(word, {}).get(tag, 0)

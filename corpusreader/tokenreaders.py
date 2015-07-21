@@ -71,7 +71,7 @@ class StemmedTaggedTokenReader(BaseReader):
 
 
 class SentenceReader(BaseReader):
-    def __init__(self, word_parser: BaseReader, separator: str="\s"):
+    def __init__(self, word_parser: BaseReader, separator: str=None):
         super().__init__(separator)
         self.word_parser = word_parser
 

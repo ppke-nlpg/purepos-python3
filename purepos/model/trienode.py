@@ -49,7 +49,7 @@ class BaseTrieNode:
             self.words[word] = self.increment(self.words[word])
         else:
             self.words[word] = self.increment(self.zero())
-        self.increment(self.num)
+        self.num = self.increment(self.num)
 
     def add_child(self, child):
         if child not in self.child_nodes.keys():

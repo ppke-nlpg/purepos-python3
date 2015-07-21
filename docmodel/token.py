@@ -43,6 +43,9 @@ class Token:
         else:
             return self.token + self.SEP + self.stem + self.SEP + self.tag
 
+    def __hash__(self):
+        return hash(self.stem) * 100 + hash(self.token) * 10 + hash(self.tag)
+
     def __eq__(self, other):
         if other is not None and isinstance(other, Token):
             return (other.token == self.token) and\

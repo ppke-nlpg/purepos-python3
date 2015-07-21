@@ -106,7 +106,7 @@ class RawModel:
     def build_suffix_trees(self):
         self.raw_model_data.lower_suffix_tree = HashSuffixTree(self.data.suffix_length)
         self.raw_model_data.upper_suffix_tree = HashSuffixTree(self.data.suffix_length)
-        for word, m in self.data.standard_tokens_lexicon:
+        for word, m in self.data.standard_tokens_lexicon.representation.items():
             word_freq = self.data.standard_tokens_lexicon.word_count(word)
             if word_freq <= self.data.rare_frequency:
                 lower_word = word.lower()

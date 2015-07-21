@@ -59,4 +59,4 @@ class ModelData:
                suffix_length: int,
                rare_frequency: int):
         return ModelData(tagging_order, emission_order, suffix_length, rare_frequency,
-                         Lexicon(), Lexicon, IntVocabulary())
+                         Lexicon(), Lexicon(), IntVocabulary())

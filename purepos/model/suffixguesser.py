@@ -63,7 +63,7 @@ class HashSuffixGuesser(BaseSuffixGuesser):
     def tag_probabilities(self, word) -> dict:
         mret = dict()
         for i in range(len(word)-1, -1, -1):
-            suff = word[:i]
+            suff = word[i:]
             suffix_value = self.freq_table.get(suff)
             if suffix_value is not None:
                 tag_suff_freqs = suffix_value[0]
