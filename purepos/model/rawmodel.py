@@ -26,30 +26,28 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 from docmodel.containers import Document, Sentence
 from docmodel.token import Token
-from purepos.model.modeldata import ModelData, RawModelData, CompiledModelData
+from purepos.model.compiledmodel import CompiledModel
+from purepos.model.modeldata import ModelData
+from purepos.model.rawmodeldata import RawModelData
 from purepos.model.suffixtree import HashSuffixTree
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.common.statistics import Statistics
-from purepos.common import util, lemma
+from purepos.common import util
 from purepos.cli.configuration import Configuration
 
 
-class BaseModel:
-    """
-    An object of this class is representing the model of a POS tagger.
-    Getterek helyett: model.data.<attribútum>
-    """
-    def __init__(self, data: ModelData):
-        self.data = data
+class RawModel:
+    @staticmethod
+    def store_lemma(word: str,
+                    lemma: str,
+                    tag: int,
+                    _: str,  # tagstring
+                    raw_modeldata: RawModelData):
+        raw_modeldata.lemma_unigram_model.increment(lemma)
+        cnt = 1
+        lemmatrans = def_lemma_representation(word, lemma, tag)
+        raw_modeldata.lemma_suffix_tree.add_word(word, lemmatrans, cnt, lemmatrans.min_cut_length())
 
-
-class CompiledModel(BaseModel):
-    def __init__(self, comp_model_data: CompiledModelData, model_data: ModelData):
-        super().__init__(model_data)
-        self.compiled_data = comp_model_data
-
-
-class RawModel(BaseModel):
     @staticmethod
     def add_sentence_markers(sentence: Sentence):
         sentence.insert(0, Token(ModelData.BOS_TOKEN, None, ModelData.BOS_TAG))
@@ -58,7 +56,7 @@ class RawModel(BaseModel):
         # __init__(self, tagging_order: int, emission_order: int, suffix_length: int, rare_freq:
         # int):
         # ModelData.create(tagging_order, emission_order, suffix_length, rare_freq)
-        super().__init__(model_data)
+        self.data = model_data
         self.raw_model_data = RawModelData(model_data.tagging_order, model_data.emission_order)
 
     def train(self, document: Document):
@@ -92,7 +90,7 @@ class RawModel(BaseModel):
             prev_tags = context[:-1]
 
             if word != ModelData.BOS_TOKEN or word == ModelData.EOS_TOKEN:
-                lemma.store_lemma(word, lem, tag, tagstr, self.raw_model_data)
+                self.store_lemma(word, lem, tag, tagstr, self.raw_model_data)
 
                 self.raw_model_data.tag_ngram_model.add_word(prev_tags, tag)
                 self.raw_model_data.stat.increment_token_count()
@@ -125,7 +123,7 @@ class RawModel(BaseModel):
     def compile(self, conf: Configuration) -> CompiledModel:
         self.data.tag_vocabulary.store_max_element()
         comp_model_data = self.raw_model_data.compile()
-        util.add_mappings(comp_model_data, self.data.tag_vocabulary, conf.tag_mappings())
+        comp_model_data.add_mappings(self.data.tag_vocabulary, conf.tag_mappings())
         return CompiledModel(comp_model_data, self.data)
 
     def last_stat(self) -> Statistics:

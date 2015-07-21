@@ -73,7 +73,7 @@ class HumorAnalyser(BaseMorphologicalAnalyser):
         anals = self.humor.analyze(word)
         for anal in anals:
             tags.append(anal[1])
-        return tags
+        return tags  # todo ez így?
 
     def analyse(self, word: str) -> list:
         tokens = []

@@ -24,8 +24,34 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.common.util import BiDict
 from purepos.model.ngram import NGram
+
+
+class BiDict(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        d = dict(*args, **kwargs)
+        self.inverse = {}
+        for k, v in d.items():
+            if self.get(k) is None and self.inverse.get(v) is None:
+                self[k] = v
+                self.inverse[v] = k
+            else:
+                raise KeyError("BiDict does not allow same values for multiple keys.")
+
+    def __setitem__(self, k, v):
+        if self.get(k) is None and self.inverse.get(v) is None:
+            super().__setitem__(k, v)
+            self.inverse[v] = k
+        else:
+            raise KeyError("BiDict does not allow same values for multiple keys.")
+
+    def __delitem__(self, key):
+        v = self.get(key)
+        if v is None:
+            raise KeyError(key)
+        self.inverse.__delitem__(v)
+        super().__delitem__(key)
 
 
 class BaseVocabulary:

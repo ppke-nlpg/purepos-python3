@@ -36,8 +36,8 @@ from purepos.trainer import Trainer
 from purepos.common.serializer import StandardSerializer
 from purepos.common import util
 from purepos.tagger import BaseTagger, POSTagger, MorphTagger
-from purepos.cli.configuration import Configuration
 from purepos.morphology import NullAnalyser, MorphologicalTable, HumorAnalyser
+from purepos.cli.configuration import Configuration
 from purepos.common.analysisqueue import AnalysisQueue
 
 

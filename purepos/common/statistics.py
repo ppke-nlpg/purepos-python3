@@ -24,7 +24,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.model.model import BaseModel
+# from purepos.model.model import BaseModel
 
 
 class Statistics:
@@ -47,7 +47,7 @@ class Statistics:
     def increment_sentence_count(self):
         self.sentences += 1
 
-    def stat(self, model: BaseModel):
+    def stat(self, model):
         return \
             """Training corpus:
 {} tokens

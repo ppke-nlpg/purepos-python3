@@ -27,8 +27,14 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 from docmodel.containers import Document
 from docmodel.token import Token
 from purepos.common import util, lemma
-from purepos.model.modeldata import CompiledModelData, RawModelData, ModelData
+from purepos.model.modeldata import ModelData
+from purepos.model.rawmodeldata import RawModelData
+from purepos.model.compiledmodeldata import CompiledModelData
 from purepos.model.suffixtree import BaseSuffixTree
+
+
+def default_combiner():
+    return LogLinearBiCombiner()
 
 
 class BaseCombiner:

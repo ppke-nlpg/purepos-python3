@@ -26,7 +26,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 import pickle
 import os
-from purepos.model.model import RawModel
+from purepos.model.rawmodel import RawModel
 
 
 class StandardSerializer:

@@ -30,7 +30,7 @@ from docmodel.token import Token, ModToken
 from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue
 from purepos.common.lemma import LemmaComparator, batch_convert, def_lemma_representation_by_token
-from purepos.model.model import CompiledModel
+from purepos.model.rawmodel import CompiledModel
 from purepos.morphology import BaseMorphologicalAnalyser
 from purepos.decoder.basedecoder import BeamSearch, BeamedViterbi
 

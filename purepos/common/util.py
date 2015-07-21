@@ -27,9 +27,9 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import os
 from docmodel import token
 from purepos.common.analysisqueue import AnalysisQueue
-from purepos.model.modeldata import CompiledModelData
-from purepos.model.mapper import TagMapper
-from purepos.model.vocabulary import BaseVocabulary
+# from purepos.model.compiledmodeldata import CompiledModelData
+# from purepos.model.mapper import TagMapper
+# from purepos.model.vocabulary import BaseVocabulary
 from purepos.decoder.stemfilter import StemFilter
 
 
@@ -81,46 +81,20 @@ def smooth(val: float):
         return UNKOWN_VALUE
 
 
-def add_mappings(comp_modeldata: CompiledModelData,
-                 tag_vocabulary: BaseVocabulary,
-                 tag_mappings: list):
-    mapper = TagMapper(tag_vocabulary, tag_mappings)
-    comp_modeldata.standard_emission_model.context_mapper = mapper
-    comp_modeldata.spec_tokens_emission_model.context_mapper = mapper
-    comp_modeldata.tag_transition_model.context_mapper = mapper
-    comp_modeldata.tag_transition_model.element_mapper = mapper
-    comp_modeldata.lower_case_suffix_guesser.tag_mapper = mapper
-    comp_modeldata.upper_case_suffix_guesser.tag_mapper = mapper
+# átkerült a compiled_model_datába
+# def add_mappings(comp_modeldata: CompiledModelData,
+#                  tag_vocabulary: BaseVocabulary,
+#                  tag_mappings: list):
+#     mapper = TagMapper(tag_vocabulary, tag_mappings)
+#     comp_modeldata.standard_emission_model.context_mapper = mapper
+#     comp_modeldata.spec_tokens_emission_model.context_mapper = mapper
+#     comp_modeldata.tag_transition_model.context_mapper = mapper
+#     comp_modeldata.tag_transition_model.element_mapper = mapper
+#     comp_modeldata.lower_case_suffix_guesser.tag_mapper = mapper
+#     comp_modeldata.upper_case_suffix_guesser.tag_mapper = mapper
 
 
 def simplify_lemma(t: token.Token):
     if LEMMA_MAPPER is not None:
         return token.ModToken(t.token, stem=LEMMA_MAPPER.map(t.stem), tag=t.tag)
     return t
-
-
-class BiDict(dict):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        d = dict(*args, **kwargs)
-        self.inverse = {}
-        for k, v in d.items():
-            if self.get(k) is None and self.inverse.get(v) is None:
-                self[k] = v
-                self.inverse[v] = k
-            else:
-                raise KeyError("BiDict does not allow same values for multiple keys.")
-
-    def __setitem__(self, k, v):
-        if self.get(k) is None and self.inverse.get(v) is None:
-            super().__setitem__(k, v)
-            self.inverse[v] = k
-        else:
-            raise KeyError("BiDict does not allow same values for multiple keys.")
-
-    def __delitem__(self, key):
-        v = self.get(key)
-        if v is None:
-            raise KeyError(key)
-        self.inverse.__delitem__(v)
-        super().__delitem__(key)

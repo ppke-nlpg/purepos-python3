@@ -26,9 +26,9 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 import re
 from docmodel.token import Token
-from purepos.model.combiner import LogLinearBiCombiner
 from purepos.model.vocabulary import BaseVocabulary
-from purepos.model.modeldata import ModelData, RawModelData, CompiledModelData
+from purepos.model.modeldata import ModelData
+from purepos.model.compiledmodeldata import CompiledModelData
 
 
 main_pos_pat = re.compile("\[([^.\]]*)[.\]]")  # todo: ez csak át lett másolva. \? Jól működik!
@@ -48,22 +48,6 @@ def def_lemma_representation(word, stem, tag):
 
 def def_lemma_representation_by_token(token: Token, data: ModelData):
     return def_lemma_representation(token.token, token.stem, data.tag_vocabulary.index(token.tag))
-
-
-def default_combiner():
-    return LogLinearBiCombiner()
-
-
-def store_lemma(
-        word: str,
-        lemma: str,
-        tag: int,
-        _: str,  # tagstring
-        raw_modeldata: RawModelData):
-    raw_modeldata.lemma_unigram_model.increment(lemma)
-    cnt = 1
-    lemmatrans = def_lemma_representation(word, lemma, tag)
-    raw_modeldata.lemma_suffix_tree.add_word(word, lemmatrans, cnt, lemmatrans.min_cut_length())
 
 
 def main_pos_tag(tag: str):

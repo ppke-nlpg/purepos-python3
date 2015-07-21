@@ -28,7 +28,7 @@ import math
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.common import util
 from purepos.morphology import BaseMorphologicalAnalyser
-from purepos.model.model import CompiledModel
+from purepos.model.rawmodel import CompiledModel
 from purepos.model.mapper import BaseTagMapper
 from purepos.model.ngram import NGram
 from purepos.model.modeldata import ModelData
