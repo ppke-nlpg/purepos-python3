@@ -29,10 +29,35 @@ from docmodel.containers import Sentence
 from docmodel.token import Token, ModToken
 from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue
-from purepos.common.lemma import LemmaComparator, batch_convert, def_lemma_representation_by_token
-from purepos.model.rawmodel import CompiledModel
+from purepos.common.lemma import batch_convert
+from purepos.common.lemmatransformation import def_lemma_representation_by_token
+from purepos.model.compiledmodel import CompiledModel
+from purepos.model.modeldata import ModelData
+from purepos.model.compiledmodeldata import CompiledModelData
 from purepos.morphology import BaseMorphologicalAnalyser
 from purepos.decoder.basedecoder import BeamSearch, BeamedViterbi
+
+
+class LemmaComparator:
+    def __init__(self, compilde_model_data: CompiledModelData, model_data: ModelData):
+        self.comp_model_data = compilde_model_data
+        self.model_data = model_data
+
+    # def compare(self, t1: tuple, t2: tuple):
+    #     # Java comparable interfész. E helyett itt callable.
+    #     combiner = self.comp_model_data.combiner
+    #     final_score1 = combiner.combine(t1[0], t1[1], self.comp_model_data, self.model_data)
+    #     final_score2 = combiner.combine(t2[0], t2[1], self.comp_model_data, self.model_data)
+    #     if final_score1 == final_score2:
+    #         return 0
+    #     if final_score1 < final_score2:
+    #         return -1
+    #     else:
+    #         return 1
+
+    def __call__(self, pair):
+        return self.comp_model_data.combiner.combine(pair[0], pair[1],
+                                                     self.comp_model_data, self.model_data)
 
 
 class BaseTagger:

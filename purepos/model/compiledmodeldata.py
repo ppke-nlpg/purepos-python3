@@ -25,7 +25,6 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from purepos.model.probmodel import BaseProbabilityModel
-from purepos.model.combiner import BaseCombiner
 from purepos.model.suffixguesser import BaseSuffixGuesser
 from purepos.model.lemmaunigrammodel import LemmaUnigramModel
 from purepos.model.mapper import TagMapper
@@ -37,6 +36,7 @@ class CompiledModelData:
         self.unigram_lemma_model = LemmaUnigramModel()
         self.lemma_guesser = BaseSuffixGuesser()
         self.suffix_lemma_model = BaseSuffixGuesser()
+        from purepos.model.combiner import BaseCombiner
         self.combiner = BaseCombiner()
         self.tag_transition_model = BaseProbabilityModel()
         self.standard_emission_model = BaseProbabilityModel()

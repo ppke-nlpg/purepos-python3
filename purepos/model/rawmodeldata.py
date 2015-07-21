@@ -29,7 +29,6 @@ from purepos.common.statistics import Statistics
 from purepos.model.suffixtree import BaseSuffixTree, HashLemmaTree, HashSuffixTree
 from purepos.model.ngrammodel import NGramModel
 from purepos.model.lemmaunigrammodel import LemmaUnigramModel
-from purepos.model.combiner import default_combiner
 
 
 class RawModelData:
@@ -45,6 +44,7 @@ class RawModelData:
         self.lower_suffix_tree = HashSuffixTree(0)
         self.upper_suffix_tree = HashSuffixTree(0)
         self.lemma_lambdas = list()
+        from purepos.model.combiner import default_combiner
         self.combiner = default_combiner()
 
     def compile(self) -> CompiledModelData:

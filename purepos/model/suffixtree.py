@@ -25,7 +25,7 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from purepos.model.suffixguesser import BaseSuffixGuesser, HashSuffixGuesser
-from purepos.common.lemma import BaseLemmaTransformation
+from purepos.common.lemmatransformation import BaseLemmaTransformation
 
 
 class BaseSuffixTree:

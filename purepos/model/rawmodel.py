@@ -26,12 +26,13 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 from docmodel.containers import Document, Sentence
 from docmodel.token import Token
-from purepos.model.compiledmodel import CompiledModel
-from purepos.model.modeldata import ModelData
+from purepos.model.compiledmodel import CompiledModel, ModelData
+# from purepos.model.modeldata import ModelData
 from purepos.model.rawmodeldata import RawModelData
 from purepos.model.suffixtree import HashSuffixTree
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.common.statistics import Statistics
+from purepos.common.lemmatransformation import def_lemma_representation
 from purepos.common import util
 from purepos.cli.configuration import Configuration
 

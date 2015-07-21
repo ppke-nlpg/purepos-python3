@@ -27,9 +27,9 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 from docmodel.containers import Document
 from docmodel.token import Token
 from purepos.common import util, lemma
+from purepos.common.lemmatransformation import BaseLemmaTransformation
 from purepos.model.modeldata import ModelData
-from purepos.model.rawmodeldata import RawModelData
-from purepos.model.compiledmodeldata import CompiledModelData
+from purepos.model.rawmodeldata import RawModelData, CompiledModelData
 from purepos.model.suffixtree import BaseSuffixTree
 
 
@@ -50,7 +50,7 @@ class BaseCombiner:
         pass
 
     def combine(self, token: Token,
-                lem_transf: lemma.BaseLemmaTransformation,
+                lem_transf: BaseLemmaTransformation,
                 compiled_modeldata: CompiledModelData,
                 modeldata: ModelData) -> float:  # todo: Double... version of func?
         pass
@@ -94,7 +94,7 @@ class LogLinearBiCombiner(BaseCombiner):
         self.lambdas.append(lambda_s)
 
     def combine(self, token: Token,
-                lem_transf: lemma.BaseLemmaTransformation,
+                lem_transf: BaseLemmaTransformation,
                 compiled_modeldata: CompiledModelData,
                 modeldata: ModelData) -> float:
         unigram_lemma_model = compiled_modeldata.unigram_lemma_model
@@ -117,7 +117,7 @@ class LogLinearMLCombiner(BaseCombiner):
         self.lambdas = [0.0, 0.1]
 
     def combine(self, token: Token,
-                lem_transf: lemma.BaseLemmaTransformation,
+                lem_transf: BaseLemmaTransformation,
                 compiled_modeldata: CompiledModelData,
                 modeldata: ModelData) -> float:
         unigram_lemma_model = compiled_modeldata.unigram_lemma_model
@@ -179,7 +179,7 @@ class LogLinearTriCombiner(BaseCombiner):
         self.lambdas.append(lambda_l)
 
     def combine(self, token: Token,
-                lem_transf: lemma.BaseLemmaTransformation,
+                lem_transf: BaseLemmaTransformation,
                 compiled_modeldata: CompiledModelData,
                 modeldata: ModelData) -> float:
         unigram_lemma_model = compiled_modeldata.unigram_lemma_model
