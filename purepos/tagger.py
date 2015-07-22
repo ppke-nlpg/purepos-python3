@@ -139,7 +139,8 @@ class POSTagger(BaseTagger):
 
     @staticmethod
     def sent_to_string(sentence: Sentence, show_prob: bool) -> str:
-        ret = " ".join(sentence)
+        # ret = " ".join(str(sentence))
+        ret = str(sentence)
         if show_prob:
             ret += "$${}$$".format(sentence.score)
         return ret

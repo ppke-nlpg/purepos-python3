@@ -34,7 +34,8 @@ class StandardSerializer:
     @staticmethod
     def read_model(filename: str) -> RawModel:
         with open(filename, mode="rb") as file:
-            return pickle.load(file)
+            loaded = pickle.load(file)
+        return loaded
 
     @staticmethod
     def write_model(model: RawModel, filename: str):

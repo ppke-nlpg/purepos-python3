@@ -54,13 +54,15 @@ class StringMapper(BaseMapper):
         self.mappings = mappings
 
     def map(self, element: str):
+        # todo remove
+        assert not isinstance(element, list)
         for m in self.mappings:
             # pattern = m[0]
             # replacement = m[1]
             return m[0].sub(m[1], element)
         return element
 
-    def map_list(self, elements: str):
+    def map_list(self, elements: list):
         ret = []
         for e in elements:
             ret.append(self.map(e))

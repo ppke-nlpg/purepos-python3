@@ -272,9 +272,9 @@ class BaseDecoder:
         max_tag = BaseSuffixGuesser.max_probability_tag(guessed_tags)
         max_val = guessed_tags[max_tag]
         min_val = max_val - self.suf_theta
-        for entry in guessed_tags:
-            if entry[1] > min_val:
-                s.add(entry)
+        for k, v in guessed_tags.items():
+            if v > min_val:
+                s.add((k, v))
         if len(s) > self.max_guessed_tags:
             l = list(s)
             l.sort(key=lambda ent: ent[1], reverse=True)
@@ -298,12 +298,13 @@ class BaseDecoder:
     def decode(self, observations: list, max_res_num: int) -> list:
         pass
 
+    # ok.
     @staticmethod
-    def clean_results(tag_seq_list: list) -> list:
+    def clean_results(tag_seq_list: list) -> list:  # [([int],float)]
         ret = list()
-        for element in tag_seq_list:
-            tag_seq = element[0]
-            new_tag_seq = tag_seq[:-1]
+        for element in tag_seq_list:                # element: ([int],float)
+            tag_seq = element[0]                    # tag_seq: [int]
+            new_tag_seq = tag_seq[:-1]              # new_tag_seq: [int]
             ret.append((new_tag_seq, element[1]))
         return ret
 
@@ -414,54 +415,65 @@ class BeamedViterbi(BaseDecoder):
                  max_guessed_tags: int):
         super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags)
 
+    # ok.
     def decode(self, observations: list, max_res_num: int) -> list:
         obs = self.prepare_observations(observations)
         start_ngram = self.create_initial_element()
         tag_seq_list = self.beamed_search(start_ngram, obs, max_res_num)
-        return self.clean_results(tag_seq_list)
+        return self.clean_results(tag_seq_list)  # [([int],float)]
 
-    def beamed_search(self, start: NGram, observations: list, results_num: int) -> list:
-        beam = dict()
+    def beamed_search(self, start: NGram,
+                      observations: list,  # [str]
+                      results_num: int) -> list:
+        beam = dict()                    # {NGram -> Node}
         beam[start] = self.start_node(start)
         first = True
         pos = 0
-        for obs in observations:
-            new_beam = dict()
-            next_probs = dict()  # table: (r, c) -> v trololo :)
-            obs_probs = dict()
-            contexts = set(beam.keys())
-            nexts = self.next_probs(contexts, obs, pos, first)
+        for obs in observations:         # obs: str
+            new_beam = dict()            # {NGram -> Node}
+            next_probs = dict()          # table: {(NGram, int) -> float} trololo :)
+            obs_probs = dict()           # {NGram -> float}
+            contexts = set(beam.keys())  # {NGram}
+            nexts = self.next_probs(contexts, obs, pos, first)  # {NGram -> {int -> (float, float)}}
             for context, next_context_probs in nexts.items():
-                for tag, pair in next_context_probs.items():
+                # context: NGram,
+                # next_context_probs: {int -> (float, float)}
+                for tag, pair in next_context_probs.items():    # {int -> (float, float)}.items()
                     next_probs[(context, tag)] = pair[0]
                     obs_probs[context.add(tag)] = pair[1]
-            for cell_index, trans_val in next_probs.items():
-                next_tag = cell_index[1]
-                context = cell_index[0]
-                new_state = context.add(next_tag)
-                from_node = beam[context]
-                new_val = trans_val + from_node.weight
-                self.update(new_beam, new_state, new_val, from_node)
+
+            for cell_index, trans_val in next_probs.items():    # {(NGram, int) -> float}.items()
+                next_tag = cell_index[1]            # int
+                context = cell_index[0]             # NGram
+                new_state = context.add(next_tag)   # NGram
+                from_node = beam[context]           # Node
+                new_val = trans_val + from_node.weight  # float
+                self.update(new_beam, new_state, new_val, from_node)  # todo változik?
             # adding observation probabilities
             if len(next_probs) > 1:
-                for tag_seq in new_beam.keys():
-                    new_beam[tag_seq].weight += obs_probs[tag_seq]
+                for tag_seq in new_beam.keys():     # {NGram -> Node}.keys()
+                    # new_beam[tag_seq].weight += obs_probs[tag_seq]
+                    node = new_beam[tag_seq]
+                    obs_prob = obs_probs[tag_seq]
+                    node.weight += obs_prob
 
             beam = self.prune(new_beam)
             first = False
             pos += 1
-        return self.find_max(beam, results_num)
+        return self.find_max(beam, results_num)  # [([int],float)]?
 
-    def find_max(self, beam: dict, results_num: int) -> list:
-        sorted_nodes = sorted(beam.values(), key=lambda node: node.weight)
+    # ok.
+    def find_max(self, beam: dict,              # {NGram -> Node}
+                 results_num: int) -> list:
+        sorted_nodes = sorted(beam.values(), key=lambda node: node.weight)  # [Node]
         ret = []
         for i in range(results_num):
             if len(sorted_nodes) == 0:
                 break
             max_node = sorted_nodes.pop()
             max_tag_seq = self.decompose(max_node)
-            ret.append(max_tag_seq)
-        return ret
+            ret.append((max_tag_seq, max_node.weight))
+        return ret  # [([int],float)]
 
     def prune(self, beam: dict) -> dict:
         ret = dict()
@@ -472,7 +484,10 @@ class BeamedViterbi(BaseDecoder):
         return ret
 
     @staticmethod
-    def update(beam: dict, new_state: NGram, new_weight: float, from_node: Node):
+    def update(beam: dict,  # NGram -> Node
+               new_state: NGram,
+               new_weight: float,
+               from_node: Node):
         if new_state not in beam.keys():
             beam[new_state] = Node(new_state, new_weight, from_node)
         elif beam[new_state].weight < new_weight:

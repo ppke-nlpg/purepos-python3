@@ -71,7 +71,7 @@ class ProbModel(BaseProbabilityModel):
         if self.element_mapper is not None:
             word = self.element_mapper.map(word)
         if self.context_mapper is not None:
-            context = self.context_mapper.map(context)
+            context = self.context_mapper.map_list(context)
 
         node = self.root
         find_more = True

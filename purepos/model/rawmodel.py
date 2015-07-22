@@ -125,7 +125,7 @@ class RawModel:
     def compile(self, conf: Configuration) -> CompiledModel:
         self.data.tag_vocabulary.store_max_element()
         comp_model_data = self.raw_model_data.compile()
-        comp_model_data.add_mappings(self.data.tag_vocabulary, conf.tag_mappings())
+        comp_model_data.add_mappings(self.data.tag_vocabulary, conf.tag_mappings)
         return CompiledModel(comp_model_data, self.data)
 
     def last_stat(self) -> Statistics:

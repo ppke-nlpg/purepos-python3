@@ -263,8 +263,8 @@ class PurePos:
                      self.options["beam_theta"],
                      self.options.get("beam_decoder", False),
                      self.options["output_file"],
-                     self.options["pyhumor-path"],
-                     self.options["lex-path"])
+                     self.options["pyhumor_path"],
+                     self.options["lex_path"])
 
 
 def main():

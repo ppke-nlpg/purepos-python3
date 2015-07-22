@@ -34,6 +34,7 @@ class NGram:
             l = list(tokens)
             l.append(new_element)
             self.token_list = l
+        self.hash = self.init_hash()
 
     def add(self, element):
         return NGram(self.token_list, self.compare_length, element)
@@ -41,7 +42,27 @@ class NGram:
     def __str__(self):
         return str(self.token_list)
 
-    # todo eq hash_code, compareTo, toList -> token_list
+    def __hash__(self):
+        return self.hash
+
+    def init_hash(self) -> int:
+        s = 0
+        if self.compare_length != -1:
+            size = self.compare_length
+        else:
+            size = float("inf")
+        c = 0
+        for tok in self.token_list[::-1]:
+            if c >= size:
+                break
+            s += tok*31
+            c += 1
+        return s
+
+    def __eq__(self, other):
+        return self.token_list == other.token_list
+
+    # todo compareTo
 
     def last(self):
         return self.token_list[-1]

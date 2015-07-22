@@ -31,8 +31,8 @@ from purepos.model.ngram import NGram
 class BiDict(dict):
     def __init__(self, *args, **kwargs):
         super().__init__()
+        self.inverse = dict()
         d = dict(*args, **kwargs)
-        self.inverse = {}
         for k, v in d.items():
             if self.get(k) is None and self.inverse.get(v) is None:
                 self[k] = v
@@ -41,6 +41,8 @@ class BiDict(dict):
                 raise KeyError("BiDict does not allow same values for multiple keys.")
 
     def __setitem__(self, k, v):
+        if "inverse" not in vars(self).keys():
+            self.__setattr__("inverse", dict())
         if self.get(k) is None and self.inverse.get(v) is None:
             super().__setitem__(k, v)
             self.inverse[v] = k
