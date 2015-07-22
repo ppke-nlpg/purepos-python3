@@ -32,6 +32,7 @@ from purepos.model.vocabulary import BaseVocabulary
 main_pos_pat = re.compile("\[([^.\]]*)[.\]]")  # todo: ez csak át lett másolva. \? Jól működik!
 
 
+# ok.
 def batch_convert(prob_map: dict, word: str, vocab: BaseVocabulary) -> dict:
     ret = dict()
     for k, v in prob_map.items():

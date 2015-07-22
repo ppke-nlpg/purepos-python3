@@ -26,6 +26,14 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 
+class Colors:
+    SEPARATOR = ""
+    WORD = ""
+    LEMMA = ""
+    TAGS = ""
+    ENDC = ""
+
+
 class Token:
     """Class representing a stemmed tagged token in a sentence."""
     SEP = "#"
@@ -39,9 +47,11 @@ class Token:
         if self.token is None and self.stem is None:
             return None  # todo: esetleg inkább ""
         if self.tag is not None and self.stem is None:
-            return self.token + self.SEP + self.tag
+            return Colors.WORD + self.token + Colors.SEPARATOR + self.SEP + \
+                Colors.TAGS + self.tag + Colors.ENDC
         else:
-            return self.token + self.SEP + self.stem + self.SEP + self.tag
+            return Colors.WORD + self.token + Colors.SEPARATOR + self.SEP + Colors.LEMMA + \
+                self.stem + Colors.SEPARATOR + self.SEP + Colors.TAGS + self.tag + Colors.ENDC
 
     def __hash__(self):
         return hash(self.stem) * 100 + hash(self.token) * 10 + hash(self.tag)

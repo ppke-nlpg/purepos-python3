@@ -94,8 +94,9 @@ def smooth(val: float):
 #     comp_modeldata.lower_case_suffix_guesser.tag_mapper = mapper
 #     comp_modeldata.upper_case_suffix_guesser.tag_mapper = mapper
 
-
+# ok.
 def simplify_lemma(t: token.Token):
     if LEMMA_MAPPER is not None:
-        return token.ModToken(t.token, stem=LEMMA_MAPPER.map(t.stem), tag=t.tag)
+        return token.ModToken(t.token, original_stem=t.stem,
+                              stem=LEMMA_MAPPER.map(t.stem), tag=t.tag)
     return t

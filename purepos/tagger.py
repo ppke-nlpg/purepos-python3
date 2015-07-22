@@ -228,5 +228,5 @@ class MorphTagger(POSTagger):
                 if not use_morph:
                     lower_tok = Token(poss_tok.token, poss_tok.stem.lower(), poss_tok.tag)
                     comp.append((lower_tok, traf))
-            best = max(comp, key=self.lemma_comparator)
+            best = (max(comp, key=self.lemma_comparator))[0]
         return self.decode_lemma(best)

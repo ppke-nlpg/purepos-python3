@@ -32,7 +32,7 @@ import math
 import importlib.machinery
 from corpusreader.corpus_reader import CorpusReader
 from corpusreader.tokenreaders import StemmedTaggedTokenReader
-from docmodel.token import Token
+from docmodel.token import Token, Colors
 from purepos.trainer import Trainer
 from purepos.common.serializer import StandardSerializer
 from purepos.common import util
@@ -46,8 +46,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser("purepos", description="PurePos is an open source hybrid "
                                                             "morphological tagger.")
     # parser.add_argument("-h", "--help", help="Print this message.")
-    parser.add_argument("command", help="Mode selection: train for training the tagger, tag for "
-                                        "tagging a text with the given model.",
+    parser.add_argument("command", help="Mode selection: train for training the "
+                                        "tagger, tag for tagging a text with the given model.",
                         metavar="tag|train", type=str, choices=["tag", "train"])
     parser.add_argument("-m", "--model",
                         help="Specifies a path to a model file. If an exisiting model is given for "
@@ -98,6 +98,9 @@ def parse_arguments():
     parser.add_argument("-o", "--output-file",
                         help="File where the tagging output is redirected. Tagging only option.",
                         metavar="<file>", type=str, default=None)
+    parser.add_argument("--color-stdout",
+                        help="Use colored console if the stdout is the choosen output.",
+                        action="store_true")
     parser.add_argument("-c", "--encoding",
                         help="Encoding used to read the training set, or write the results. "
                              "The default is your OS default.",
@@ -170,10 +173,25 @@ class PurePos:
             beam_theta: int,
             use_beam_search: bool,
             out_path: str,
+            use_colored_stdout: bool,
             humor_path: str,
             lex_path: str):  # todo IDÁIG KIHOZNI A HUMOR KONSTRUKTOR ELEMEIT *args, **kwargs
         if not input_path:
             source = sys.stdin
+            if use_colored_stdout:
+                # HEADER = '\033[95m'
+                # OKBLUE = '\033[94m'
+                # OKGREEN = '\033[92m'
+                # WARNING = '\033[93m'
+                # FAIL = '\033[91m'
+                # ENDC = '\033[0m'
+                # BOLD = '\033[1m'
+                # UNDERLINE = '\033[4m'  # todo legyen témázható.
+                Colors.ENDC = '\033[0m'
+                Colors.WORD = '\033[97m'
+                Colors.LEMMA = '\033[91m'
+                Colors.TAGS = '\033[36m'
+                Colors.SEPARATOR = '\033[90m'
         else:
             source = open(input_path, encoding=encoding)  # todo default encoding? (a Python3 okos)
 
@@ -263,6 +281,7 @@ class PurePos:
                      self.options["beam_theta"],
                      self.options.get("beam_decoder", False),
                      self.options["output_file"],
+                     self.options.get("color_stdout", False),
                      self.options["pyhumor_path"],
                      self.options["lex_path"])
 

@@ -53,6 +53,7 @@ class StringMapper(BaseMapper):
     def __init__(self, mappings: list):
         self.mappings = mappings
 
+    # ok.
     def map(self, element: str):
         # todo remove
         assert not isinstance(element, list)

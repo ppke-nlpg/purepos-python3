@@ -92,8 +92,8 @@ class BaseLemmaTransformation:
         pass
 
     def convert(self, word: str, vocab: BaseVocabulary) -> Token:
-        anal = self.analyse(word)
-        tag = vocab.word(anal[1])
+        anal = self.analyse(word)       # (str, int)
+        tag = vocab.word(anal[1])       # str
         return Token(word, anal[0], tag)
 
     def __str__(self) -> str:
@@ -197,7 +197,7 @@ class SuffixLemmaTransformation(BaseLemmaTransformation):
         return lemma_suff, code
 
     def encode(self, word: str, rep: tuple):
-        tag_code = rep[1] / SuffixLemmaTransformation.SHIFT
+        tag_code = rep[1] // SuffixLemmaTransformation.SHIFT
         cut_size = rep[1] % SuffixLemmaTransformation.SHIFT
         add = rep[0]
         lemma = word[0:len(word)-cut_size] + add
