@@ -69,7 +69,7 @@ class BaseDecoder:
             return self.next_for_eos_token(prev_tags_set)
 
         lword = word.lower()
-        isupper = (lword == word)
+        isupper = not (lword == word)
         anals = []
         isoov = True
         # seen = NOT_SPECIFIED
@@ -184,10 +184,10 @@ class BaseDecoder:
             guesser = self.model.compiled_data.upper_case_suffix_guesser
         else:
             guesser = self.model.compiled_data.lower_case_suffix_guesser
-        if oov:
-            return self.next_for_guessed_oov_token(prev_tags_set, word_form, guesser)
-        else:
+        if not oov:
             return self.next_for_guessed_voc_token(prev_tags_set, word_form, anals, guesser)
+        else:
+            return self.next_for_guessed_oov_token(prev_tags_set, word_form, guesser)
 
     def next_for_guessed_oov_token(self, prev_tags_set: set,
                                    lword: str,
@@ -249,6 +249,7 @@ class BaseDecoder:
             tag_prob = tag_prob if tag_prob != float("-inf") else 0
             tag_probs[tag] = (tag_prob, 0.0)
             rrr[prev_tags] = tag_probs
+        return rrr
 
     @staticmethod
     def filter_tags_with_morphology(tags: set,

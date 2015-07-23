@@ -188,7 +188,7 @@ class PurePos:
                 # BOLD = '\033[1m'
                 # UNDERLINE = '\033[4m'  # todo legyen témázható.
                 Colors.ENDC = '\033[0m'
-                Colors.WORD = '\033[97m'
+                Colors.WORD = '\033[93m'
                 Colors.LEMMA = '\033[91m'
                 Colors.TAGS = '\033[36m'
                 Colors.SEPARATOR = '\033[90m'
@@ -287,8 +287,11 @@ class PurePos:
 
 
 def main():
-    options = parse_arguments()
-    PurePos(vars(options)).run()
+    try:
+        options = parse_arguments()
+        PurePos(vars(options)).run()
+    except KeyboardInterrupt:
+        print("\nBye!", file=sys.stderr)
 
 if __name__ == '__main__':
     main()

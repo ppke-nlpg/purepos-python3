@@ -53,7 +53,9 @@ class CompiledModelData:
         mapper = TagMapper(tag_vocabulary, tag_mappings)
         self.standard_emission_model.context_mapper = mapper
         self.spec_tokens_emission_model.context_mapper = mapper
+
         self.tag_transition_model.context_mapper = mapper
         self.tag_transition_model.element_mapper = mapper
-        self.lower_case_suffix_guesser.tag_mapper = mapper
-        self.upper_case_suffix_guesser.tag_mapper = mapper
+
+        self.lower_case_suffix_guesser.mapper = mapper
+        self.upper_case_suffix_guesser.mapper = mapper

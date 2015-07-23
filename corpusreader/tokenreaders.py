@@ -65,8 +65,9 @@ class TaggedTokenReader(BaseReader):
 class StemmedTaggedTokenReader(BaseReader):
     def read(self, text: str):
         w_parts = text.split(self.separator)
-        if len(w_parts) < 3:
-            raise ParsingException("Malformed input: '{}'".format(text))
+        if len(w_parts) != 3:
+            raise ParsingException("Malformed input: '{}'".format(text))  # todo dobja el a
+            # mondatot, írja ki, de menjen tovább!
         return Token(w_parts[0], w_parts[1].replace('_', ' '), w_parts[2])
 
 
