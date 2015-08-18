@@ -88,10 +88,10 @@ class RawModel:
             lem = token.stem
             tagstr = token.tag
             tag = tags[i]
-            context = tags[0:i+1]  # todo. sorrend? bedrótozva i+1?
+            context = tags[0:i+1]
             prev_tags = context[:-1]
 
-            if word != ModelData.BOS_TOKEN or word == ModelData.EOS_TOKEN:
+            if not (word == ModelData.BOS_TOKEN or word == ModelData.EOS_TOKEN):
                 self.store_lemma(word, lem, tag, tagstr, self.raw_model_data)
 
                 self.raw_model_data.tag_ngram_model.add_word(prev_tags, tag)

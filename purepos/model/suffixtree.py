@@ -86,6 +86,6 @@ class HashSuffixTree(BaseSuffixTree):
 class HashLemmaTree(HashSuffixTree):
     def __init__(self, max_suffix_length: int=10):
         super().__init__(max_suffix_length)
-
-    def add_word(self, suff_str: str, tag: BaseLemmaTransformation, count: int, min_len: int=0):
-        self.increment(suff_str, tag, count)
+    #
+    # def add_word(self, suff_str: str, tag: BaseLemmaTransformation, count: int, min_len: int=0):
+    #     self.increment(suff_str, tag, count)
