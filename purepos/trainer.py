@@ -48,4 +48,8 @@ class Trainer:
     def train_model(self, raw_model: RawModel) -> RawModel:
         raw_model.train(self.document)
         self.stat = raw_model.last_stat()
+        # # todo remove
+        # print("spec: {}\nnum: {}".format(
+        #     raw_model.raw_model_data.spec_emission_ngram_model.root.words,
+        #     raw_model.raw_model_data.spec_emission_ngram_model.root.num))
         return raw_model

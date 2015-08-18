@@ -190,7 +190,7 @@ class PurePos:
                 Colors.ENDC = '\033[0m'
                 Colors.WORD = '\033[93m'
                 Colors.LEMMA = '\033[91m'
-                Colors.TAGS = '\033[36m'
+                Colors.TAGS = '\033[32m'  # '\033[36m'
                 Colors.SEPARATOR = '\033[90m'
         else:
             source = open(input_path, encoding=encoding)  # todo default encoding? (a Python3 okos)

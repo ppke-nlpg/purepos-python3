@@ -30,19 +30,32 @@ import re
 
 class SpecTokenMatcher:
     def __init__(self):
-        self.patterns = dict()
-        self.patterns["@CARD"] = re.compile("^[0-9]+$")
-        self.patterns["@CARDPUNCT"] = re.compile("^[0-9]+\\.$")
-        self.patterns["@CARDSEPS"] = re.compile("^[0-9\\.,:-]+[0-9]+$")
-        self.patterns["@CARDSUFFIX"] = re.compile("^[0-9]+[a-zA-Z][a-zA-Z]?[a-zA-Z]?$")
-        self.patterns["@HTMLENTITY"] = re.compile("^&[^;]+;?$")
-        # self.patterns["@PUNCT"] = re.compile("^\\pP+$")
-        self.patterns["@PUNCT"] = \
-            re.compile('^['+re.escape('!"#$%&\'()*+,-./:;<=>?@[\]^_`{|}~')+']+$')
+        # self.patterns = dict()
+        # self.patterns["@CARD"] = re.compile("^[0-9]+$")
+        # self.patterns["@CARDPUNCT"] = re.compile("^[0-9]+\.$")  # ok
+        # self.patterns["@CARDSEPS"] = re.compile("^[0-9\.,:\-]+[0-9]+$")
+        # self.patterns["@CARDSUFFIX"] = re.compile("^[0-9]+[a-zA-Z][a-zA-Z]?[a-zA-Z]?$")  # ok
+        # self.patterns["@HTMLENTITY"] = re.compile("^&[^;]+;?$")
+        # # self.patterns["@PUNCT"] = re.compile("^\\pP+$")
+        # self.patterns["@PUNCT"] = \
+        #     re.compile('^['+re.escape('!"#$%&()*+,-./:;<=>?@[\]^_`{|}~')+'\']+$')
+
+        self.pat_list = [
+            ("@CARD", re.compile("^[0-9]+$")),
+            ("@CARDPUNCT", re.compile("^[0-9]+\.$")),
+            ("@CARDSEPS", re.compile("^[0-9\.,:\-]+[0-9]+$")),
+            ("@CARDSUFFIX", re.compile("^[0-9]+[a-zA-Z][a-zA-Z]?[a-zA-Z]?$")),
+            ("@HTMLENTITY", re.compile("^&[^;]+;?$")),
+            ("@PUNCT", re.compile('^['+re.escape('!"#$%&()*+,-./:;<=>?@[\]^_`{|}~')+'\']+$'))
+        ]
+
 # todo ellenőrizni
 
     def match_lexical_element(self, token: str):
-        for k, v in self.patterns.items():
-            if v.match(token):
-                return k
+        # for k, v in self.patterns.items():
+        #     if v.match(token):
+        #         return k
+        for pair in self.pat_list:
+            if pair[1].match(token):
+                return pair[0]
         return None
