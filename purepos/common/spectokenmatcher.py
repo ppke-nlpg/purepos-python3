@@ -29,33 +29,23 @@ import re
 
 
 class SpecTokenMatcher:
-    def __init__(self):
-        # self.patterns = dict()
-        # self.patterns["@CARD"] = re.compile("^[0-9]+$")
-        # self.patterns["@CARDPUNCT"] = re.compile("^[0-9]+\.$")  # ok
-        # self.patterns["@CARDSEPS"] = re.compile("^[0-9\.,:\-]+[0-9]+$")
-        # self.patterns["@CARDSUFFIX"] = re.compile("^[0-9]+[a-zA-Z][a-zA-Z]?[a-zA-Z]?$")  # ok
-        # self.patterns["@HTMLENTITY"] = re.compile("^&[^;]+;?$")
-        # # self.patterns["@PUNCT"] = re.compile("^\\pP+$")
-        # self.patterns["@PUNCT"] = \
-        #     re.compile('^['+re.escape('!"#$%&()*+,-./:;<=>?@[\]^_`{|}~')+'\']+$')
+    # Fontos a sorrendtartás, mert az első találatnál megáll a keresés.
+    # Semmi szükség példányosításra.
+    # @PUNCT rész egészen más eredményt ad, mint a Java implementáció. A Java \pP közel sem
+    # tartalmaz minden PUNCT-ot, ezen kívül nem kezeli jól a 4 bájtos karaktereket.
+    cls_pat_list = [
+        ("@CARD", re.compile("^[0-9]+$")),
+        ("@CARDPUNCT", re.compile("^[0-9]+\.$")),
+        ("@CARDSEPS", re.compile("^[0-9\.,:\-]+[0-9]+$")),
+        ("@CARDSUFFIX", re.compile("^[0-9]+[a-zA-Z][a-zA-Z]?[a-zA-Z]?$")),
+        ("@HTMLENTITY", re.compile("^&[^;]+;?$")),
+        ("@PUNCT", re.compile('^['+re.escape(u'!"#$%&()*+,-./:;<=>?@[\]^_`{|}~«»…·→—•\'')+']+$'),
+         re.U)
+    ]
 
-        self.pat_list = [
-            ("@CARD", re.compile("^[0-9]+$")),
-            ("@CARDPUNCT", re.compile("^[0-9]+\.$")),
-            ("@CARDSEPS", re.compile("^[0-9\.,:\-]+[0-9]+$")),
-            ("@CARDSUFFIX", re.compile("^[0-9]+[a-zA-Z][a-zA-Z]?[a-zA-Z]?$")),
-            ("@HTMLENTITY", re.compile("^&[^;]+;?$")),
-            ("@PUNCT", re.compile('^['+re.escape('!"#$%&()*+,-./:;<=>?@[\]^_`{|}~')+'\']+$'))
-        ]
-
-# todo ellenőrizni
-
-    def match_lexical_element(self, token: str):
-        # for k, v in self.patterns.items():
-        #     if v.match(token):
-        #         return k
-        for pair in self.pat_list:
+    @staticmethod
+    def match_lexical_element(token: str):
+        for pair in SpecTokenMatcher.cls_pat_list:
             if pair[1].match(token):
                 return pair[0]
         return None
