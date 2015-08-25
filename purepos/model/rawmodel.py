@@ -28,7 +28,6 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 from docmodel.containers import Document, Sentence
 from docmodel.token import Token
 from purepos.model.compiledmodel import CompiledModel, ModelData
-# from purepos.model.modeldata import ModelData
 from purepos.model.rawmodeldata import RawModelData
 from purepos.model.suffixtree import HashSuffixTree
 from purepos.common.spectokenmatcher import SpecTokenMatcher
@@ -39,6 +38,8 @@ from purepos.cli.configuration import Configuration
 
 
 class RawModel:
+    """Raw model from parsed analysed corpora or loaded saved model.
+    """
     @staticmethod
     def store_lemma(word: str,
                     lemma: str,
@@ -62,17 +63,18 @@ class RawModel:
         self.raw_model_data = RawModelData(model_data.tagging_order, model_data.emission_order)
 
     def train(self, document: Document):
+        # todo read lines by lines.
         self.raw_model_data.eos_tag = self.data.tag_vocabulary.add_element(ModelData.EOS_TAG)
         for sentence in document.sentences():
             mysentence = Sentence(sentence)
             self.add_sentence_markers(mysentence)
             self.add_sentence(mysentence)
         self.build_suffix_trees()
+        # átnézni.
         self.raw_model_data.combiner.calculate_params(document, self.raw_model_data, self.data)
 
     def add_sentence(self, sentence: Sentence):
         self.raw_model_data.stat.increment_sentence_count()
-        spec_matcher = SpecTokenMatcher()
         tags = []
         for token in sentence:
             tags.append(self.data.tag_vocabulary.add_element(token.tag))
@@ -98,7 +100,7 @@ class RawModel:
                 self.raw_model_data.stat.increment_token_count()
                 self.data.standard_tokens_lexicon.add_token(word, tag)
                 self.raw_model_data.std_emission_ngram_model.add_word(context, word)
-                spec_name = spec_matcher.match_lexical_element(word)
+                spec_name = SpecTokenMatcher.match_lexical_element(word)
                 if spec_name is not None:
                     self.raw_model_data.spec_emission_ngram_model.add_word(context, spec_name)
                     self.data.spec_tokens_lexicon.add_token(spec_name, tag)
