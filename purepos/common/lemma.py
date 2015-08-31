@@ -34,10 +34,29 @@ main_pos_pat = re.compile("\[([^.\]]*)[.\]]")  # todo: ez csak át lett másolva
 
 # ok.
 def batch_convert(prob_map: dict, word: str, vocab: BaseVocabulary) -> dict:
-    ret = dict()
-    for k, v in prob_map.items():
-        lemma = k.convert(word, vocab)
-        ret[lemma] = (k, v)
+    ret = dict()  # {token: (lemmatransf_tuple, float)}
+    for k, v in prob_map.items():  # (str, int), float
+        lemma = k.convert(word, vocab)  # token
+        # Nem egyértelmű kulcs (postprocess). Jó lenne, ha a jobb valségű győzne, vagy legyen
+        # egyértelmű kulcs
+        # De azért ne nyerjen a kötőjeles lemma.
+        entry = ret.get(lemma)
+        if entry is None:
+            ret[lemma] = (k, v)
+        elif entry[1] < v:
+            ret[lemma] = (k, v)
+    # lemmalist = list(ret.keys())
+    # lemmalist.sort(key=lambda t: t.tag+t.stem)
+    # for i in range(len(lemmalist)-1):
+    #     token = lemmalist[0]
+    #     next_token = lemmalist[1]
+    #     if token.tag == next_token.tag and\
+    #        next_token.stem[-1] == "-" and\
+    #        token.stem == next_token.stem[:-1] and\
+    #        ret[next_token][1] > ret[token][1]:
+    #         ret[token] = (ret[token][0], ret[next_token][1])
+    #         print("KÖTŐJELES LEMMA:"+next_token.stem)
+
     return ret
 
 

@@ -128,6 +128,14 @@ def parse_arguments():
 
 
 class PurePos:
+    """The main PurePos class. This is the interface for training and tagging.
+    Using from command line:
+        Run purepos.py --help
+    Using as a module:
+        Use the following static methods without instantiation:
+        PurePos.train()
+        PurePos.tag()
+    """
     TAG_OPT = "tag"
     TRAIN_OPT = "train"
     PRE_MA = "pre"
@@ -143,12 +151,27 @@ class PurePos:
               suff_length: int,
               rare_freq: int,
               separator: str,
-              linesep: str):
+              linesep: str):  # todo verbose mode
+        """Create a language model from an analysed corpora (and optionally from an existing model).
+        It performs on the given input which can be also the stdin.
+
+        :param encoding: The encoding of the corpora. If None, Python3 default will be used.
+        :param model_path: Path of the model file. If exists, it will be improved.
+        :param input_path: Path of the analysed corpora. If None, stdin will be used.
+        :param tag_order:  # todo
+        :param emission_order:  # todo
+        :param suff_length:  # todo
+        :param rare_freq:  # todo
+        :param separator: The sepatator character(s) inside the token. Default/traditionally: '#'.
+        :param linesep: The sepatator character(s) between the sentences. Default: newline.
+        """
         if input_path is not None:
             source = open(input_path, encoding=encoding)  # todo default encoding? (a Python3 okos)
         else:
             source = sys.stdin
         trainer = Trainer(source, CorpusReader(StemmedTaggedTokenReader(separator, linesep)))
+
+
         if os.path.isfile(model_path):
             print("Reading model... ", file=sys.stderr)
             ret_model = StandardSerializer.read_model(model_path)
@@ -176,6 +199,24 @@ class PurePos:
             use_colored_stdout: bool,
             humor_path: str,
             lex_path: str):  # todo IDÁIG KIHOZNI A HUMOR KONSTRUKTOR ELEMEIT *args, **kwargs
+        """Perform tagging on the given input with the given model an properties to the given
+        output. The in and output can be also the standard IO.
+
+        :param encoding: The encoding of the input. If None, Python3 default will be used.
+        :param model_path: Path of the model file. It must be existing.
+        :param input_path: Path of the source file. If None, stdin will be used.
+        :param analyser: "integrated" or "none" if HUMOR analyser will be used or not.
+            Other case it can be the path of any morphological table.
+        :param no_stemming: Analyse without lemmatization.
+        :param max_guessed:  # todo
+        :param max_resnum:  # todo
+        :param beam_theta:  # todo
+        :param use_beam_search: Using Beam Search algorithm instead of Viterbi.
+        :param out_path: Path of the output file. If None, stdout will be used.
+        :param use_colored_stdout: Use colored output only if the output is the stdout.
+        :param humor_path: The path of the pyhumor module file.
+        :param lex_path: The path of the lex directory for humor.
+        """
         if not input_path:
             source = sys.stdin
             if use_colored_stdout:
@@ -207,6 +248,13 @@ class PurePos:
 
     @staticmethod
     def load_humor(humor_path: str, lex_path: str) -> HumorAnalyser:
+        """Tries to load and instantiate the pyhumor module.
+        It raises FileNotFoundError if any parameter is invalid.
+
+        :param humor_path: The path of the pyhumor module file.
+        :param lex_path: The path of the lex directory for humor.
+        :return: A HumorAnalyser object.
+        """
         humor_module = importlib.machinery.SourceFileLoader("humor", humor_path).load_module()
         humor = humor_module.Humor(_lex_path=lex_path)
         return HumorAnalyser(humor)
@@ -221,6 +269,19 @@ class PurePos:
                       conf: Configuration,
                       humor_path: str,
                       lex_path: str) -> BaseTagger:
+        """Create a tagger object with the given properties.
+
+        :param model_path:
+        :param analyser:
+        :param no_stemming:
+        :param max_guessed:
+        :param beam_log_theta:
+        :param use_beam_search:
+        :param conf:
+        :param humor_path:
+        :param lex_path:
+        :return: a tagger object.
+        """
         if analyser == PurePos.INTEGRATED_MA:
             try:
                 ma = PurePos.load_humor(humor_path, lex_path)

@@ -33,7 +33,13 @@ from purepos.model.modeldata import ModelData
 
 
 class Trainer:
+    """Trainer class. Its role is to build a RawModel from the analysed input."""
     def __init__(self, source: io.TextIOWrapper, reader: CorpusReader):
+        """Instantiates a Trainer object.
+        (In this version) it reads the whole input with the CorpusReader.
+        :param source: TextIOWrapper input
+        :param reader: CorpusReader object to parse the input
+        """
         self.stat = Statistics()
         self.reader = reader
         self.document = reader.read_from_io(source)  # todo egybe beolvassa a memóriába.

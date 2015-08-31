@@ -97,6 +97,10 @@ class NGramModel:
         for e in self.lambdas:
             s += e
 
+        if s > 0:
+            for i in range(len(self.lambdas)):
+                self.lambdas[i] = (self.lambdas[i]/s)
+
     def iterate(self, node: BaseTrieNode, acc: list):
         acc.append(node)
         if node.child_nodes is None or len(node.child_nodes) == 0:

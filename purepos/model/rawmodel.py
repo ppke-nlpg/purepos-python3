@@ -76,8 +76,9 @@ class RawModel:
     def add_sentence(self, sentence: Sentence):
         self.raw_model_data.stat.increment_sentence_count()
         tags = []
-        for token in sentence:
+        for token in sentence[::-1]:
             tags.append(self.data.tag_vocabulary.add_element(token.tag))
+        tags.reverse()
 
         self.raw_model_data.tag_ngram_model.add_word(tags, self.raw_model_data.eos_tag)
 
@@ -106,6 +107,7 @@ class RawModel:
                     self.data.spec_tokens_lexicon.add_token(spec_name, tag)
 
     def build_suffix_trees(self):
+        # Tanuláskor, beolvasás után suffixtree-k építése.
         self.raw_model_data.lower_suffix_tree = HashSuffixTree(self.data.suffix_length)
         self.raw_model_data.upper_suffix_tree = HashSuffixTree(self.data.suffix_length)
         for word, m in self.data.standard_tokens_lexicon.representation.items():

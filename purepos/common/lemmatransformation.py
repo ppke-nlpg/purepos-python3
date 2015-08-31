@@ -86,6 +86,8 @@ class BaseLemmaTransformation:
 
     def analyse(self, word) -> tuple:
         encoded = self.encode(word, self.representation)
+        # return encoded[0], encoded[1]
+        # Gyuri hack a kötőjeles lemmák elkerüléséért.
         return self.postprocess(encoded[0]), encoded[1]
 
     def min_cut_length(self) -> int:
@@ -113,6 +115,8 @@ class BaseLemmaTransformation:
 
     @staticmethod
     def postprocess(lemma: str) -> str:
+        # Lemma végi - leszedése.
+        # pl.: Delacroix-é -> Delacroix-[FN][POS][NOM] -> Delacroix
         if len(lemma) > 1 and lemma[-1] == '-':
             return lemma[:-1]
         return lemma
@@ -186,10 +190,10 @@ class SuffixLemmaTransformation(BaseLemmaTransformation):
 
     def decode(self, word: str, stem: str, tag: int) -> tuple:
         i = 0
-        for idx in range(min(len(word), len(stem))):
-            i = idx
-            if word[idx] != stem[idx]:
+        while i < min(len(word), len(stem)):
+            if word[i] != stem[i]:
                 break
+            i += 1
         word_suff = word[i:]
         cut_size = len(word_suff)
         lemma_suff = stem[i:]

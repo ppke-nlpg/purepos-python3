@@ -36,7 +36,7 @@ from purepos.decoder.stemfilter import StemFilter
 
 STEM_FILTER_FILE = "purepos_stems.txt"  # todo: be kell égetni?
 STEM_FILTER_PROPERTY = ""  # todo: System.getProperty("stems.path");
-UNKOWN_VALUE = -99
+UNKOWN_VALUE = -99.0
 LEMMA_MAPPER = None  # StringMapper
 analysis_queue = AnalysisQueue()
 CONFIGURATION = None
@@ -65,13 +65,13 @@ def find_max(d: dict) -> tuple:
     return max(d.items(), key=lambda e: e[1])  # select the value of order key.
 
 
-def find_max_pair(d: dict) -> tuple:
+def find_max_pair(d: dict) -> tuple:  # {key: (v, float)}
     max_k = None
     max_v = float("-inf")
-    for v in d.values():
-        if v[1] > max_v:
-            max_k = v[0]
-            max_v = v[1]
+    for key, pair in d.items():
+        if pair[1] > max_v:
+            max_k = key
+            max_v = pair[1]
     return max_k, max_v
 
 

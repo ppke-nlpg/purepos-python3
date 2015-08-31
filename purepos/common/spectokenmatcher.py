@@ -31,15 +31,19 @@ import re
 class SpecTokenMatcher:
     # Fontos a sorrendtartás, mert az első találatnál megáll a keresés.
     # Semmi szükség példányosításra.
+    #
     # @PUNCT rész egészen más eredményt ad, mint a Java implementáció. A Java \pP közel sem
-    # tartalmaz minden PUNCT-ot, ezen kívül nem kezeli jól a 4 bájtos karaktereket.
+    # tartalmaz minden PUNCT-ot, ezen kívül nem kezeli jól a 4 bájtos karaktereket. A § és a /
+    # jelek a Szeged Corpus konvenciói miatt itt NEM részei a @PUNCT halmaznak.
+    # <megj.> A ` karakter egyszer fordul elő a Szeged általunk használt verziójában,
+    # ott is véletlen szemét.</megj.>
     cls_pat_list = [
         ("@CARD", re.compile("^[0-9]+$")),
         ("@CARDPUNCT", re.compile("^[0-9]+\.$")),
         ("@CARDSEPS", re.compile("^[0-9\.,:\-]+[0-9]+$")),
         ("@CARDSUFFIX", re.compile("^[0-9]+[a-zA-Z][a-zA-Z]?[a-zA-Z]?$")),
         ("@HTMLENTITY", re.compile("^&[^;]+;?$")),
-        ("@PUNCT", re.compile('^['+re.escape(u'!"#$%&()*+,-./:;<=>?@[\]^_`{|}~«»…·→—•\'')+']+$'),
+        ("@PUNCT", re.compile('^['+re.escape(u'!"#$%&()*+,-.:;<=>?@[\]^_`{|}~«»…·→—•\'')+']+$'),
          re.U)
     ]
 

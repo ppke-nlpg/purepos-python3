@@ -42,8 +42,8 @@ class RawModelData:
         self.lemma_suffix_tree = HashLemmaTree(100)
         self.lemma_freq_tree = HashSuffixTree(5)
         self.lemma_unigram_model = LemmaUnigramModel()
-        self.lower_suffix_tree = HashSuffixTree(0)
-        self.upper_suffix_tree = HashSuffixTree(0)
+        self.lower_suffix_tree = None  # HashSuffixTree(0)
+        self.upper_suffix_tree = None  # HashSuffixTree(0)
         self.lemma_lambdas = list()
         from purepos.model.combiner import default_combiner
         self.combiner = default_combiner()
