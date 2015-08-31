@@ -75,18 +75,20 @@ class ProbModel(BaseProbabilityModel):
 
         node = self.root
         find_more = True
-        for con in context[::-1]:
+        for prev in context[::-1]:
+            find_more = node.has_child(prev) and node.child_nodes[prev].has_word(word)
             if not find_more:
                 break
-            prev = con
-            find_more = node.has_child(prev) and node.child_nodes[prev].has_word(word)
+            node = node.get_child(prev)
+            # prev = con
         if node.has_word(word):
             return node.words[word]
         else:
             return 0.0
 
     def log_prob(self, context: list, word) -> float:
-        return math.log(self.prob(context, word))
+        prob = self.prob(context, word)
+        return math.log(prob) if prob > 0 else -99.0
 
     def word_probs(self, context):
         raise NotImplementedError("Is it used?")

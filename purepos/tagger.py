@@ -61,7 +61,7 @@ class LemmaComparator:
                                                      self.comp_model_data, self.model_data)
 
 
-class BaseTagger:
+class BaseTagger:  # todo ez a class nem kell.
     def tag(self, source, output, max_res_num):
         pass
 

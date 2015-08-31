@@ -167,10 +167,11 @@ class BaseDecoder:
                 act_tags = list(prev_tags.token_list)
                 act_tags.append(tag)
                 emission_prob = word_prob_model.log_prob(act_tags, word_form)
-                if tag_prob == float("-inf"):
-                    tag_prob = UNKOWN_TAG_TRANSITION
-                if emission_prob == float("-inf"):
-                    emission_prob = UNKNOWN_TAG_WEIGHT
+                # todo ez nem kell elvileg, mert nem -inf lesz, hanem 99
+                # if tag_prob == float("-inf"):
+                #     tag_prob = UNKOWN_TAG_TRANSITION
+                # if emission_prob == float("-inf"):
+                #     emission_prob = UNKNOWN_TAG_WEIGHT
                 tag_probs[tag] = (tag_prob, emission_prob)
             ret[prev_tags] = tag_probs
         return ret
@@ -482,7 +483,7 @@ class BeamedViterbi(BaseDecoder):
         for ngram, act_node in beam.items():
             if act_node.weight >= max_node.weight - self.log_theta:
                 ret[ngram] = act_node
-        return ret
+        return ret  # dict: {NGram -> Node}
 
     @staticmethod
     def update(beam: dict,  # NGram -> Node

@@ -171,7 +171,6 @@ class PurePos:
             source = sys.stdin
         trainer = Trainer(source, CorpusReader(StemmedTaggedTokenReader(separator, linesep)))
 
-
         if os.path.isfile(model_path):
             print("Reading model... ", file=sys.stderr)
             ret_model = StandardSerializer.read_model(model_path)

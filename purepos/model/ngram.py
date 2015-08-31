@@ -60,7 +60,7 @@ class NGram:
         return s
 
     def __eq__(self, other):
-        return self.token_list == other.token_list
+        return self.token_list[-self.compare_length:] == other.token_list[-self.compare_length:]
 
     # todo compareTo
 
