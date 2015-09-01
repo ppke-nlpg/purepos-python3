@@ -60,9 +60,8 @@ class NGram:
         return s
 
     def __eq__(self, other):
+        # Az azonosságvizsgálatnál csak az utolsó n token(tag-e)-t vizsgáljuk
         return self.token_list[-self.compare_length:] == other.token_list[-self.compare_length:]
-
-    # todo compareTo
 
     def last(self):
         return self.token_list[-1]

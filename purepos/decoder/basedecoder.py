@@ -167,7 +167,7 @@ class BaseDecoder:
                 act_tags = list(prev_tags.token_list)
                 act_tags.append(tag)
                 emission_prob = word_prob_model.log_prob(act_tags, word_form)
-                # todo ez nem kell elvileg, mert nem -inf lesz, hanem 99
+                # ez nem kell, mert nem -inf lesz, hanem 99
                 # if tag_prob == float("-inf"):
                 #     tag_prob = UNKOWN_TAG_TRANSITION
                 # if emission_prob == float("-inf"):
@@ -247,7 +247,8 @@ class BaseDecoder:
             tag = anals.__iter__().__next__()
             tag_prob = self.model.compiled_data.tag_transition_model.log_prob(
                 prev_tags.token_list, tag)
-            tag_prob = tag_prob if tag_prob != float("-inf") else 0
+            # Itt nem -99 a default, hanem 0
+            tag_prob = tag_prob if tag_prob != -99.0 else 0
             tag_probs[tag] = (tag_prob, 0.0)
             rrr[prev_tags] = tag_probs
         return rrr
@@ -300,9 +301,9 @@ class BaseDecoder:
     def decode(self, observations: list, max_res_num: int) -> list:
         pass
 
-    # ok.
     @staticmethod
     def clean_results(tag_seq_list: list) -> list:  # [([int],float)]
+        # A taglistákról leszedi az utolsó, MONDATVÉGE token tag-jét.
         ret = list()
         for element in tag_seq_list:                # element: ([int],float)
             tag_seq = element[0]                    # tag_seq: [int]
@@ -312,6 +313,7 @@ class BaseDecoder:
 
     @staticmethod
     def prepare_observations(observations: list) -> list:
+        # A mondathoz hozzáfűz egy <MONDATVÉGE> tokent.
         obs = list(observations)
         obs.append(ModelData.EOS_TOKEN)
         return obs
@@ -417,8 +419,8 @@ class BeamedViterbi(BaseDecoder):
                  max_guessed_tags: int):
         super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags)
 
-    # ok.
     def decode(self, observations: list, max_res_num: int) -> list:
+        # A modathoz (observations) max_res_num-nyi tag-listát készít
         obs = self.prepare_observations(observations)
         start_ngram = self.create_initial_element()
         tag_seq_list = self.beamed_search(start_ngram, obs, max_res_num)
@@ -464,7 +466,6 @@ class BeamedViterbi(BaseDecoder):
             pos += 1
         return self.find_max(beam, results_num)  # [([int],float)]?
 
-    # ok.
     def find_max(self, beam: dict,              # {NGram -> Node}
                  results_num: int) -> list:
         sorted_nodes = sorted(beam.values(), key=lambda node: node.weight)  # [Node]
@@ -478,6 +479,8 @@ class BeamedViterbi(BaseDecoder):
         return ret  # [([int],float)]
 
     def prune(self, beam: dict) -> dict:
+        # Egy küszöb súly alatti node-okat nem veszi be a beam-be.
+        # A küszöböt a max súlyú node-ból számolja ki.
         ret = dict()
         max_node = max(beam.values(), key=lambda n: n.weight)
         for ngram, act_node in beam.items():
@@ -486,12 +489,15 @@ class BeamedViterbi(BaseDecoder):
         return ret  # dict: {NGram -> Node}
 
     @staticmethod
-    def update(beam: dict,  # NGram -> Node
+    def update(beam: dict,  # {NGram -> Node}
                new_state: NGram,
                new_weight: float,
                from_node: Node):
+        # Hozzá veszi, ha nincs benn ilyen végű(*) tag sorozat.
+        # (*) Csak at utolsó két elemet veszi figyelembe az egyezésvizsgálatkor!
         if new_state not in beam.keys():
             beam[new_state] = Node(new_state, new_weight, from_node)
+        # Ha már benne van, akkor módosítja a node-ot.
         elif beam[new_state].weight < new_weight:
             beam[new_state].prev = from_node
             beam[new_state].weight = new_weight

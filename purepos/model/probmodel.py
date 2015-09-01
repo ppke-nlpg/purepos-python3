@@ -42,7 +42,7 @@ class BaseProbabilityModel:
 
 
 class OneWordLexicalModel(BaseProbabilityModel):
-    # todo: Ez eredetileg common: package hu.ppke.itk.nlpg.purepos.common;
+    # Ez eredetileg common: package hu.ppke.itk.nlpg.purepos.common;
     def __init__(self, probs: dict, word: str):
         super().__init__()
         self.probs = probs
@@ -59,7 +59,7 @@ class OneWordLexicalModel(BaseProbabilityModel):
         tag = context[-1]
         if word == self.word and tag in self.probs.keys():
             return self.probs[tag]
-        return float("-inf")
+        return -99.0
 
 
 class ProbModel(BaseProbabilityModel):
