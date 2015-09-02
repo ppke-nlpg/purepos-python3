@@ -1,5 +1,9 @@
 # purepos-python3
-PurePOS rewritten in Python3
+PurePOS reimplemented in Python3.
+
+Version: [2.4.90 (beta)](RELEASENOTES.md)
+
+Released: 2015.09.03.
 
 PurePos
 =======
@@ -9,6 +13,16 @@ possibility of easy integration of symbolic rule-based components into the annot
 that can be used to boost the accuracy of the tool.
 The hybrid approach implemented in PurePos is especially beneficial in the case of rich morphology,
 highly detailed annotation schemes and if a small amount of training data is available.
+
+****Differences to PurePOS 2.1****
+* The word-lemma-tag separator character (traditionally #) can be specified both for training and
+tagging
+* The path of morphological analyser module (*Humor*) and also the path of *lex* files can be
+specified
+* Special characters bug fixed (at  the four-bytes unicode chars)
+* LemmaTransformation at hyphened lemma bug fixed
+
+[*More*](RELEASENOTES.md)
 
 Usage
 ---------
