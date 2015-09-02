@@ -25,7 +25,7 @@ specified
 * Smaller model files
 * The old binary models are no more compatibily with the new version
 
-[*More*](RELEASENOTES.md)
+For more see the [Release notes](RELEASENOTES.md) and the [Issue tracker](https://github.com/ppke-nlpg/purepos-python3/issues/).
 
 Usage
 ---------
