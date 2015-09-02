@@ -14,13 +14,16 @@ that can be used to boost the accuracy of the tool.
 The hybrid approach implemented in PurePos is especially beneficial in the case of rich morphology,
 highly detailed annotation schemes and if a small amount of training data is available.
 
-****Differences to PurePOS 2.1****
+***Differences to PurePOS 2.1***
 * The word-lemma-tag separator character (traditionally #) can be specified both for training and
 tagging
 * The path of morphological analyser module (*Humor*) and also the path of *lex* files can be
 specified
+* The standard output tagging can be colored for easier reading
 * Special characters bug fixed (at  the four-bytes unicode chars)
 * LemmaTransformation at hyphened lemma bug fixed
+* Smaller model files
+* The old binary models are no more compatibily with the new version
 
 [*More*](RELEASENOTES.md)
 
