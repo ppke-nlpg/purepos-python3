@@ -99,7 +99,7 @@ separator (default: hashmark): `word#lemma#tag`
 API
 ---
 The PurePos is able to be loaded as a Python module. The basic usage is pretty simple:
-```python3
+```python
     from purepos import PurePos
 
     PurePos.train(*args)
