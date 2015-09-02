@@ -115,7 +115,7 @@ class BaseLemmaTransformation:
 
     @staticmethod
     def postprocess(lemma: str) -> str:
-        # Lemma végi - leszedése.
+        # Lemma végi „-” leszedése.
         # pl.: Delacroix-é -> Delacroix-[FN][POS][NOM] -> Delacroix
         if len(lemma) > 1 and lemma[-1] == '-':
             return lemma[:-1]

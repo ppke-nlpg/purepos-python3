@@ -37,11 +37,16 @@ class CompiledModelData:
         self.unigram_lemma_model = LemmaUnigramModel()
         self.lemma_guesser = BaseSuffixGuesser()
         self.suffix_lemma_model = BaseSuffixGuesser()
-        from purepos.model.combiner import BaseCombiner  # todo jó ez?
+        from purepos.model.combiner import BaseCombiner
+        # Két lemmagyakorisági modell kombinációját számoló objektum
         self.combiner = BaseCombiner()
+        # Az adott tag valsége az előzőek fv-jében
         self.tag_transition_model = BaseProbabilityModel()
+        # Szóalakok gyakorisága a tag függvényében
         self.standard_emission_model = BaseProbabilityModel()
+        # Írásjelek, számok, stb. gyakorisága a tag függvényében
         self.spec_tokens_emission_model = BaseProbabilityModel()
+        # Suffix guesserek a kezdőbetű szerint felépítve.
         self.lower_case_suffix_guesser = BaseSuffixGuesser()
         self.upper_case_suffix_guesser = BaseSuffixGuesser()
         self.apriori_tag_probs = dict()

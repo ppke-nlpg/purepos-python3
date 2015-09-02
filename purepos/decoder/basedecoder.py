@@ -243,7 +243,7 @@ class BaseDecoder:
         rrr = dict()
         for prev_tags in prev_tags_set:
             tag_probs = dict()
-            # tag = anals[0]
+            # tag = anals[0]. Ez setre és listre is működik.
             tag = anals.__iter__().__next__()
             tag_prob = self.model.compiled_data.tag_transition_model.log_prob(
                 prev_tags.token_list, tag)

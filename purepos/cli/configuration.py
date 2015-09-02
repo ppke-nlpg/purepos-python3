@@ -45,4 +45,5 @@ class Configuration:
 
     @staticmethod
     def read(filename: str):
+        # todo meg kell csinálni
         raise NotImplementedError("This feature is not (yet) implemented in this version.")

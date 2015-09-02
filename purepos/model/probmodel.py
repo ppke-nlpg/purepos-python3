@@ -92,7 +92,6 @@ class ProbModel(BaseProbabilityModel):
 
     def word_probs(self, context):
         raise NotImplementedError("Is it used?")
-        # todo törölni, ha nem kell.
 
     def create_root(self, node: IntTrieNode, lambdas: list) -> FloatTrieNode:
         new_root = self.calc_probs(node)

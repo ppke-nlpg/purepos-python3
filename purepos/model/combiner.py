@@ -66,13 +66,8 @@ class LogLinearBiCombiner(BaseCombiner):
         lemma_suffix_guesser = raw_modeldata.lemma_suffix_tree.create_guesser(theta)
         lambda_s = 1.0
         lambda_u = 1.0
-        # todo debug prints.
-        # file = open("python_new_calc_output.txt", mode="w")
         for sentence in doc.sentences():
-            # print(str(sentence), file=file)
             for tok in sentence:
-                # if "WINS-t" in tok.token and "PUNCT" not in tok.tag:
-                #     print(tok.token)
                 suffix_probs = lemma.batch_convert(lemma_suffix_guesser.tag_log_probabilities(
                     tok.token), tok.token, modeldata.tag_vocabulary)
                 uni_probs = dict()
@@ -92,18 +87,12 @@ class LogLinearBiCombiner(BaseCombiner):
                     lambda_u += uni_prop - suff_prop
                 elif suff_prop > uni_prop:
                     lambda_s += suff_prop - uni_prop
-                # print(tok.token+"\t"+str(act_uni_prob)+"\t"+str(act_suff_prob)+"\t"+str(
-                #     uni_prop)+"\t"+str(suff_prop), file=file)
 
         s = lambda_u + lambda_s
         lambda_u /= s
         lambda_s /= s
         self.lambdas.append(lambda_u)
         self.lambdas.append(lambda_s)
-        # todo remove
-        # file.close()
-        # print("s: {}\nlambda_u: {}\nlambda_s: {}\n".format(s, lambda_u, lambda_s))
-        # exit(1)
 
     def combine(self, token: Token,
                 lem_transf: BaseLemmaTransformation,
