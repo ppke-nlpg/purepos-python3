@@ -49,6 +49,7 @@ class CompiledModelData:
         # Suffix guesserek a kezdőbetű szerint felépítve.
         self.lower_case_suffix_guesser = BaseSuffixGuesser()
         self.upper_case_suffix_guesser = BaseSuffixGuesser()
+        # tag ngram modellből számolt apriori tag valószínűségek
         self.apriori_tag_probs = dict()
 
     # ez a utilból került ide.

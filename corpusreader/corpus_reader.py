@@ -38,6 +38,7 @@ class CorpusReader(BaseReader):
         self.sentence_parser = SentenceReader(self.token_reader)
 
     def read(self, text: str):
+        # it parses the whole(!) analysed corpus
         sentences = list()
         for line in text.split(self.linesep):
             if len(line) > 0:

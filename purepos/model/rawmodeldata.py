@@ -34,17 +34,25 @@ from purepos.model.lemmaunigrammodel import LemmaUnigramModel
 
 class RawModelData:
     def __init__(self, tagging_order, emission_order):
-        self.stat = Statistics()
+        self.stat = Statistics()  # Statistics about trainig
+        # Címkék ngram modellje
         self.tag_ngram_model = NGramModel(tagging_order + 1)
+        # Eredeti szóalakok és a megelőző cimkék modellje
         self.std_emission_ngram_model = NGramModel(emission_order + 1)
+        # Speciális tokenek és a megelőző cimkék modellje
         self.spec_emission_ngram_model = NGramModel(2)
         self.eos_tag = None
+        # Lemma suffix gyakorisági táblázat
         self.lemma_suffix_tree = HashLemmaTree(100)
+        # Lemma gyakorisági táblázat
         self.lemma_freq_tree = HashSuffixTree(5)
+        # Lemma gyakorisági táblázat
         self.lemma_unigram_model = LemmaUnigramModel()
+        # Szóalakok suffix gyakorisági táblázata kis- és nagybetűérzékenyen.
         self.lower_suffix_tree = None  # HashSuffixTree(0)
         self.upper_suffix_tree = None  # HashSuffixTree(0)
         self.lemma_lambdas = list()
+        # LogLinearBiCombiner a guesserből és az unigram modellből származó adatok kombinálásához.
         from purepos.model.combiner import default_combiner
         self.combiner = default_combiner()
 

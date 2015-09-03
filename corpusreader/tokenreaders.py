@@ -35,6 +35,8 @@ class ParsingException(Exception):
 
 
 class BaseReader:
+    # Minden parser őse.
+    # Pythonban fölösleges. Refaktorálandó
     def __init__(self, separator: str="#", linesep="\n", encoding="utf-8"):
         self.separator = separator
         self.linesep = linesep

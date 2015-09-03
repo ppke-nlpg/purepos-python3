@@ -32,6 +32,8 @@ from docmodel.containers import Paragraph, Document
 
 
 class HunPosCorpusReader(BaseReader):
+    # Ugyan olyan reader, mint a CorpusReader, csak más a kódolás és a szeparátor.
+    # Célszerű lenne úgy refaktorálni, hogy egy paraméterezhető Corpusreader legyen.
     def __init__(self):
         super().__init__(encoding="ISO-8859-2")
         self.word_parser = TaggedTokenReader("\t")
