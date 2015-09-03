@@ -32,9 +32,8 @@ from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue
 from purepos.common.lemma import batch_convert
 from purepos.common.lemmatransformation import def_lemma_representation_by_token
-from purepos.model.compiledmodel import CompiledModel
+from purepos.model.compiledmodel import CompiledModel, CompiledModelData
 from purepos.model.modeldata import ModelData
-from purepos.model.compiledmodeldata import CompiledModelData
 from purepos.morphology import BaseMorphologicalAnalyser
 from purepos.decoder.basedecoder import BeamSearch, BeamedViterbi
 
@@ -155,7 +154,7 @@ class MorphTagger(POSTagger):
                  use_beam_search: bool):
         super().__init__(model, analyser, log_theta, suf_theta, max_guessed_tags, use_beam_search)
         self.lemma_comparator = LemmaComparator(model.compiled_data, model.data)
-        self.stem_filter = util.create_stem_filter()
+        self.stem_filter = util.StemFilter.create_stem_filter()
         self.is_last_guessed = False
 
     def merge(self, sentence: list, tags: list) -> list:

@@ -31,7 +31,8 @@ from purepos.common import lemma
 from purepos.common.util import UNKOWN_VALUE, CONFIGURATION
 from purepos.common.lemmatransformation import BaseLemmaTransformation
 from purepos.model.modeldata import ModelData
-from purepos.model.rawmodeldata import RawModelData, CompiledModelData
+from purepos.model.rawmodeldata import RawModelData
+from purepos.model.compiledmodel import CompiledModelData
 from purepos.model.suffixtree import BaseSuffixTree
 
 

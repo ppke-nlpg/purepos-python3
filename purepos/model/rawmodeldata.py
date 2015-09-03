@@ -25,7 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.model.compiledmodeldata import CompiledModelData
+from purepos.model.compiledmodel import CompiledModelData
 from purepos.common.statistics import Statistics
 from purepos.model.suffixtree import BaseSuffixTree, HashLemmaTree, HashSuffixTree
 from purepos.model.ngrammodel import NGramModel

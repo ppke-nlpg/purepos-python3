@@ -23,10 +23,51 @@
 #     Móréh, Tamás - initial API and implementation
 ##############################################################################
 
+
 __author__ = 'morta@digitus.itk.ppke.hu'
 
+
+from purepos.model.lemmaunigrammodel import LemmaUnigramModel
+from purepos.model.mapper import TagMapper
+from purepos.model.probmodel import BaseProbabilityModel
+from purepos.model.suffixguesser import BaseSuffixGuesser
+from purepos.model.vocabulary import BaseVocabulary
 from purepos.model.modeldata import ModelData
-from purepos.model.compiledmodeldata import CompiledModelData
+
+
+class CompiledModelData:
+    def __init__(self):
+        self.unigram_lemma_model = LemmaUnigramModel()
+        self.lemma_guesser = BaseSuffixGuesser()
+        self.suffix_lemma_model = BaseSuffixGuesser()
+        from purepos.model.combiner import BaseCombiner
+        # Két lemmagyakorisági modell kombinációját számoló objektum
+        self.combiner = BaseCombiner()
+        # Az adott tag valsége az előzőek fv-jében
+        self.tag_transition_model = BaseProbabilityModel()
+        # Szóalakok gyakorisága a tag függvényében
+        self.standard_emission_model = BaseProbabilityModel()
+        # Írásjelek, számok, stb. gyakorisága a tag függvényében
+        self.spec_tokens_emission_model = BaseProbabilityModel()
+        # Suffix guesserek a kezdőbetű szerint felépítve.
+        self.lower_case_suffix_guesser = BaseSuffixGuesser()
+        self.upper_case_suffix_guesser = BaseSuffixGuesser()
+        # tag ngram modellből számolt apriori tag valószínűségek
+        self.apriori_tag_probs = dict()
+
+    # ez a utilból került ide.
+    def add_mappings(self,
+                     tag_vocabulary: BaseVocabulary,
+                     tag_mappings: list):
+        mapper = TagMapper(tag_vocabulary, tag_mappings)
+        self.standard_emission_model.context_mapper = mapper
+        self.spec_tokens_emission_model.context_mapper = mapper
+
+        self.tag_transition_model.context_mapper = mapper
+        self.tag_transition_model.element_mapper = mapper
+
+        self.lower_case_suffix_guesser.mapper = mapper
+        self.upper_case_suffix_guesser.mapper = mapper
 
 
 class CompiledModel:
