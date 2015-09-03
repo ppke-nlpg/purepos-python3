@@ -45,5 +45,27 @@ class Configuration:
 
     @staticmethod
     def read(filename: str):
-        # todo meg kell csinálni
-        raise NotImplementedError("This feature is not (yet) implemented in this version.")
+        from xml.etree import ElementTree
+        from purepos.model.mapper import stringmapping
+        root = ElementTree.parse(filename).getroot()
+        tag_mapping_elements = root.findall(Configuration.TAG_MAPPING)
+        tag_mappings = []
+        for tm in tag_mapping_elements:
+            spat = tm.attrib[Configuration.PATTERN]
+            stag = tm.attrib[Configuration.TAG]
+            tag_mappings.append(stringmapping(spat, stag))
+
+        lemma_mapping_elements = root.findall(Configuration.LEMMA_MAPPING)
+        lemma_mappings = []
+        for lm in lemma_mapping_elements:
+            spat = lm.attrib[Configuration.PATTERN]
+            stag = lm.attrib[Configuration.TAG]
+            lemma_mappings.append(stringmapping(spat, stag))
+
+        marker_elements = root.findall(Configuration.GUESSED_MARKER)
+        guessed_marker = marker_elements[0].text if len(marker_elements) > 0 else ""
+
+        param_elements = root.findall(Configuration.SUFFIX_MODEL_PARAMETERS)
+        weight = float(param_elements[0].text) if len(param_elements) > 0 else None
+
+        return Configuration(tag_mappings, lemma_mappings, guessed_marker, weight)
