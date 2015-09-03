@@ -30,7 +30,7 @@ from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.common import util
 from purepos.morphology import BaseMorphologicalAnalyser
 from purepos.model.rawmodel import CompiledModel
-from purepos.model.mapper import BaseTagMapper
+from purepos.model.mapper import TagMapper
 from purepos.model.ngram import NGram
 from purepos.model.modeldata import ModelData
 from purepos.model.probmodel import BaseProbabilityModel
@@ -256,7 +256,7 @@ class BaseDecoder:
     @staticmethod
     def filter_tags_with_morphology(tags: set,
                                     anals: list or set,
-                                    mapper: BaseTagMapper) -> set:
+                                    mapper: TagMapper) -> set:
         if anals is not None:
             if mapper is not None:
                 common = set(mapper.filter(anals, tags))

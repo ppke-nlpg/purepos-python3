@@ -45,6 +45,7 @@ class Configuration:
 
     @staticmethod
     def read(filename: str):
+        # XML fájlból Configuration beparszolása.
         from xml.etree import ElementTree
         from purepos.model.mapper import stringmapping
         root = ElementTree.parse(filename).getroot()

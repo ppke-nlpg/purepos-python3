@@ -119,6 +119,7 @@ class NGramModel:
         return ProbModel(self.root, self.lambdas)
 
     def word_apriori_probs(self) -> dict:
+        # apriori valószínűségek számolása
         ret = dict()
         sum_freg = self.root.num
         for k, v in self.root.words.items():

@@ -35,28 +35,26 @@ def stringmapping(pattern: str, replacement: str):
     return re.compile(pattern), replacement
 
 
-class BaseMapper:
-    def map(self, element):
-        pass
+# Ez a fájl sok halott kódot és még több szügségtelen class-t tartalmaz. Ezeket kikommenteltem.
+# class BaseMapper:
+#     def map(self, element):
+#         pass
+#
+#     def map_list(self, elements: list):
+#         pass
+#
+#
+# class BaseTagMapper(BaseMapper):
+#     def filter(self, morph_anals: list or set, possible_tags: list or set) -> list:
+#         pass
 
-    # todo megnézni, hogy jól hívják-e
-    def map_list(self, elements: list):
-        pass
 
-
-class BaseTagMapper(BaseMapper):
-    def filter(self, morph_anals: list or set, possible_tags: list or set) -> list:
-        pass
-
-
-class StringMapper(BaseMapper):
+class StringMapper:  # (BaseMapper):
     def __init__(self, mappings: list):
         self.mappings = mappings
 
     # ok.
     def map(self, element: str):
-        # todo remove
-        assert not isinstance(element, list)
         for m in self.mappings:
             # pattern = m[0]
             # replacement = m[1]
@@ -67,9 +65,10 @@ class StringMapper(BaseMapper):
         ret = []
         for e in elements:
             ret.append(self.map(e))
+        return ret
 
 
-class TagMapper(BaseTagMapper):
+class TagMapper:  # (BaseTagMapper):
     def __init__(self, tag_vocabulary: BaseVocabulary, tag_mappings: list):
         self.vocabulary = tag_vocabulary
         self.tag_mappings = tag_mappings

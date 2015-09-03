@@ -63,7 +63,8 @@ class RawModel:
         self.raw_model_data = RawModelData(model_data.tagging_order, model_data.emission_order)
 
     def train(self, document: Document):
-        # todo read lines by lines.
+        # todo read lines by lines. See the issue:
+        # https://github.com/ppke-nlpg/purepos-python3/issues/5
         self.raw_model_data.eos_tag = self.data.tag_vocabulary.add_element(ModelData.EOS_TAG)
         for sentence in document.sentences():
             mysentence = Sentence(sentence)
