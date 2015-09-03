@@ -36,7 +36,6 @@ from purepos.model.modeldata import ModelData
 from purepos.model.probmodel import BaseProbabilityModel
 from purepos.model.suffixguesser import BaseSuffixGuesser, HashSuffixGuesser
 from purepos.model.history import History
-from purepos.decoder.node import Node
 
 # „enum” values
 SEEN = 0
@@ -47,7 +46,19 @@ UNSEEN = 3
 EOS_EMISSION_PROB = 1.0
 UNKNOWN_TAG_WEIGHT = -99.0
 UNKOWN_TAG_TRANSITION = -99.0
+UNKNOWN_VALUE = -99.0
 TAB = "\t"  # ez eredetileg field volt.
+
+
+class Node:
+    def __init__(self, state: NGram, weight: float, previous: NGram or None):
+        self.state = state
+        self.weight = weight
+        self.prev = previous
+
+    def __str__(self):
+        return "{state: {}, weight: {}}".format(str(self.state), str(self.weight))
+
 
 
 class BaseDecoder:
@@ -64,6 +75,8 @@ class BaseDecoder:
         self.tags = model.data.tag_vocabulary.tag_indices()
 
     def next_probs(self, prev_tags_set: set, word: str, position: int, is_first: bool) -> dict:
+        # A szóhoz tartozó tag-valószínűségeket gyűjti ki.
+        # A token tulajdonságai határozzák meg a konkrét fv-t.
         spectoken_matcher = SpecTokenMatcher()
         if word == ModelData.EOS_TOKEN:
             return self.next_for_eos_token(prev_tags_set)
@@ -227,7 +240,7 @@ class BaseDecoder:
                 apriori_prob = self.model.compiled_data.apriori_tag_probs[new_tag]
                 log_apriori_prob = math.log(apriori_prob)
                 tag_log_prob = guesser.tag_log_probability(lword, tag)
-                if tag_log_prob == float("-inf"):
+                if tag_log_prob == UNKNOWN_VALUE:
                     emission_prob = UNKNOWN_TAG_WEIGHT
                 else:
                     emission_prob = tag_log_prob - log_apriori_prob
@@ -248,7 +261,7 @@ class BaseDecoder:
             tag_prob = self.model.compiled_data.tag_transition_model.log_prob(
                 prev_tags.token_list, tag)
             # Itt nem -99 a default, hanem 0
-            tag_prob = tag_prob if tag_prob != -99.0 else 0
+            tag_prob = tag_prob if tag_prob != UNKNOWN_VALUE else 0
             tag_probs[tag] = (tag_prob, 0.0)
             rrr[prev_tags] = tag_probs
         return rrr
@@ -330,6 +343,8 @@ class BaseDecoder:
 
 
 class BeamSearch(BaseDecoder):
+    # BeamSearch algorithm.
+    # Nincs tesztelve.
     def __init__(self, model: CompiledModel,
                  morph_analyser: BaseMorphologicalAnalyser,
                  log_theta: float,
@@ -420,15 +435,17 @@ class BeamedViterbi(BaseDecoder):
         super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags)
 
     def decode(self, observations: list, max_res_num: int) -> list:
+        # Ez a lényeg, ezt hívuk meg kívülről.
         # A modathoz (observations) max_res_num-nyi tag-listát készít
-        obs = self.prepare_observations(observations)
+        obs_sentence = self.prepare_observations(observations)
         start_ngram = self.create_initial_element()
-        tag_seq_list = self.beamed_search(start_ngram, obs, max_res_num)
+        tag_seq_list = self.beamed_search(start_ngram, obs_sentence, max_res_num)
         return self.clean_results(tag_seq_list)  # [([int],float)]
 
     def beamed_search(self, start: NGram,
                       observations: list,  # [str]
                       results_num: int) -> list:
+        # Maga az algoritmus
         beam = dict()                    # {NGram -> Node}
         beam[start] = self.start_node(start)
         first = True

@@ -28,73 +28,60 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import os
 from docmodel import token
 from purepos.common.analysisqueue import AnalysisQueue
-# from purepos.model.compiledmodeldata import CompiledModelData
-# from purepos.model.mapper import TagMapper
-# from purepos.model.vocabulary import BaseVocabulary
-from purepos.decoder.stemfilter import StemFilter
 
-
-STEM_FILTER_FILE = "purepos_stems.txt"  # todo: be kell égetni?
-STEM_FILTER_PROPERTY = ""  # todo: System.getProperty("stems.path");
+STEM_FILTER_FILE = "purepos_stems.txt"
 UNKOWN_VALUE = -99.0
 LEMMA_MAPPER = None  # StringMapper
 analysis_queue = AnalysisQueue()
-CONFIGURATION = None
+CONFIGURATION = None  # Nem teszteltük.
 
 
 class Constants:  # todo: ötlet minden konstan egy objektumba -> egy időben több különböző PurePOS
+    # todo: https://github.com/ppke-nlpg/purepos-python3/issues/7
     def __init__(self):
         pass
 
+class StemFilter:
+    def __init__(self, filename: str):
+        self.stems = set()
+        with open(filename) as file:
+            self.stems = set(file.readlines())
 
-def create_stem_filter() -> StemFilter:
-    path = None
-    if STEM_FILTER_PROPERTY and os.path.isfile(STEM_FILTER_PROPERTY):
-        path = os.path.abspath(STEM_FILTER_PROPERTY)
+    def filter_stem(self, candidates) -> list:
+        if len(self.stems) == 0:
+            return candidates
+        ret = []
+        for t in candidates:
+            if t.stem in self.stems:
+                ret.append(t)
+        if len(ret) == 0:
+            return candidates
+        return ret
 
-    if os.path.isfile(STEM_FILTER_FILE):
-        path = os.path.abspath(STEM_FILTER_FILE)
-    # todo: ezt végképp nem értem!!!
-
-    if path is None:
-        return None
-    return StemFilter(path)
-
-
-def find_max(d: dict) -> tuple:
-    return max(d.items(), key=lambda e: e[1])  # select the value of order key.
-
-
-def find_max_pair(d: dict) -> tuple:  # {key: (v, float)}
-    max_k = None
-    max_v = float("-inf")
-    for key, pair in d.items():
-        if pair[1] > max_v:
-            max_k = key
-            max_v = pair[1]
-    return max_k, max_v
+    @staticmethod
+    def create_stem_filter():
+        # Régi örökség, de jó ha van. Lásd: Obamának -> Obama, Obamá, Obam
+        if os.path.isfile(STEM_FILTER_FILE):
+            return StemFilter(STEM_FILTER_FILE)
 
 
-def smooth(val: float):
-    if val is not None and val != float("-inf"):
-        return val
-    else:
-        return UNKOWN_VALUE
+# Inlined everywhere.
+# def find_max(d: dict) -> tuple:  # {key: value}
+#     return max(d.items(), key=lambda e: e[1])  # select the value of order key.
 
 
-# átkerült a compiled_model_datába
-# def add_mappings(comp_modeldata: CompiledModelData,
-#                  tag_vocabulary: BaseVocabulary,
-#                  tag_mappings: list):
-#     mapper = TagMapper(tag_vocabulary, tag_mappings)
-#     comp_modeldata.standard_emission_model.context_mapper = mapper
-#     comp_modeldata.spec_tokens_emission_model.context_mapper = mapper
-#     comp_modeldata.tag_transition_model.context_mapper = mapper
-#     comp_modeldata.tag_transition_model.element_mapper = mapper
-#     comp_modeldata.lower_case_suffix_guesser.tag_mapper = mapper
-#     comp_modeldata.upper_case_suffix_guesser.tag_mapper = mapper
+# def find_max_pair(d: dict) -> tuple:  # {key: (bármi, float)}
+#     t = max(d.items(), key=lambda e: e[1][1])
+#     return t[0], t[1][1]
+    # max_k = None
+    # max_v = float("-inf")
+    # for key, pair in d.items():
+    #     if pair[1] > max_v:
+    #         max_k = key
+    #         max_v = pair[1]
+    # return max_k, max_v
 
-# ok.
+
 def simplify_lemma(t: token.Token):
     if LEMMA_MAPPER is not None:
         return token.ModToken(t.token, original_stem=t.stem,

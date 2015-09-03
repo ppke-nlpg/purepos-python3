@@ -49,7 +49,7 @@ class SpecTokenMatcher:
 
     @staticmethod
     def match_lexical_element(token: str):
+        # Az első találatot adja vissza.
         for pair in SpecTokenMatcher.cls_pat_list:
             if pair[1].match(token):
                 return pair[0]
-        return None

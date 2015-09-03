@@ -29,7 +29,7 @@ import re
 from purepos.model.vocabulary import BaseVocabulary
 
 
-main_pos_pat = re.compile("\[([^.\]]*)[.\]]")  # todo: ez csak át lett másolva. \? Jól működik!
+main_pos_pat = re.compile("\[([^.\]]*)[.\]]")
 
 
 # ok.
@@ -42,11 +42,8 @@ def batch_convert(prob_map: dict, word: str, vocab: BaseVocabulary) -> dict:
         # egyértelmű kulcs
         # De azért ne nyerjen a kötőjeles lemma.
         entry = ret.get(lemma)
-        if entry is None:
+        if entry is None or entry[1] < v:
             ret[lemma] = (k, v)
-        elif entry[1] < v:
-            ret[lemma] = (k, v)
-
     return ret
 
 
@@ -54,5 +51,3 @@ def main_pos_tag(tag: str):
     m = re.match(main_pos_pat, tag)
     if m is not None:
         return m.group(1)
-    else:
-        return None

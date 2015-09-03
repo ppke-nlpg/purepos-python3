@@ -31,11 +31,14 @@ from purepos.model.probmodel import BaseProbabilityModel, OneWordLexicalModel
 
 
 class AnalysisQueue:
+    # todo: ezt is ki kell vezetni a parancssorig
+    # todo ki kéne tesztelni ilyen szintaktikájú korpuszon!!!
+    # Ezen kívül a DOLLARS-t át is lehetne nevezni.
     ANAL_SPLIT_RE = "||"
     ANAL_OPEN = "{{"
     ANAL_CLOSE = "}}"
     ANAL_TAG_OPEN = "["
-    DOLLARS = "$$"  # todo: ezt is ki kell vezetni?
+    DOLLARS = "$$"
 
     @staticmethod
     def parse(token: str) -> tuple:
@@ -68,6 +71,7 @@ class AnalysisQueue:
         self.words = []
 
     def init(self, capacity: int):
+        # capacity méretűre allokáljuk a listákat a későbbi gyorsabb feltöltéshez.
         self.anals = [None for _ in range(capacity)]
         self.use_prob = [None for _ in range(capacity)]
         self.words = [None for _ in range(capacity)]
@@ -86,7 +90,7 @@ class AnalysisQueue:
             prob = 1.0
             if val_sep_index > -1:
                 self.use_prob[position] = True
-                prob = float(anal[val_sep_index+len(self.DOLLARS):])
+                prob = float(anal[val_sep_index + len(self.DOLLARS):])
                 lemmatag = anal[:val_sep_index]
             self.anals[position][lemmatag] = prob
 

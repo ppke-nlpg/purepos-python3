@@ -138,8 +138,10 @@ class GeneralizedLemmaTransformation(BaseLemmaTransformation):
             self.tag = tag
             self.to_lower = to_lower
             l = "_" if self.to_lower else "-"
-            self.str_rep = "(" + l + ",< -" + str(remove_start) + "+'" + add_start + "', " +\
-                           ">-" + str(remove_end) + "+'" + add_end + "' -" + str(tag) + ")"
+            self.str_rep = "({0},< -{1}+\'{2}\', >-{3}+\'{4}\' -{5})".format(l, remove_start,
+                                                                             add_start,
+                                                                             remove_end,
+                                                                             add_end, tag)
 
         def __str__(self):
             return self.str_rep
@@ -178,7 +180,7 @@ class GeneralizedLemmaTransformation(BaseLemmaTransformation):
         lemma = word[0:sub_end] + rep.add_end
         lemma = (rep.add_start + lemma[min(rep.remove_start, len(lemma)):]).lower()
         if upper_word and not rep.to_lower and len(lemma) > 0:
-            lemma = lemma[0].upper()+lemma[1:]
+            lemma = lemma[0].upper() + lemma[1:]
         return lemma, rep.tag
 
 

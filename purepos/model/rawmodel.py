@@ -71,12 +71,13 @@ class RawModel:
             self.add_sentence_markers(mysentence)
             self.add_sentence(mysentence)
         self.build_suffix_trees()
-        # átnézni.
         self.raw_model_data.combiner.calculate_params(document, self.raw_model_data, self.data)
 
     def add_sentence(self, sentence: Sentence):
         self.raw_model_data.stat.increment_sentence_count()
         tags = []
+        # Visszafelé kell haladni a tag szótár felépítésekor
+        # todo: változtat az eredményen, ha előre haladunk és nem fodítjuk meg a tags-et?
         for token in sentence[::-1]:
             tags.append(self.data.tag_vocabulary.add_element(token.tag))
         tags.reverse()
@@ -128,6 +129,7 @@ class RawModel:
                         self.raw_model_data.stat.increment_upper_guesser_items(word_tag_freq)
 
     def compile(self, conf: Configuration) -> CompiledModel:
+        # Create a CompiledModel from this RawModel
         self.data.tag_vocabulary.store_max_element()
         comp_model_data = self.raw_model_data.compile()
         comp_model_data.add_mappings(self.data.tag_vocabulary, conf.tag_mappings)

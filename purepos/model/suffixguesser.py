@@ -26,7 +26,7 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
-
+UNKNOWN_VALUE = -99.0
 
 class BaseSuffixGuesser:
 
@@ -78,7 +78,7 @@ class HashSuffixGuesser(BaseSuffixGuesser):
 
     def tag_log_probability(self, word, tag) -> float:
         prob = self.tag_probability(word, tag)
-        return math.log(prob) if prob > 0 else float("-inf")
+        return math.log(prob) if prob > 0 else UNKNOWN_VALUE
 
     def tag_probability(self, word, tag) -> float:
         if self.mapper is not None:

@@ -27,6 +27,9 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 
 class Configuration:
+    # Mappingek konfigurálása külső, XML fájlon keresztül.
+    # Hasznos lenne átgondolni, ill. see more:
+    # https://github.com/ppke-nlpg/purepos-python3/issues/7
     def __init__(self, tag_mappings: list=None,  # stringmapping
                  lemma_mappings: list=None,  # stringmapping
                  guessed_lemma_marker: str="",

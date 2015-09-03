@@ -27,7 +27,8 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 from docmodel.containers import Document
 from docmodel.token import Token
-from purepos.common import util, lemma
+from purepos.common import lemma
+from purepos.common.util import UNKOWN_VALUE, CONFIGURATION
 from purepos.common.lemmatransformation import BaseLemmaTransformation
 from purepos.model.modeldata import ModelData
 from purepos.model.rawmodeldata import RawModelData, CompiledModelData
@@ -74,13 +75,14 @@ class LogLinearBiCombiner(BaseCombiner):
                 for t in suffix_probs.keys():
                     uniscore = raw_modeldata.lemma_unigram_model.log_prob(t.stem)
                     uni_probs[t] = uniscore
-                uni_max = util.find_max(uni_probs)
-                suffix_max = util.find_max_pair(suffix_probs)
+                uni_max = max(uni_probs.items(), key=lambda e: e[1])
+                t = max(suffix_probs.items(), key=lambda e: e[1][1])
+                suffix_max = (t[0], t[1][1])
                 act_uni_prob = raw_modeldata.lemma_unigram_model.log_prob(tok.stem)
                 if tok in suffix_probs.keys():
                     act_suff_prob = suffix_probs[tok][1]
                 else:
-                    act_suff_prob = util.UNKOWN_VALUE
+                    act_suff_prob = UNKOWN_VALUE
                 uni_prop = act_uni_prob - uni_max[1]
                 suff_prop = act_suff_prob - suffix_max[1]
                 if uni_prop > suff_prop:
@@ -100,12 +102,11 @@ class LogLinearBiCombiner(BaseCombiner):
                 modeldata: ModelData) -> float:
         unigram_lemma_model = compiled_modeldata.unigram_lemma_model
         uni_score = unigram_lemma_model.log_prob(token.stem)
-        suffix_score = util.smooth(
-            compiled_modeldata.lemma_guesser.tag_log_probability(token.token, lem_transf))
+        suffix_score = compiled_modeldata.lemma_guesser.tag_log_probability(token.token, lem_transf)
         uni_lambda = self.lambdas[0]
         suffix_lambda = self.lambdas[1]
-        if util.CONFIGURATION is not None and util.CONFIGURATION.weight is not None:
-            suffix_lambda = util.CONFIGURATION.weight
+        if CONFIGURATION is not None and CONFIGURATION.weight is not None:
+            suffix_lambda = CONFIGURATION.weight
             uni_lambda = 1 - suffix_lambda
 
         return uni_score * uni_lambda + suffix_score * suffix_lambda
@@ -123,8 +124,7 @@ class LogLinearMLCombiner(BaseCombiner):
                 modeldata: ModelData) -> float:
         unigram_lemma_model = compiled_modeldata.unigram_lemma_model
         uni_score = unigram_lemma_model.log_prob(token.stem)
-        suffix_score = util.smooth(
-            compiled_modeldata.lemma_guesser.tag_log_probability(token.token, lem_transf))
+        suffix_score = compiled_modeldata.lemma_guesser.tag_log_probability(token.token, lem_transf)
         return uni_score * self.lambdas[0] + suffix_score * self.lambdas[1]
 
 
@@ -152,16 +152,17 @@ class LogLinearTriCombiner(BaseCombiner):
                 for t in suffix_probs.keys():
                     lemma_score = lemma_prob.tag_log_probability(t.stem, lemma.main_pos_tag(t.tag))
                     lemma_probs[t] = lemma_score
-                uni_max = util.find_max(uni_probs)
-                suffix_max = util.find_max_pair(suffix_probs)
-                lemma_max = util.find_max(lemma_probs)
+                uni_max = max(uni_probs.items(), key=lambda e: e[1])
+                t = max(suffix_probs.items(), key=lambda e: e[1][1])
+                suffix_max = (t[0], t[1][1])
+                lemma_max = max(lemma_probs.items(), key=lambda e: e[1])
                 act_uni_prob = lemma_unigram_model.log_prob(tok.stem)
                 act_lemma_prob = lemma_prob.tag_log_probability(tok.stem, lemma.main_pos_tag(
                     tok.tag))
                 if tok in suffix_probs.keys():
                     act_suff_prob = suffix_probs[tok][1]
                 else:
-                    act_suff_prob = util.UNKOWN_VALUE
+                    act_suff_prob = UNKOWN_VALUE
                 uni_prop = act_uni_prob - uni_max[1]
                 suff_prop = act_suff_prob - suffix_max[1]
                 lemma_prop = act_lemma_prob - lemma_max[1]
@@ -185,8 +186,8 @@ class LogLinearTriCombiner(BaseCombiner):
                 modeldata: ModelData) -> float:
         unigram_lemma_model = compiled_modeldata.unigram_lemma_model
         uni_score = unigram_lemma_model.log_prob(token.stem)
-        suffix_score = util.smooth(compiled_modeldata.lemma_guesser.tag_log_probability(
-            token.token, lem_transf))
+        suffix_score = compiled_modeldata.lemma_guesser.tag_log_probability(
+            token.token, lem_transf)
         lemma_prob = compiled_modeldata.\
             suffix_lemma_model.tag_log_probability(token.stem, lemma.main_pos_tag(token.tag))
         return uni_score * self.lambdas[0] +\

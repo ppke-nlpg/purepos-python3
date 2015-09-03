@@ -42,9 +42,10 @@ class StandardSerializer:
         with open(filename, mode="wb") as file:
             pickle.dump(model, file)
 
-    @staticmethod
-    def delete_model(filename: str):
-        try:
-            os.remove(filename)
-        except FileNotFoundError:
-            raise Warning("Invalid filename! Nothing deleted.")
+    # Halott kód, később haszna lehet (pl. felhő back-end)
+    # @staticmethod
+    # def delete_model(filename: str):
+    #     try:
+    #         os.remove(filename)
+    #     except FileNotFoundError:
+    #         raise Warning("Invalid filename! Nothing deleted.")

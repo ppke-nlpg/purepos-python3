@@ -62,10 +62,7 @@ class StringMapper:  # (BaseMapper):
         return element
 
     def map_list(self, elements: list):
-        ret = []
-        for e in elements:
-            ret.append(self.map(e))
-        return ret
+        return [self.map(e) for e in elements]
 
 
 class TagMapper:  # (BaseTagMapper):
@@ -86,15 +83,8 @@ class TagMapper:  # (BaseTagMapper):
         return tag
 
     def map_list(self, elements: list):
-        ret = []
-        for e in elements:
-            ret.append(self.map(e))
-        return ret
+        return [self.map(e) for e in elements]
 
     def filter(self, morph_anals: list or set, possible_tags: list or set) -> list:
-        ret = []
-        for anal in morph_anals:
-            mapped_tag = self.map(anal)
-            if mapped_tag in possible_tags:
-                ret.append(anal)
-        return ret
+        # morph_anals megszűrése
+        return [anal for anal in morph_anals if self.map(anal) in possible_tags]

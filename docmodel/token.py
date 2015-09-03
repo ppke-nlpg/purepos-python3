@@ -40,12 +40,12 @@ class Token:
 
     def __init__(self, token: str, stem: str=None, tag: str=None):
         self.token = token
-        self.tag = tag
         self.stem = stem
+        self.tag = tag
+        # Egyedi hash kód előállítása a későbbi gyorsanbb eléréshez
+        self.hash_code = hash(self.stem) * 100 + hash(self.tag) * 10 + hash(self.token)
 
     def __str__(self):
-        if self.token is None and self.stem is None:
-            return None  # todo: esetleg inkább ""
         if self.tag is not None and self.stem is None:
             return Colors.WORD + self.token + Colors.SEPARATOR + self.SEP + \
                 Colors.TAGS + self.tag + Colors.ENDC
@@ -54,7 +54,7 @@ class Token:
                 self.stem + Colors.SEPARATOR + self.SEP + Colors.TAGS + self.tag + Colors.ENDC
 
     def __hash__(self):
-        return hash(self.stem) * 100 + hash(self.token) * 10 + hash(self.tag)
+        return self.hash_code
 
     def __eq__(self, other):
         if other is not None and isinstance(other, Token):
@@ -66,6 +66,7 @@ class Token:
 
 
 class ModToken(Token):
+    # Érdemes átgondolni, hogy kell-e erre egy külön osztály
     def __init__(self, token: str, original_stem: str=None, stem: str=None, tag: str=None):
         self.original_stem = original_stem
         super().__init__(token, stem, tag)

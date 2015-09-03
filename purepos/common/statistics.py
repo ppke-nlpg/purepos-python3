@@ -29,12 +29,14 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 
 class Statistics:
+    # Ez az osztály azt a célt szolgálja, hogy a train fázisban számláljon
+    # A modellbe elmenti, hogy mekkora anyagon tanult, valamint kiírja a tanulás végén.
     def __init__(self):
         self.sentences = 0
         self.tokens = 0
         self.l_guesser_items = 0
         self.u_guesser_items = 0
-        self.theta = None  # todo float. Használjuk egyáltalán?
+        # self.theta = None Nem használtuk.
 
     def increment_lower_guesser_items(self, num: int):
         self.l_guesser_items += num
@@ -58,17 +60,15 @@ class Statistics:
 Guesser trained with
 {} lowercase
 {} uppercase tokens
-theta {}""".format(self.tokens,
-                   self.sentences,
-                   len(model.data.tag_vocabulary),
-                   self.l_guesser_items,
-                   self.u_guesser_items,
-                   self.theta)
+theta None""".format(self.tokens,
+                     self.sentences,
+                     len(model.data.tag_vocabulary),
+                     self.l_guesser_items,
+                     self.u_guesser_items)
 
     def __eq__(self, other):
         return isinstance(other, Statistics) and \
             self.sentences == other.sentences and \
             self.tokens == other.tokens and \
             self.l_guesser_items == other.l_guesser_items and \
-            self.u_guesser_items == other.u_guesser_items and \
-            self.theta == other.theta
+            self.u_guesser_items == other.u_guesser_items

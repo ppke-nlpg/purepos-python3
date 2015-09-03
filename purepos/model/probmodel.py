@@ -28,6 +28,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import math
 from purepos.model.trienode import IntTrieNode, FloatTrieNode
 
+UNKNOWN_VALUE = -99.0
 
 class BaseProbabilityModel:
     def __init__(self):
@@ -59,7 +60,7 @@ class OneWordLexicalModel(BaseProbabilityModel):
         tag = context[-1]
         if word == self.word and tag in self.probs.keys():
             return self.probs[tag]
-        return -99.0
+        return UNKNOWN_VALUE
 
 
 class ProbModel(BaseProbabilityModel):
@@ -88,7 +89,7 @@ class ProbModel(BaseProbabilityModel):
 
     def log_prob(self, context: list, word) -> float:
         prob = self.prob(context, word)
-        return math.log(prob) if prob > 0 else -99.0
+        return math.log(prob) if prob > 0 else UNKNOWN_VALUE
 
     def word_probs(self, context):
         raise NotImplementedError("Is it used?")
