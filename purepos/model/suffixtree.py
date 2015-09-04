@@ -25,20 +25,10 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.model.suffixguesser import BaseSuffixGuesser, HashSuffixGuesser
-# from purepos.common.lemmatransformation import BaseLemmaTransformation
+from purepos.model.suffixguesser import HashSuffixGuesser
 
 
-class BaseSuffixTree:
-    def __init__(self, max_suff_len: int):
-        self.max_suffix_length = max_suff_len
-
-    def add_word(self, word, tag, count: int, min_len: int=0):
-        pass
-
-    def create_guesser(self, theta: float) -> BaseSuffixGuesser:
-        pass
-
+class HashSuffixTree:
     @staticmethod
     def calculate_theta(apriori_probs: dict):
         pav = 0.0
@@ -49,17 +39,16 @@ class BaseSuffixTree:
             theta += a_prob * ((a_prob-pav)**2)
         return theta**0.5
 
-
-class HashSuffixTree(BaseSuffixTree):
     def __init__(self, max_suff_len: int):
-        super().__init__(max_suff_len)
+        self.max_suffix_length = max_suff_len
         self.total_tag_count = 0
         self.representation = dict()
 
     def add_word(self, word, tag, count: int, min_len: int=0):
         end = len(word) - min_len
         start = max(0, end-self.max_suffix_length)
-        for p in range(start, end+1):
+        # Egy adott pozíciótól a szó végéig lévő összes suffix számlálása
+        for p in range(start, end + 1):
             suffix = word[p:]
             self.increment(suffix, tag, count)
         self.total_tag_count += count
@@ -74,18 +63,12 @@ class HashSuffixTree(BaseSuffixTree):
                 tags_counts[tag] = cnt
             value[1] += cnt
         else:
-            tags_counts = dict()
-            tags_counts[tag] = cnt
-            value = [tags_counts, cnt]
-            self.representation[suffix] = value
+            self.representation[suffix] = [{tag: cnt}, cnt]
 
-    def create_guesser(self, theta: float) -> BaseSuffixGuesser:
+    def create_guesser(self, theta: float) -> HashSuffixGuesser:
         return HashSuffixGuesser(self.representation, theta)
 
 
-class HashLemmaTree(HashSuffixTree):
-    def __init__(self, max_suffix_length: int=10):
-        super().__init__(max_suffix_length)
-    #
-    # def add_word(self, suff_str: str, tag: BaseLemmaTransformation, count: int, min_len: int=0):
-    #     self.increment(suff_str, tag, count)
+# class HashLemmaTree(HashSuffixTree):
+#     def __init__(self, max_suffix_length: int=10):
+#         super().__init__(max_suffix_length)

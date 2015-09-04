@@ -31,24 +31,16 @@ from docmodel.token import Token
 
 class BaseMorphologicalAnalyser:
     def tags(self, word: str) -> list:
-        pass
-
-    def analyse(self, word: str) -> list:
-        pass
-
-
-class NullAnalyser(BaseMorphologicalAnalyser):
-    def tags(self, word: str):
         return []  # eredetileg None
 
-    def analyse(self, word: str):
+    def analyse(self, word: str) -> list:
         return []  # eredetileg None
 
 
 class MorphologicalTable(BaseMorphologicalAnalyser):
     def __init__(self, file: TextIOWrapper):
         self.morph_file = file
-        self.morph_table = {}
+        self.morph_table = dict()
         for line in file:
             cells = line.split("\t")
             if len(cells) > 0:
@@ -56,6 +48,9 @@ class MorphologicalTable(BaseMorphologicalAnalyser):
                 anals = cells[1:]
                 self.morph_table[token] = anals
         file.close()
+        # todo ez ugyanaz?:
+        # with file as f:
+        #     self.morph_table = {cells[0]: cells[1:] for line in f for cells in line.split("\t")}
 
     def tags(self, word: str):
         return self.morph_table.get(word, [])
@@ -69,16 +64,7 @@ class HumorAnalyser(BaseMorphologicalAnalyser):
         self.humor = humor
 
     def tags(self, word: str) -> list:
-        # return [anal[1] for anal in self.humor.analyze(word)]
-        tags = []
-        anals = self.humor.analyze(word)
-        for anal in anals:
-            tags.append(anal[1])
-        return tags  # todo ez így?
+        return [anal[1] for anal in self.humor.analyze(word)]
 
     def analyse(self, word: str) -> list:
-        tokens = []
-        anals = self.humor.analyze(word)
-        for anal in anals:
-            tokens.append(Token(word, anal[0], anal[1]))
-        return tokens
+        return [Token(word, anal[0], anal[1]) for anal in self.humor.analyze(word)]

@@ -60,24 +60,18 @@ class LemmaComparator:
                                                      self.comp_model_data, self.model_data)
 
 
-class BaseTagger:  # todo ez a class nem kell.
-    def tag(self, source, output, max_res_num):
-        pass
 
-
-class POSTagger(BaseTagger):
+class POSTagger:
     @staticmethod
     def preprocess_sentence(sentence: list):
         util.analysis_queue.init(len(sentence))
         ret = []
-        i = 0
-        for word in sentence:
+        for i, word in enumerate(sentence):
             if AnalysisQueue.ispreanalysed(word):
                 util.analysis_queue.add_word(word, i)
                 ret.append(AnalysisQueue.clean(word))
             else:
                 ret.append(word)
-            i += 1
         return ret
 
     def __init__(self, model: CompiledModel,
@@ -98,24 +92,12 @@ class POSTagger(BaseTagger):
                      max_res: int) -> Sentence:
         sentence = self.preprocess_sentence(sentence)
         tag_list = self.decoder.decode(sentence, max_res)
-        ret = []
-        for tags in tag_list:
-            tokens = self.merge(sentence, tags[0])
-            sent = Sentence(tokens)
-            sent.score = tags[1]
-            ret.append(sent)
-        return ret
+        return [Sentence(self.merge(sentence, tags[0]), score=tags[1]) for tags in tag_list]
 
     def merge(self, sentence: list, tags: list) -> list:
-        tokens = []
         vocab = self.model.data.tag_vocabulary
-        for idx in range(min(len(tags), len(sentence))):
-            next_token = sentence[idx]
-            next_tag = tags[idx]
-            next_tag_s = vocab.word(next_tag)
-            tok = Token(next_token, None, next_tag_s)
-            tokens.append(tok)
-        return tokens
+        return [Token(sentence[idx], None, vocab.word(tags[idx]))
+                for idx in range(min(len(tags), len(sentence)))]
 
     def tag(self, source: io.TextIOWrapper, dest: io.TextIOWrapper, max_results_number: int=1):
         for line in source:
@@ -124,17 +106,13 @@ class POSTagger(BaseTagger):
 
     def tag_and_format(self, line: str, max_res_num: int) -> str:
         sent_str = ""
-        show_prb = (max_res_num > 1)
         if line.strip() != "":
             s = self.tag_sentence(line.split(), max_res_num)
-            sent_str = self.sentences_to_string(s, show_prb)
+            sent_str = self.sentences_to_string(s, max_res_num > 1)
         return sent_str
 
     def sentences_to_string(self, sentences: list, show_prob: bool) -> str:
-        sent_strs = []
-        for s in sentences:
-            sent_strs.append(self.sent_to_string(s, show_prob))
-        return "\t".join(sent_strs)
+        return "\t".join([self.sent_to_string(s, show_prob) for s in sentences])
 
     @staticmethod
     def sent_to_string(sentence: Sentence, show_prob: bool) -> str:
@@ -203,16 +181,13 @@ class MorphTagger(POSTagger):
             use_morph = False
             stems = set(lemma_suff_probs.keys())
 
-        possible_stems = set()
-        for ct in stems:
-            if t.tag == ct.tag:
-                possible_stems.add(ct)
+        possible_stems = [ct for ct in stems if t.tag == ct.tag]
 
         if len(possible_stems) == 0:
             return Token(t.token, t.token, t.tag)
 
         if len(possible_stems) == 1 and t.token == t.token.lower():
-            best = possible_stems.__iter__().__next__()
+            best = possible_stems[0]
         else:
             if self.stem_filter is not None:
                 possible_stems = self.stem_filter.filter_stem(possible_stems)

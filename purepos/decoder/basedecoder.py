@@ -34,7 +34,7 @@ from purepos.model.mapper import TagMapper
 from purepos.model.ngram import NGram
 from purepos.model.modeldata import ModelData
 from purepos.model.probmodel import BaseProbabilityModel
-from purepos.model.suffixguesser import BaseSuffixGuesser, HashSuffixGuesser
+from purepos.model.suffixguesser import HashSuffixGuesser
 from purepos.model.history import History
 
 # „enum” values
@@ -205,7 +205,7 @@ class BaseDecoder:
 
     def next_for_guessed_oov_token(self, prev_tags_set: set,
                                    lword: str,
-                                   guesser: BaseSuffixGuesser):
+                                   guesser: HashSuffixGuesser):
         rrr = dict()
         tag_probs = dict()
         guessed_tags = guesser.tag_log_probabilities(lword)
@@ -285,7 +285,7 @@ class BaseDecoder:
         # vezessenek félre. // „TnT – A Statistical Part-of-Speech Tagger” Brants, Thorsen 2000
         # 2.3, 4)
         s = set()
-        max_tag = BaseSuffixGuesser.max_probability_tag(guessed_tags)
+        max_tag = HashSuffixGuesser.max_probability_tag(guessed_tags)
         max_val = guessed_tags[max_tag]
         min_val = max_val - self.suf_theta
         for k, v in guessed_tags.items():

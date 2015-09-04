@@ -46,6 +46,7 @@ class NGram:
         return self.hash
 
     def init_hash(self) -> int:
+        # Ennek a célja, hogy a hash kódot előre legyártsa, mert nagyon gyakran lesz rá szükség.
         s = 0
         if self.compare_length != -1:
             size = self.compare_length
@@ -55,7 +56,7 @@ class NGram:
         for tok in self.token_list[::-1]:
             if c >= size:
                 break
-            s += tok*31
+            s += tok*31  # prím szám.
             c += 1
         return s
 

@@ -36,7 +36,7 @@ analysis_queue = AnalysisQueue()
 CONFIGURATION = None  # Nem teszteltük.
 
 
-class Constants:  # todo: ötlet minden konstan egy objektumba -> egy időben több különböző PurePOS
+class Constants:  # todo: ötlet minden konstans egy objektumba -> egy időben több különböző PurePOS
     # todo: https://github.com/ppke-nlpg/purepos-python3/issues/7
     def __init__(self):
         pass
@@ -50,10 +50,7 @@ class StemFilter:
     def filter_stem(self, candidates) -> list:
         if len(self.stems) == 0:
             return candidates
-        ret = []
-        for t in candidates:
-            if t.stem in self.stems:
-                ret.append(t)
+        ret = [t for t in candidates if t.stem in self.stems]
         if len(ret) == 0:
             return candidates
         return ret

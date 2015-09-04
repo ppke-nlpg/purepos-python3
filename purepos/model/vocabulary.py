@@ -30,15 +30,10 @@ from purepos.model.ngram import NGram
 
 class BiDict(dict):
     def __init__(self, *args, **kwargs):
-        super().__init__()
-        self.inverse = dict()
-        d = dict(*args, **kwargs)
-        for k, v in d.items():
-            if self.get(k) is None and self.inverse.get(v) is None:
-                self[k] = v
-                self.inverse[v] = k
-            else:
-                raise KeyError("BiDict does not allow same values for multiple keys.")
+        super().__init__(*args, **kwargs)
+        self.inverse = {v: k for k, v in self.items()}
+        if len(self) != len(self.inverse):
+            raise KeyError("BiDict does not allow same values for multiple keys.")
 
     def __setitem__(self, k, v):
         if "inverse" not in vars(self).keys():
@@ -50,11 +45,40 @@ class BiDict(dict):
             raise KeyError("BiDict does not allow same values for multiple keys.")
 
     def __delitem__(self, key):
-        v = self.get(key)
-        if v is None:
-            raise KeyError(key)
+        v = self[key]
         self.inverse.__delitem__(v)
         super().__delitem__(key)
+
+
+class Lexicon:
+    def __init__(self):
+        self.representation = dict()
+        self.size = 0
+
+    def add_token(self, token, tag):
+        # todo defaultdict, vagy collections.Counter hatékonyabb lenne.
+        if token in self.representation.keys():
+            value = self.representation[token]
+            if tag in value.keys():
+                value[tag] += 1
+            else:
+                value[tag] = 1
+        else:
+            self.representation[token] = {tag: 1}
+        self.size += 1
+
+    def tags(self, word) -> set:
+        return set(self.representation.get(word, {}).keys())
+
+    def word_count(self, word) -> int:
+        return sum(c for c in self.representation.get(word, {}).values())
+
+    # def iterator(self):
+    #     return self.representation.items()
+
+    def wordcount_for_tag(self, word, tag):
+        return self.representation.get(word, {}).get(tag, 0)
+
 
 
 class BaseVocabulary:
@@ -72,26 +96,22 @@ class BaseVocabulary:
         return self.voc.inverse.get(index)
 
     def indices(self, wlist: list):
-        lst = []
-        for w in wlist:
-            val = self.voc.get(w)
-            if val is None:
-                return None
-            lst.append(val)
-        return NGram(lst)
+        try:
+            lst = [self.voc[w] for w in wlist]
+            return NGram(lst)
+        except KeyError:
+            return None
 
     def add_element(self, element):
-        key = self.voc.get(element)
-        if key is None:
-            return self.add_vocabulary_element(element)
+        # DefaultBiDict?
+        if element in self.voc.keys():
+            return self.voc[element]
         else:
-            return key
+            self.voc[element] = len(self.voc)
+            return self.voc[element]
 
     def __str__(self):
         return self.voc.__str__()
-
-    def add_vocabulary_element(self, element):
-        pass
 
     def tag_indices(self):
         return self.voc.values()
@@ -104,10 +124,6 @@ class BaseVocabulary:
 
 
 class IntVocabulary(BaseVocabulary):
-    def add_vocabulary_element(self, element):
-        self.voc[element] = len(self.voc)
-        return self.voc[element]
-
     @staticmethod
     def extremal_element():
         return -1

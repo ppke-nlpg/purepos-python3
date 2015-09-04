@@ -33,7 +33,7 @@ from purepos.common.lemmatransformation import BaseLemmaTransformation
 from purepos.model.modeldata import ModelData
 from purepos.model.rawmodeldata import RawModelData
 from purepos.model.compiledmodel import CompiledModelData
-from purepos.model.suffixtree import BaseSuffixTree
+from purepos.model.suffixtree import HashSuffixTree
 
 
 def default_combiner():
@@ -41,6 +41,9 @@ def default_combiner():
 
 
 class BaseCombiner:
+    # A guesserből és az unigram modellből (?) származó adatok kombinálásához.
+    # Valószínüleg a smoothinggal kapcsolatos
+    # Attila jobban tudja.
     def __init__(self):
         self.lambdas = []
 
@@ -64,7 +67,7 @@ class LogLinearBiCombiner(BaseCombiner):
                          raw_modeldata: RawModelData,
                          modeldata: ModelData):
         apriori_probs = raw_modeldata.tag_ngram_model.word_apriori_probs()
-        theta = BaseSuffixTree.calculate_theta(apriori_probs)
+        theta = HashSuffixTree.calculate_theta(apriori_probs)
         lemma_suffix_guesser = raw_modeldata.lemma_suffix_tree.create_guesser(theta)
         lambda_s = 1.0
         lambda_u = 1.0
@@ -112,6 +115,7 @@ class LogLinearBiCombiner(BaseCombiner):
 
         return uni_score * uni_lambda + suffix_score * suffix_lambda
 
+# Csak a BiCombinert használjuk, ami innen jön, dead code.
 
 class LogLinearMLCombiner(BaseCombiner):
     def calculate_params(self, doc: Document,
@@ -134,7 +138,7 @@ class LogLinearTriCombiner(BaseCombiner):
                          raw_modeldata: RawModelData,
                          modeldata: ModelData):
         apriori_probs = raw_modeldata.tag_ngram_model.word_apriori_probs()
-        theta = BaseSuffixTree.calculate_theta(apriori_probs)
+        theta = HashSuffixTree.calculate_theta(apriori_probs)
         lemma_suffix_guesser = raw_modeldata.lemma_suffix_tree.create_guesser(theta)
         lemma_prob = raw_modeldata.lemma_freq_tree.create_guesser(theta)
         lemma_unigram_model = raw_modeldata.lemma_unigram_model

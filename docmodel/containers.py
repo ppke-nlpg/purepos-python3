@@ -34,9 +34,9 @@ NL = os.linesep
 class Sentence(list):
     """Represents a POS-tagged stemmed sentence."""
 
-    def __init__(self, *tokens):
+    def __init__(self, *tokens, score=None):
         super().__init__(*tokens)
-        self.score = None
+        self.score = score
 
     def __str__(self):
         return SENTENCE_SEP.join([str(x) for x in self])

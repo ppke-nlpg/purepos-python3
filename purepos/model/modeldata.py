@@ -25,8 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.model.vocabulary import BaseVocabulary, IntVocabulary
-from purepos.model.lexicon import Lexicon
+from purepos.model.vocabulary import BaseVocabulary, IntVocabulary, Lexicon
 
 
 class ModelData:

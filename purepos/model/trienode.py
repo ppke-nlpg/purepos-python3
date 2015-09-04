@@ -24,25 +24,25 @@
 ##############################################################################
 
 
-# todo nagyon nagyon jávás megközelítés.
-class BaseTrieNode:
-    def __init__(self, _id, word=None):
+class TrieNode:
+    def __init__(self, _id, word=None, node_type=int):
         self.id_ = _id
         self.words = dict()
         self.num = self.zero()
         self.child_nodes = dict()
+        self.node_type = node_type
 
         if word is not None:
             self.add_word(word)
 
     def zero(self):
-        pass
+        return self.node_type(0)
 
     def increment(self, num):
-        pass
+        return num + self.node_type(1)
 
     def create_node(self, _id):
-        pass
+        return TrieNode(_id, node_type=self.node_type)
 
     def add_word(self, word):
         if word in self.words.keys():
@@ -58,68 +58,12 @@ class BaseTrieNode:
             return child_node
         return self.child_nodes[child]
 
-    # todo inline?
-    def has_child(self, _id) -> bool:
-        return _id in self.child_nodes.keys()
-
-    # todo inline!
-    def get_child(self, _id):
-        return self.child_nodes.get(_id)
-
-    # todo inline?
-    def has_word(self, word) -> bool:
-        return word in self.words.keys()
-
-    # todo inline!
-    def get_word(self, word):
-        return self.words.get(word)
-
-    def __str__(self):
-        return "(id: {}, words: {})".format(self.id_, str(self.words))
-
-    # todo: getReprString csak ha kell.
-
-
-class IntTrieNode(BaseTrieNode):
-    def __init__(self, _id, word=None):
-        super().__init__(_id, word)
-
-    def zero(self) -> int:
-        return 0
-
-    def increment(self, num) -> int:
-        return num + 1
-
-    def create_node(self, _id):
-        return IntTrieNode(_id)
-
     def apriori_prob(self, word) -> float:
         if word in self.words.keys():
             return self.words[word] / self.num
         else:
             return 0.0
 
+    def __str__(self):
+        return "(id: {}, words: {})".format(self.id_, str(self.words))
 
-# todo: DoubleTrieNode
-class FloatTrieNode(BaseTrieNode):
-    def __init__(self, _id, word=None):
-        super().__init__(_id, word)
-
-    def zero(self) -> int:
-        return 0.0
-
-    def increment(self, num) -> int:
-        return num + 1.0
-
-    def create_node(self, _id):
-        return FloatTrieNode(_id)
-
-    # todo inline?
-    def add_word_prob(self, word, prob: float):
-        self.words[word] = prob
-
-    # todo ez nem valódi leszármazott, mást csinál!
-    # todo ezért INLINE!!!
-    def add_child(self, child):
-        self.child_nodes[child.id_] = child
-        raise Warning("Ezt a függvényt ne hívd meg! Inlájnold!")

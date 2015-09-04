@@ -28,24 +28,13 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import math
 UNKNOWN_VALUE = -99.0
 
-class BaseSuffixGuesser:
 
+class HashSuffixGuesser:  # (BaseSuffixGuesser):
     @staticmethod
     def max_probability_tag(probabilities: dict) -> int:
         m = max(probabilities.items(), key=lambda x: x[1])
         return m[0]
 
-    def tag_probability(self, word, tag) -> float:
-        pass
-
-    def tag_log_probability(self, word, tag) -> float:
-        pass
-
-    def tag_log_probabilities(self, word) -> dict:
-        pass
-
-
-class HashSuffixGuesser(BaseSuffixGuesser):
     def __init__(self, freq_table: dict, theta: float):
         self.freq_table = freq_table
         self.theta = theta
@@ -54,26 +43,15 @@ class HashSuffixGuesser(BaseSuffixGuesser):
         self.lemma_mapper = None
 
     def tag_log_probabilities(self, word) -> dict:
-        ret = dict()
-        probs = self.tag_probabilities(word)
-        for k, v in probs.items():
-            ret[k] = math.log(v)
-        return ret
+        return {k: math.log(v) for k, v in self.tag_probabilities(word).items()}
 
     def tag_probabilities(self, word) -> dict:
         mret = dict()
         for i in range(len(word), -1, -1):
-            suff = word[i:]
-            suffix_value = self.freq_table.get(suff)
-            if suffix_value is not None:
-                tag_suff_freqs = suffix_value[0]
-                for tag, val in tag_suff_freqs.items():
-                    tag_suff_freq_d = float(val)
-                    ret = mret.get(tag)
-                    if ret is None:
-                        ret = 0.0
-                    rel_freq = tag_suff_freq_d / suffix_value[1]
-                    mret[tag] = (ret + (rel_freq*self.theta))/self.theta_plus_one
+            suffix_value = self.freq_table.get(word[i:], [dict(), 0])
+            mret.update({tag: (mret.get(tag, 0.0) + (float(val) / suffix_value[1] * self.theta))
+                         / self.theta_plus_one
+                         for tag, val in suffix_value[0].items()})
         return mret
 
     def tag_log_probability(self, word, tag) -> float:
@@ -83,25 +61,18 @@ class HashSuffixGuesser(BaseSuffixGuesser):
     def tag_probability(self, word, tag) -> float:
         if self.mapper is not None:
             tag = self.mapper.map(tag)
-
-        ret = self.tag_probabilities(word)
-        val = ret.get(tag)
-        if val is not None:
-            return val
-        else:
-            return 0.0
+        return self.tag_probabilities(word).get(tag, 0.0)
 
     # todo not used?
     def tag_prob_hunpos(self, word, tag) -> float:
         ret = 0.0
         for i in range(len(word)-1, -1, -1):
-            suff = word[:i]
-            suffix_value = self.freq_table.get(suff)
+            suffix_value = self.freq_table.get(word[:i])
             if suffix_value is not None:
                 tag_suff_freq = suffix_value[0].get(tag)
                 if tag_suff_freq is not None:
-                    rel_freq = tag_suff_freq / suffix_value[1]
-                    ret = (ret + (rel_freq * self.theta)) / self.theta_plus_one
+                    ret = (ret + (tag_suff_freq / suffix_value[1] * self.theta))\
+                        / self.theta_plus_one
                 else:
                     break
         return ret

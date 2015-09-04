@@ -26,10 +26,12 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
-from purepos.model.trienode import IntTrieNode, FloatTrieNode
+from purepos.model.trienode import TrieNode
 
 UNKNOWN_VALUE = -99.0
 
+
+# Hosszú távon kifaktorálható?
 class BaseProbabilityModel:
     def __init__(self):
         self.element_mapper = None
@@ -43,6 +45,7 @@ class BaseProbabilityModel:
 
 
 class OneWordLexicalModel(BaseProbabilityModel):
+    # Csak az analysisqueue-ban. Valóban kell?
     # Ez eredetileg common: package hu.ppke.itk.nlpg.purepos.common;
     def __init__(self, probs: dict, word: str):
         super().__init__()
@@ -64,7 +67,7 @@ class OneWordLexicalModel(BaseProbabilityModel):
 
 
 class ProbModel(BaseProbabilityModel):
-    def __init__(self, orig_root: IntTrieNode, lambdas: list):
+    def __init__(self, orig_root: TrieNode, lambdas: list):
         self.root = self.create_root(orig_root, lambdas)
         super().__init__()
 
@@ -73,63 +76,46 @@ class ProbModel(BaseProbabilityModel):
             word = self.element_mapper.map(word)
         if self.context_mapper is not None:
             context = self.context_mapper.map_list(context)
-
         node = self.root
-        find_more = True
         for prev in context[::-1]:
-            find_more = node.has_child(prev) and node.child_nodes[prev].has_word(word)
-            if not find_more:
+            find_more = prev in node.child_nodes.keys() and \
+                word in node.child_nodes[prev].words.keys()
+            if find_more:
+                node = node.child_nodes[prev]
+            else:
                 break
-            node = node.get_child(prev)
-            # prev = con
-        if node.has_word(word):
-            return node.words[word]
-        else:
-            return 0.0
+        return node.words.get(word, 0.0)
 
     def log_prob(self, context: list, word) -> float:
         prob = self.prob(context, word)
         return math.log(prob) if prob > 0 else UNKNOWN_VALUE
 
-    def word_probs(self, context):
-        raise NotImplementedError("Is it used?")
-
-    def create_root(self, node: IntTrieNode, lambdas: list) -> FloatTrieNode:
+    def create_root(self, node: TrieNode, lambdas: list) -> TrieNode:
         new_root = self.calc_probs(node)
-        for k, v in new_root.words.items():
-            prob = lambdas[0] + lambdas[1] * v
-            new_root.add_word_prob(k, prob)
-        words = new_root.words
+        new_root.words = {k: lambdas[0] + lambdas[1] * v for k, v in new_root.words.items()}
         for child in node.child_nodes.values():
-            ch = self.create_child(child, words, lambdas, 2)
-            # new_root.add_child(ch)
+            ch = self.create_child(child, new_root.words, lambdas, 2)
             new_root.child_nodes[ch.id_] = ch
         return new_root
 
     def create_child(self,
-                     original_node: IntTrieNode, parent_words: dict, lambdas: list, level: int)\
-            -> FloatTrieNode:
+                     original_node: TrieNode, parent_words: dict, lambdas: list, level: int)\
+            -> TrieNode:
         if len(lambdas) > level:
             node = self.calc_probs(original_node)
             lamb = lambdas[level]
-            for k, v in original_node.words.items():
-                prob = parent_words[k]
-                prob += lamb * original_node.apriori_prob(k)
-                node.add_word_prob(k, prob)
-
+            node.words = {k: parent_words[k] + lamb * original_node.apriori_prob(k)
+                          for k, v in original_node.words.items()}
             for child in original_node.child_nodes.values():
                 ch = self.create_child(child, node.words, lambdas, level+1)
                 if ch is not None:
-                    # node.add_child(ch)
                     node.child_nodes[ch.id_] = ch
             return node
         else:
             return None
 
     @staticmethod
-    def calc_probs(node: IntTrieNode) -> FloatTrieNode:
-        new_root = FloatTrieNode(node.id_)
-        for word in node.words.keys():
-            tmp_prb = node.apriori_prob(word)
-            new_root.add_word_prob(word, tmp_prb)
+    def calc_probs(node: TrieNode) -> TrieNode:
+        new_root = TrieNode(node.id_, node_type=float)
+        new_root.words = {word: node.apriori_prob(word) for word in node.words.keys()}
         return new_root

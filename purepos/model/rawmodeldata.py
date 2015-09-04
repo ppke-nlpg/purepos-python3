@@ -27,7 +27,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 from purepos.model.compiledmodel import CompiledModelData
 from purepos.common.statistics import Statistics
-from purepos.model.suffixtree import BaseSuffixTree, HashLemmaTree, HashSuffixTree
+from purepos.model.suffixtree import HashSuffixTree
 from purepos.model.ngrammodel import NGramModel
 from purepos.model.lemmaunigrammodel import LemmaUnigramModel
 
@@ -42,8 +42,8 @@ class RawModelData:
         # Speciális tokenek és a megelőző cimkék modellje
         self.spec_emission_ngram_model = NGramModel(2)
         self.eos_tag = None
-        # Lemma suffix gyakorisági táblázat
-        self.lemma_suffix_tree = HashLemmaTree(100)
+        # Lemma suffix gyakorisági táblázat (HashLemmaTree volt.)
+        self.lemma_suffix_tree = HashSuffixTree(100)
         # Lemma gyakorisági táblázat
         self.lemma_freq_tree = HashSuffixTree(5)
         # Lemma gyakorisági táblázat
@@ -63,7 +63,7 @@ class RawModelData:
         c.standard_emission_model = self.std_emission_ngram_model.create_probability_model()
         c.spec_tokens_emission_model = self.spec_emission_ngram_model.create_probability_model()
         c.apriori_tag_probs = self.tag_ngram_model.word_apriori_probs()
-        theta = BaseSuffixTree.calculate_theta(c.apriori_tag_probs)
+        theta = HashSuffixTree.calculate_theta(c.apriori_tag_probs)
         c.lower_case_suffix_guesser = self.lower_suffix_tree.create_guesser(theta)
         c.upper_case_suffix_guesser = self.upper_suffix_tree.create_guesser(theta)
         c.lemma_guesser = self.lemma_suffix_tree.create_guesser(theta)

@@ -36,8 +36,8 @@ from docmodel.token import Token, Colors
 from purepos.trainer import Trainer
 from purepos.common.serializer import StandardSerializer
 from purepos.common import util
-from purepos.tagger import BaseTagger, POSTagger, MorphTagger
-from purepos.morphology import NullAnalyser, MorphologicalTable, HumorAnalyser
+from purepos.tagger import POSTagger, MorphTagger
+from purepos.morphology import BaseMorphologicalAnalyser, MorphologicalTable, HumorAnalyser
 from purepos.cli.configuration import Configuration
 from purepos.common.analysisqueue import AnalysisQueue
 
@@ -268,7 +268,7 @@ class PurePos:
                       use_beam_search: bool,
                       conf: Configuration,
                       humor_path: str,
-                      lex_path: str) -> BaseTagger:
+                      lex_path: str) -> POSTagger:
         """Create a tagger object with the given properties.
 
         :param model_path:
@@ -288,9 +288,9 @@ class PurePos:
             except FileNotFoundError:
                 print("Humor module not found. Not using any morphological analyzer.",
                       file=sys.stderr)
-                ma = NullAnalyser()
+                ma = BaseMorphologicalAnalyser()
         elif analyser == PurePos.NONE_MA:
-            ma = NullAnalyser()
+            ma = BaseMorphologicalAnalyser()
         else:
             print("Using morphological table at: {}.".format(analyser), file=sys.stderr)
             ma = MorphologicalTable(open(analyser))
