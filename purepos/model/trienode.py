@@ -28,9 +28,9 @@ class TrieNode:
     def __init__(self, _id, word=None, node_type=int):
         self.id_ = _id
         self.words = dict()
-        self.num = self.zero()
         self.child_nodes = dict()
         self.node_type = node_type
+        self.num = self.zero()
 
         if word is not None:
             self.add_word(word)

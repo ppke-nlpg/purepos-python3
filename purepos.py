@@ -79,7 +79,7 @@ def parse_arguments():
                         metavar="<path>", type=str, default="pyhumor/")
     parser.add_argument("-L", "--lex-path",
                         help="Set the path of the lex file used by the Humor analyser. The "
-                             "pyhumor module delivered lex is used.",  # todo
+                             "pyhumor module delivered lex is used.",
                         metavar="<path>", type=str, default="lex/")
     parser.add_argument("--only-pos-tags",
                         help="Do not perform stemming, output only POS tags. Tagging only option.",

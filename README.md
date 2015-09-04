@@ -3,7 +3,7 @@ PurePOS reimplemented in Python3.
 
 Version: [2.4.90 (beta)](RELEASENOTES.md)
 
-Released: 2015.09.03.
+Released: 2015.09.04.
 
 PurePos
 =======
