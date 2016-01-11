@@ -42,8 +42,8 @@ class Token:
         self.token = token
         self.stem = stem
         self.tag = tag
-        # Egyedi hash kód előállítása a későbbi gyorsanbb eléréshez
-        self.hash_code = hash(self.stem) * 100 + hash(self.tag) * 10 + hash(self.token)
+        # Unique hash cached for faster access
+        self.hash_code = hash((self.stem, self.tag, self.token))
 
     def __str__(self):
         if self.tag is not None and self.stem is None:
@@ -57,12 +57,22 @@ class Token:
         return self.hash_code
 
     def __eq__(self, other):
+        """
         if other is not None and isinstance(other, Token):
             return (other.token == self.token) and\
                    (other.stem == self.stem) and \
                    (other.tag == self.tag)
         else:
             return False
+        """
+        """
+        Hashable objects which compare equal must have the same hash value.
+        All of Python’s immutable built-in objects are hashable, while no mutable containers
+        (such as lists or dictionaries) are. Objects which are instances of user-defined classes are hashable
+        by default; they all compare unequal (except with themselves), and their hash value is derived from their id().
+        Source: https://docs.python.org/3/glossary.html#term-hashable
+        """
+        return isinstance(other, Token) and self.__hash__() == other.__hash__()
 
 
 class ModToken(Token):

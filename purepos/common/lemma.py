@@ -38,7 +38,7 @@ def batch_convert(prob_map: dict, word: str, vocab: BaseVocabulary) -> dict:
     for k, v in prob_map.items():  # (str, int), float
         # Ami ebben a convertben van, át kéne gondolni. Amit lehet, azt ide kihozni.
         lemma = k.convert(word, vocab)  # token
-        # Nem egyértelmű kulcs (postprocess). Jó lenne, ha a jobb valségű győzne, vagy legyen
+        # Nem egyértelmű kulcs (_postprocess). Jó lenne, ha a jobb valségű győzne, vagy legyen
         # egyértelmű kulcs
         # De azért ne nyerjen a kötőjeles lemma.
         entry = ret.get(lemma)

@@ -38,40 +38,26 @@ def def_lemma_representation_by_token(token: Token, data: ModelData):
     return def_lemma_representation(token.token, token.stem, data.tag_vocabulary.index(token.tag))
 
 
-def longest_substring(str1: str, str2: str) -> tuple:
+def longest_substring(s1: str, s2: str) -> tuple:
     """
     Calculates the longest substring efficiently.
-    :param str1:
-    :param str2:
+    Source: https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Longest_common_substring#Python3
+    :param s1:
+    :param s2:
     :return: start position and length
     """
-    if not str1 or not str2:
-        return 0, 0
-    sb = []
-    str1 = str1.lower()
-    str2 = str2.lower()
-    num = [[0 for _ in range(len(str1))] for _ in range(len(str2))]
-    maxlen = 0
-    last_begin = 0
-
-    for i, s1 in enumerate(str1):
-        for j, s2 in enumerate(str2):
-            if s1 == s2:
-                if i == 0 or j == 0:
-                    num[i][j] = 1
-                else:
-                    num[i][j] = 1 + num[i - 1][j - 1]
-
-                if num[i][j] > maxlen:
-                    maxlen = num[i][j]
-                    this_begin = i - num[i][j] + 1
-                    if last_begin == this_begin:
-                        sb.append(s1)
-                    else:
-                        last_begin = this_begin
-                        sb.clear()
-                        sb.append(str1[last_begin:i+1])
-    return last_begin, len(str.join('', sb))
+    m = [[0] * (1 + len(s2)) for _ in range(1 + len(s1))]
+    longest, x_longest = 0, 0
+    for x in range(1, 1 + len(s1)):
+        for y in range(1, 1 + len(s2)):
+            if s1[x - 1] == s2[y - 1]:
+                m[x][y] = m[x - 1][y - 1] + 1
+                if m[x][y] > longest:
+                    longest = m[x][y]
+                    x_longest = x
+            else:
+                m[x][y] = 0
+    return x_longest - longest, longest
 
 
 def lower_transformed(word: str, lemma: str) -> bool:
@@ -88,10 +74,7 @@ class BaseLemmaTransformation:
         encoded = self.encode(word, self.representation)
         # return encoded[0], encoded[1]
         # Gyuri hack a kötőjeles lemmák elkerüléséért.
-        return self.postprocess(encoded[0]), encoded[1]
-
-    def min_cut_length(self) -> int:
-        pass
+        return self.__postprocess(encoded[0]), encoded[1]
 
     def convert(self, word: str, vocab: BaseVocabulary) -> Token:
         anal = self.analyse(word)       # (str, int)
@@ -102,10 +85,13 @@ class BaseLemmaTransformation:
         return str(self.representation)
 
     def __hash__(self):
-        return self.__str__().__hash__()
+        return self.representation.__hash__()
 
     def __eq__(self, other) -> bool:
         return isinstance(other, type(self)) and self.representation == other.representation
+
+    def min_cut_length(self) -> int:
+        pass
 
     def decode(self, word: str, lemma: str, tag: int):
         pass
@@ -114,7 +100,7 @@ class BaseLemmaTransformation:
         pass
 
     @staticmethod
-    def postprocess(lemma: str) -> str:
+    def __postprocess(lemma: str) -> str:
         # Lemma végi „-” leszedése.
         # pl.: Delacroix-é -> Delacroix-[FN][POS][NOM] -> Delacroix
         if len(lemma) > 1 and lemma[-1] == '-':
@@ -127,33 +113,36 @@ class BaseLemmaTransformation:
         return Token(word, lemma, tag)
 
 
+class Transformation:
+    def __init__(self, rem_start: int, rem_end: int, add_start: str, add_end: str, tag: int, lowered: bool):
+        self.remove_start = rem_start
+        self.remove_end = rem_end
+        self.add_start = add_start
+        self.add_end = add_end
+        self.tag = tag
+        self.lowered = lowered
+        l = "_" if self.lowered else "-"
+        self.str_rep = "({0},< -{1}+\'{2}\', >-{3}+\'{4}\' -{5})".format(l, rem_start, add_start, rem_end, add_end, tag)
+        self.hash_code = hash(self.str_rep)
+
+    def __str__(self):
+        return self.str_rep
+
+    def __hash__(self):
+        return self.hash_code
+
+    def __eq__(self, other):
+        """
+        Hashable objects which compare equal must have the same hash value.
+        All of Python’s immutable built-in objects are hashable, while no mutable containers
+        (such as lists or dictionaries) are. Objects which are instances of user-defined classes are hashable
+        by default; they all compare unequal (except with themselves), and their hash value is derived from their id().
+        Source: https://docs.python.org/3/glossary.html#term-hashable
+        """
+        return isinstance(other, Transformation) and self.__hash__() == other.__hash__()
+
+
 class GeneralizedLemmaTransformation(BaseLemmaTransformation):
-    class Transformation:
-        def __init__(self, remove_start: int, remove_end: int, add_start: str, add_end: str,
-                     tag: int, to_lower: bool):
-            self.remove_start = remove_start
-            self.remove_end = remove_end
-            self.add_start = add_start
-            self.add_end = add_end
-            self.tag = tag
-            self.to_lower = to_lower
-            l = "_" if self.to_lower else "-"
-            self.str_rep = "({0},< -{1}+\'{2}\', >-{3}+\'{4}\' -{5})".format(l, remove_start,
-                                                                             add_start,
-                                                                             remove_end,
-                                                                             add_end, tag)
-
-        def __str__(self):
-            return self.str_rep
-
-        def __eq__(self, other):
-            return isinstance(other, GeneralizedLemmaTransformation.Transformation) and \
-                self.remove_start == other.remove_start and \
-                self.remove_end == other.remove_end and \
-                self.add_start == other.add_start and \
-                self.add_end == other.add_end and \
-                self.tag == other.tag
-
     def __init__(self, word: str, lemma: str, tag: int):
         super().__init__(word, lemma, tag)
 
@@ -161,53 +150,57 @@ class GeneralizedLemmaTransformation(BaseLemmaTransformation):
         return self.representation.remove_end
 
     def decode(self, word: str, lemma: str, tag: int) -> Transformation:
+        """
+        XXX Fails on budapesti -> Budapest
+        :param word: word
+        :param lemma: lemma
+        :param tag: label
+        :return: decoded to our representation
+        """
         pos_word_lemma = longest_substring(word, lemma)
         pos_lemma_word = longest_substring(lemma, word)
-        lowered = lower_transformed(word, lemma)
-        if pos_word_lemma[1] < 2:
-            return GeneralizedLemmaTransformation.Transformation(
-                0, len(word), "", lemma, tag, lowered)
+
+        lowered = False  # is lowered?
+        if len(word) > 0 and len(lemma) > 0:
+            lowered = word[0].isupper() and lemma[0].islower()
+
         remove_start = pos_word_lemma[0]
         remove_end = len(word) - (pos_word_lemma[0] + pos_word_lemma[1])
         add_start = lemma[0:pos_lemma_word[0]]
-        add_end = lemma[pos_lemma_word[0] + pos_lemma_word[1]]
-        return GeneralizedLemmaTransformation.Transformation(remove_start, remove_end, add_start,
-                                                             add_end, tag, lowered)
+        add_end = lemma[pos_lemma_word[0] + pos_lemma_word[1]:]
+        return Transformation(remove_start, remove_end, add_start, add_end, tag, lowered)
 
     def encode(self, word: str, rep: Transformation) -> tuple:
-        upper_word = not (word == word.lower())
         sub_end = max(0, len(word) - rep.remove_end)
         lemma = word[0:sub_end] + rep.add_end
         lemma = (rep.add_start + lemma[min(rep.remove_start, len(lemma)):]).lower()
-        if upper_word and not rep.to_lower and len(lemma) > 0:
+        if word != word.lower() and not rep.lowered and len(lemma) > 0:
             lemma = lemma[0].upper() + lemma[1:]
         return lemma, rep.tag
 
 
 class SuffixLemmaTransformation(BaseLemmaTransformation):
-    SHIFT = 100
-
     def __init__(self, word: str, lemma: str, tag: int):
+        self._SHIFT = 100
         super().__init__(word, lemma, tag)
+
+    def min_cut_length(self):
+        return self.representation[1] % self._SHIFT
 
     def decode(self, word: str, stem: str, tag: int) -> tuple:
         i = 0
-        while i < min(len(word), len(stem)):
-            if word[i] != stem[i]:
-                break
+        word_len = len(word)
+        end = min(word_len, len(stem))
+        while i < end and word[i] == stem[i]:
             i += 1
-        word_suff = word[i:]
-        cut_size = len(word_suff)
+        cut_size = word_len - i
         lemma_suff = stem[i:]
-        code = SuffixLemmaTransformation.SHIFT * tag + cut_size
+        code = self._SHIFT * tag + cut_size
         return lemma_suff, code
 
-    def encode(self, word: str, rep: tuple):
-        tag_code = rep[1] // SuffixLemmaTransformation.SHIFT
-        cut_size = rep[1] % SuffixLemmaTransformation.SHIFT
+    def encode(self, word: str, rep: tuple) -> tuple:
+        tag_code = rep[1] // self._SHIFT
+        cut_size = rep[1] % self._SHIFT
         add = rep[0]
         lemma = word[0:len(word)-cut_size] + add
         return lemma, tag_code
-
-    def min_cut_length(self):
-        return self.representation[1] % SuffixLemmaTransformation.SHIFT
