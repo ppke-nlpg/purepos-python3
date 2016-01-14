@@ -85,8 +85,8 @@ class POSTagger:
         else:
             self.decoder = BeamedViterbi(model, analyser, log_theta, suf_theta, max_guessed_tags)
 
-    def tag_sentence(self, sentence: list,  # list of strings
-                     max_res: int) -> Sentence:
+    # list of strings
+    def tag_sentence(self, sentence: list, max_res: int) -> Sentence:
         sentence = self.preprocess_sentence(sentence)
         tag_list = self.decoder.decode(sentence, max_res)
         return [Sentence(self.merge(sentence, tags[0]), score=tags[1]) for tags in tag_list]

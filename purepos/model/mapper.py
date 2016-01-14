@@ -25,15 +25,14 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-import re
 from purepos.model.vocabulary import IntVocabulary
 
-
+"""
 # StringMapping:
 # (tagPattern, replacement)
 def stringmapping(pattern: str, replacement: str):
     return re.compile(pattern), replacement
-
+"""
 
 # Ez a fájl sok halott kódot és még több szügségtelen class-t tartalmaz. Ezeket kikommenteltem.
 # class BaseMapper:

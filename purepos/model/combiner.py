@@ -27,7 +27,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 from corpusreader.containers import Document, Token
 from purepos.common.util import UNKNOWN_VALUE, CONFIGURATION
-from purepos.common.lemmatransformation import BaseLemmaTransformation, batch_convert, main_pos_tag
+from purepos.common.lemmatransformation import BaseLemmaTransformation, batch_convert
 from purepos.model.modeldata import ModelData
 from purepos.model.rawmodeldata import RawModelData
 from purepos.model.compiledmodel import CompiledModelData
@@ -97,7 +97,7 @@ class LogLinearBiCombiner(BaseCombiner):
 
 # Csak a BiCombinert használjuk, ami innen jön, dead code.
 
-
+"""
 class LogLinearMLCombiner(BaseCombiner):
     def calculate_params(self, doc: Document,
                          raw_modeldata: RawModelData,
@@ -155,3 +155,4 @@ class LogLinearTriCombiner(BaseCombiner):
                self.lambdas[1] * compiled_modeldata.lemma_guesser.tag_log_probability(token.token, lem_transf) + \
                self.lambdas[2] * compiled_modeldata.suffix_lemma_model.tag_log_probability(token.stem,
                                                                                            main_pos_tag(token.tag))
+"""

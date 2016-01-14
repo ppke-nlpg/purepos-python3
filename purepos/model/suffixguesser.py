@@ -57,6 +57,7 @@ class HashSuffixGuesser:  # (BaseSuffixGuesser):
     def __str__(self):
         return str(self.freq_table)
 
+    """
     # todo not used?
     def tag_prob_hunpos(self, word, tag) -> float:
         ret = 0.0
@@ -70,4 +71,4 @@ class HashSuffixGuesser:  # (BaseSuffixGuesser):
                 else:
                     break
         return ret
-
+    """

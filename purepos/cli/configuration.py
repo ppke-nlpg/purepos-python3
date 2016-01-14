@@ -57,14 +57,14 @@ class Configuration:
         for tm in tag_mapping_elements:
             spat = tm.attrib[Configuration.PATTERN]
             stag = tm.attrib[Configuration.TAG]
-            tag_mappings.append(re.compile(spat), stag)
+            tag_mappings.append((re.compile(spat), stag))
 
         lemma_mapping_elements = root.findall(Configuration.LEMMA_MAPPING)
         lemma_mappings = []
         for lm in lemma_mapping_elements:
             spat = lm.attrib[Configuration.PATTERN]
             stag = lm.attrib[Configuration.TAG]
-            lemma_mappings.append(re.compile(spat), stag)
+            lemma_mappings.append((re.compile(spat), stag))
 
         marker_elements = root.findall(Configuration.GUESSED_MARKER)
         guessed_marker = marker_elements[0].text if len(marker_elements) > 0 else ""
