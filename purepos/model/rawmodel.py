@@ -25,16 +25,15 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from docmodel.containers import Document, Sentence
-from docmodel.token import Token
+from corpusreader.containers import Document, Sentence, Token
+from purepos.cli.configuration import Configuration
+from purepos.common import util
+from purepos.common.lemmatransformation import def_lemma_representation
+from purepos.common.spectokenmatcher import SpecTokenMatcher
+from purepos.common.statistics import Statistics
 from purepos.model.compiledmodel import CompiledModel, ModelData
 from purepos.model.rawmodeldata import RawModelData
 from purepos.model.suffixtree import HashSuffixTree
-from purepos.common.spectokenmatcher import SpecTokenMatcher
-from purepos.common.statistics import Statistics
-from purepos.common.lemmatransformation import def_lemma_representation
-from purepos.common import util
-from purepos.cli.configuration import Configuration
 
 
 class RawModel:
@@ -46,7 +45,7 @@ class RawModel:
                     tag: int,
                     _: str,  # tagstring
                     raw_modeldata: RawModelData):
-        raw_modeldata.lemma_unigram_model.increment(lemma)
+        raw_modeldata.lemma_unigram_model[lemma] += 1
         cnt = 1
         lemmatrans = def_lemma_representation(word, lemma, tag)
         raw_modeldata.lemma_suffix_tree.add_word(word, lemmatrans, cnt, lemmatrans.min_cut_length())
@@ -120,12 +119,10 @@ class RawModel:
                 for tag in m.keys():
                     word_tag_freq = self.data.standard_tokens_lexicon.wordcount_for_tag(word, tag)
                     if islower:
-                        self.raw_model_data.lower_suffix_tree.add_word(
-                            lower_word, tag, word_tag_freq)
+                        self.raw_model_data.lower_suffix_tree.add_word(lower_word, tag, word_tag_freq)
                         self.raw_model_data.stat.increment_lower_guesser_items(word_tag_freq)
                     else:
-                        self.raw_model_data.upper_suffix_tree.add_word(
-                            lower_word, tag, word_tag_freq)
+                        self.raw_model_data.upper_suffix_tree.add_word(lower_word, tag, word_tag_freq)
                         self.raw_model_data.stat.increment_upper_guesser_items(word_tag_freq)
 
     def compile(self, conf: Configuration) -> CompiledModel:

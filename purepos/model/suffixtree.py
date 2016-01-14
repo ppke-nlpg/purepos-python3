@@ -25,19 +25,28 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
+from math import sqrt
+from collections import Counter
 from purepos.model.suffixguesser import HashSuffixGuesser
 
 
+# XXX REPLACE to suffixguesser.py
 class HashSuffixTree:
+
     @staticmethod
     def calculate_theta(apriori_probs: dict):
-        pav = 0.0
-        for val in apriori_probs.values():
-            pav += val**2
-        theta = 0.0
-        for a_prob in apriori_probs.values():
-            theta += a_prob * ((a_prob-pav)**2)
-        return theta**0.5
+        """
+        The original solution of brants have been replaced in HunPOS by following libmoot where multiple
+        version of theta calculation is available see mooSuffixTrie.cc.
+        We blindly follow them.
+        :param apriori_probs: apriori tag probs
+        :return: theta
+        """
+        # Simmilar to Brants (2000) formula 11 (see docstring above)
+        pav = sum(val**2 for val in apriori_probs.values())
+        # Simmilar to Brants (2000) formula 10 (see docstring above)
+        theta = sqrt(sum(a_prob * ((a_prob-pav)**2) for a_prob in apriori_probs.values()))
+        return theta
 
     def __init__(self, max_suff_len: int):
         self.max_suffix_length = max_suff_len
@@ -45,25 +54,22 @@ class HashSuffixTree:
         self.representation = dict()
 
     def add_word(self, word, tag, count: int, min_len: int=0):
+        """
+        Count all suffix of a word from a given position till the end of the word
+        :param word: word
+        :param tag:  tag
+        :param count: count of observations
+        :param min_len: minimal suffix length
+        :return: None
+        """
         end = len(word) - min_len
         start = max(0, end-self.max_suffix_length)
-        # Egy adott pozíciótól a szó végéig lévő összes suffix számlálása
         for p in range(start, end + 1):
             suffix = word[p:]
-            self.increment(suffix, tag, count)
+            tags_counts = self.representation.setdefault(suffix, [Counter(), 0])[0]
+            tags_counts[tag] += count
+            self.representation[suffix][1] += count
         self.total_tag_count += count
-
-    def increment(self, suffix: str, tag, cnt: int):
-        if suffix in self.representation.keys():
-            value = self.representation[suffix]
-            tags_counts = value[0]
-            if tag in tags_counts.keys():
-                tags_counts[tag] += cnt
-            else:
-                tags_counts[tag] = cnt
-            value[1] += cnt
-        else:
-            self.representation[suffix] = [{tag: cnt}, cnt]
 
     def create_guesser(self, theta: float) -> HashSuffixGuesser:
         return HashSuffixGuesser(self.representation, theta)

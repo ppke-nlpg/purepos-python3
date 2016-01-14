@@ -25,7 +25,10 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.model.ngram import NGram
+import math
+from collections import Counter, defaultdict
+from purepos.common.util import UNKNOWN_VALUE
+# from purepos.model.ngram import NGram
 
 
 class BiDict(dict):
@@ -38,95 +41,97 @@ class BiDict(dict):
     def __setitem__(self, k, v):
         if "inverse" not in vars(self).keys():
             self.__setattr__("inverse", dict())
-        if self.get(k) is None and self.inverse.get(v) is None:
+        if self.__contains__(k) or v in self.inverse:
+            raise KeyError("BiDict does not allow same values for multiple keys.")
+        else:
             super().__setitem__(k, v)
             self.inverse[v] = k
-        else:
-            raise KeyError("BiDict does not allow same values for multiple keys.")
+
+    def setdefault(self, k, v=None):
+        # Here this is enough because __setitem__() take care of everything else
+        if not self.__contains__(k):
+            self.__setitem__(k, v)
+        return v
 
     def __delitem__(self, key):
-        v = self[key]
+        v = self.__getitem__(key)
         self.inverse.__delitem__(v)
         super().__delitem__(key)
 
 
 class Lexicon:
     def __init__(self):
-        self.representation = dict()
+        self.representation = defaultdict(Counter)
         self.size = 0
 
     def add_token(self, token, tag):
-        # todo defaultdict, vagy collections.Counter hatékonyabb lenne.
-        if token in self.representation.keys():
-            value = self.representation[token]
-            if tag in value.keys():
-                value[tag] += 1
-            else:
-                value[tag] = 1
-        else:
-            self.representation[token] = {tag: 1}
+        self.representation[token][tag] += 1
         self.size += 1
 
     def tags(self, word) -> set:
-        return set(self.representation.get(word, {}).keys())
+        return set(self.representation[word].keys())
 
     def word_count(self, word) -> int:
-        return sum(c for c in self.representation.get(word, {}).values())
+        return sum(c for c in self.representation[word].values())
 
-    # def iterator(self):
-    #     return self.representation.items()
+    def items(self):
+        return self.representation.items()
 
     def wordcount_for_tag(self, word, tag):
-        return self.representation.get(word, {}).get(tag, 0)
+        return self.representation[word][tag]
 
 
-
-class BaseVocabulary:
-    def __init__(self):
-        self.voc = BiDict()
+class IntVocabulary(BiDict):
+    def __init__(self, *args, **kwargs):
         self.max_known_index = None
+        super().__init__(*args, **kwargs)
 
-    def __len__(self):
-        return len(self.voc)
-
+    # Should not give None
     def index(self, word):
-        return self.voc.get(word)
+        return self.__getitem__(word)
 
+    # Should not give None, but not works then...
     def word(self, index):
-        return self.voc.inverse.get(index)
+        # Better: return self.inverse[index]
+        return self.inverse.get(index)
 
+    """
     def indices(self, wlist: list):
+        # Dead code?
         try:
-            lst = [self.voc[w] for w in wlist]
-            return NGram(lst)
+            return NGram([self.__getitem__(w) for w in wlist])
         except KeyError:
             return None
+    """
 
     def add_element(self, element):
-        # DefaultBiDict?
-        if element in self.voc.keys():
-            return self.voc[element]
-        else:
-            self.voc[element] = len(self.voc)
-            return self.voc[element]
-
-    def __str__(self):
-        return self.voc.__str__()
+        return self.setdefault(element, self.__len__())
 
     def tag_indices(self):
-        return self.voc.values()
+        return self.values()
 
     def max_index(self):
         return self.max_known_index
 
-    def store_max_element(self):
-        pass
-
-
-class IntVocabulary(BaseVocabulary):
     @staticmethod
     def extremal_element():
         return -1
 
     def store_max_element(self):
-        self.max_known_index = len(self.voc) - 1
+        self.max_known_index = self.__len__() - 1
+
+
+class LemmaUnigramModel(Counter):
+    """We use the feature of Counter class, that it gives 0 as default value instead of None.
+    The rest is just counting elements as a dict."""
+
+    @classmethod
+    def fromkeys(cls, iterable, v=None):
+        pass
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def log_prob(self, key):
+        prob = self.__getitem__(key) / self.__len__()
+        return math.log(prob) if prob > 0 else UNKNOWN_VALUE

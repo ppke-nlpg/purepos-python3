@@ -25,9 +25,9 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from docmodel.token import Token
-from purepos.model.vocabulary import BaseVocabulary
+from corpusreader.containers import Token
 from purepos.model.probmodel import BaseProbabilityModel, OneWordLexicalModel
+from purepos.model.vocabulary import IntVocabulary
 
 
 class AnalysisQueue:
@@ -103,11 +103,11 @@ class AnalysisQueue:
         else:
             return False
 
-    def lexical_model_for_word(self, pos: int, tag_voc: BaseVocabulary) -> BaseProbabilityModel:
+    def lexical_model_for_word(self, pos: int, tag_voc: IntVocabulary) -> BaseProbabilityModel:
         mp = self.transform_tags(pos, tag_voc)
         return OneWordLexicalModel(mp, self.words[pos])
 
-    def transform_tags(self, pos: int, tag_voc: BaseVocabulary) -> dict:
+    def transform_tags(self, pos: int, tag_voc: IntVocabulary) -> dict:
         mp = {}
         for k, v in self.anals[pos]:
             tagstr = self.anal2tag(k)
@@ -117,7 +117,7 @@ class AnalysisQueue:
             mp[tag] = v
         return mp
 
-    def tags(self, pos: int, tag_voc: BaseVocabulary) -> set:
+    def tags(self, pos: int, tag_voc: IntVocabulary) -> set:
         return set(self.transform_tags(pos, tag_voc).keys())
 
     def analysises(self, pos: int) -> set:
@@ -126,3 +126,6 @@ class AnalysisQueue:
         for fa in fanals:
             ret.add(Token(self.words[pos], self.anal2lemma(fa), self.anal2tag(fa)))
         return ret
+
+# XXX: Move declaration to Utils
+analysis_queue = AnalysisQueue()

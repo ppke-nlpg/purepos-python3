@@ -23,11 +23,12 @@
 #     Móréh, Tamás - initial API and implementation
 ##############################################################################
 
+
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
+from purepos.common.analysisqueue import analysis_queue
 from purepos.common.spectokenmatcher import SpecTokenMatcher
-from purepos.common import util
 from purepos.morphology import BaseMorphologicalAnalyser
 from purepos.model.rawmodel import CompiledModel
 from purepos.model.mapper import TagMapper
@@ -58,7 +59,6 @@ class Node:
 
     def __str__(self):
         return "{state: {}, weight: {}}".format(str(self.state), str(self.weight))
-
 
 
 class BaseDecoder:
@@ -126,28 +126,23 @@ class BaseDecoder:
                     word_form = spec_name
                 else:
                     seen = UNSEEN
-        user_anals = util.analysis_queue
+        user_anals = analysis_queue
         if user_anals.has_anal(position):
             new_tags = user_anals.tags(position, self.model.data.tag_vocabulary)
             if user_anals.use_probabilities(position):
-                new_word_model = user_anals.lexical_model_for_word(position,
-                                                                   self.model.data.tag_vocabulary)
-                return self.next_for_seen_token(prev_tags_set, new_word_model, word_form,
-                                                is_spec, new_tags, anals)
+                new_word_model = user_anals.lexical_model_for_word(position, self.model.data.tag_vocabulary)
+                return self.next_for_seen_token(prev_tags_set, new_word_model, word_form, is_spec, new_tags, anals)
             else:
                 if seen != UNSEEN:
-                    return self.next_for_seen_token(prev_tags_set, word_prob_model, word_form,
-                                                    is_spec, new_tags, anals)
+                    return self.next_for_seen_token(prev_tags_set, word_prob_model, word_form, is_spec, new_tags, anals)
                 else:
                     if len(new_tags) == 1:
                         return self.next_for_single_tagged_token(prev_tags_set, new_tags)
                     else:
-                        return self.next_for_guessed_token(prev_tags_set, lword, isupper,
-                                                           new_tags, False)
+                        return self.next_for_guessed_token(prev_tags_set, lword, isupper, new_tags, False)
         else:
             if seen != UNSEEN:
-                return self.next_for_seen_token(prev_tags_set, word_prob_model, word_form,
-                                                is_spec, tags, anals)
+                return self.next_for_seen_token(prev_tags_set, word_prob_model, word_form, is_spec, tags, anals)
             else:
                 if len(anals) == 1:
                     return self.next_for_single_tagged_token(prev_tags_set, anals)
@@ -157,26 +152,22 @@ class BaseDecoder:
     def next_for_eos_token(self, prev_tags_set: set) -> dict:
         ret = dict()
         for prev_tags in prev_tags_set:
-            eos_prob = self.model.compiled_data.tag_transition_model.log_prob(
-                prev_tags.token_list, self.model.data.eos_index)
+            eos_prob = self.model.compiled_data.tag_transition_model.log_prob(prev_tags.token_list,
+                                                                              self.model.data.eos_index)
             r = dict()
             r[self.model.data.eos_index] = (eos_prob, EOS_EMISSION_PROB)
             ret[prev_tags] = r
         return ret
 
-    def next_for_seen_token(self, prev_tags_set: set,
-                            word_prob_model: BaseProbabilityModel,
-                            word_form: str,
+    def next_for_seen_token(self, prev_tags_set: set, word_prob_model: BaseProbabilityModel, word_form: str,
                             _: bool,  # is_seen
-                            tags: set,
-                            anals: list):
+                            tags: set, anals: list):
         tagset = self.filter_tags_with_morphology(tags, anals, word_prob_model.context_mapper)
         ret = dict()
         for prev_tags in prev_tags_set:
             tag_probs = dict()
             for tag in tagset:
-                tag_prob = self.model.compiled_data.tag_transition_model.log_prob(
-                    prev_tags.token_list, tag)
+                tag_prob = self.model.compiled_data.tag_transition_model.log_prob(prev_tags.token_list, tag)
                 act_tags = list(prev_tags.token_list)
                 act_tags.append(tag)
                 emission_prob = word_prob_model.log_prob(act_tags, word_form)
@@ -189,11 +180,8 @@ class BaseDecoder:
             ret[prev_tags] = tag_probs
         return ret
 
-    def next_for_guessed_token(self, prev_tags_set: set,
-                               word_form: str,
-                               upper: bool,
-                               anals: list or set,
-                               oov: bool) -> dict:
+    def next_for_guessed_token(self, prev_tags_set: set, word_form: str, upper: bool, anals: list or set, oov: bool)\
+            -> dict:
         if upper:
             guesser = self.model.compiled_data.upper_case_suffix_guesser
         else:
@@ -214,21 +202,19 @@ class BaseDecoder:
             for guess in pruned_guessed_tags:
                 emission_prob = guess[1]
                 tag = guess[0]
-                tag_trans_prob = self.model.compiled_data.tag_transition_model.log_prob(
-                    prev_tags.token_list, tag)
+                tag_trans_prob = self.model.compiled_data.tag_transition_model.log_prob(prev_tags.token_list, tag)
                 apriori_prob = math.log(self.model.compiled_data.apriori_tag_probs[tag])
                 tag_probs[tag] = (tag_trans_prob, emission_prob - apriori_prob)
             rrr[prev_tags] = tag_probs
         return rrr
 
-    def next_for_guessed_voc_token(self, prev_tags_set: set,
-                                   lword: str,
-                                   anals: list or set,
-                                   guesser: HashSuffixGuesser) -> dict:
+    def next_for_guessed_voc_token(self, prev_tags_set: set, lword: str, anals: list or set, guesser: HashSuffixGuesser)\
+            -> dict:
         rrr = dict()
         tag_probs = dict()
         possible_tags = anals
         for tag in possible_tags:
+            # XXX There is even not mapper defined...
             new_tag = guesser.mapper.map(tag)
             if new_tag > self.model.data.tag_vocabulary.max_index():
                 emission_prob = UNKNOWN_TAG_WEIGHT
@@ -245,8 +231,7 @@ class BaseDecoder:
                 else:
                     emission_prob = tag_log_prob - log_apriori_prob
                 for prev_tags in prev_tags_set:
-                    transition_prob = self.model.compiled_data.tag_transition_model.log_prob(
-                        prev_tags.token_list, tag)
+                    transition_prob = self.model.compiled_data.tag_transition_model.log_prob(prev_tags.token_list, tag)
                     tag_probs[tag] = (transition_prob, emission_prob)
                     rrr[prev_tags] = tag_probs
         return rrr
@@ -258,8 +243,7 @@ class BaseDecoder:
             tag_probs = dict()
             # tag = anals[0]. Ez setre és listre is működik.
             tag = anals.__iter__().__next__()
-            tag_prob = self.model.compiled_data.tag_transition_model.log_prob(
-                prev_tags.token_list, tag)
+            tag_prob = self.model.compiled_data.tag_transition_model.log_prob(prev_tags.token_list, tag)
             # Itt nem -99 a default, hanem 0
             tag_prob = tag_prob if tag_prob != UNKNOWN_VALUE else 0
             tag_probs[tag] = (tag_prob, 0.0)
@@ -267,9 +251,7 @@ class BaseDecoder:
         return rrr
 
     @staticmethod
-    def filter_tags_with_morphology(tags: set,
-                                    anals: list or set,
-                                    mapper: TagMapper) -> set:
+    def filter_tags_with_morphology(tags: set, anals: list or set, mapper: TagMapper) -> set:
         if anals is not None:
             if mapper is not None:
                 common = set(mapper.filter(anals, tags))
@@ -285,7 +267,7 @@ class BaseDecoder:
         # vezessenek félre. // „TnT – A Statistical Part-of-Speech Tagger” Brants, Thorsen 2000
         # 2.3, 4)
         s = set()
-        max_tag = HashSuffixGuesser.max_probability_tag(guessed_tags)
+        max_tag = max(guessed_tags.items(), key=lambda x: x[1])[0]  # Max probability tag
         max_val = guessed_tags[max_tag]
         min_val = max_val - self.suf_theta
         for k, v in guessed_tags.items():

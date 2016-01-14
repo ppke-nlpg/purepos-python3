@@ -26,7 +26,7 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
-from corpusreader.corpus_reader import CorpusReader
+from corpusreader.tokenreaders import CorpusReader
 from purepos.common.statistics import Statistics
 from purepos.model.rawmodel import RawModel
 from purepos.model.modeldata import ModelData

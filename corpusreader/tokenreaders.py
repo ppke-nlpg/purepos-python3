@@ -26,8 +26,8 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
-from docmodel.token import Token
-from docmodel.containers import Sentence
+import os
+from corpusreader.containers import Document, Paragraph, Sentence, Token
 
 
 class ParsingException(Exception):
@@ -37,7 +37,7 @@ class ParsingException(Exception):
 class BaseReader:
     # Minden parser őse.
     # Pythonban fölösleges. Refaktorálandó
-    def __init__(self, separator: str="#", linesep="\n", encoding="utf-8"):
+    def __init__(self, separator: str='#', linesep='\n', encoding='utf-8'):
         self.separator = separator
         self.linesep = linesep
         self.encoding = encoding
@@ -87,3 +87,40 @@ class SentenceReader(BaseReader):
                 raise ParsingException("Empty word in '{}'".format(text))
             tokens.append(self.word_parser.read(word))
         return tokens
+
+
+class CorpusReader(BaseReader):
+    def __init__(self, token_reader: BaseReader, linesep: str=os.linesep):
+        self.token_reader = token_reader
+        self.sentence_parser = SentenceReader(self.token_reader)
+        super().__init__(linesep=linesep)
+
+    def read(self, text: str):
+        # it parses the whole(!) analysed corpus
+        sentences = list()
+        for line in text.split(self.linesep):
+            if len(line) > 0:
+                sentences.append(self.sentence_parser.read(line))
+        paragraph = Paragraph(sentences)
+        document = Document()
+        document.append(paragraph)
+        return document
+
+
+class HunPosCorpusReader(BaseReader):
+    # Ugyan olyan reader, mint a CorpusReader, csak más a kódolás és a szeparátor.
+    # Célszerű lenne úgy refaktorálni, hogy egy paraméterezhető Corpusreader legyen.
+    def __init__(self):
+        self.word_parser = TaggedTokenReader("\t")
+        self.sentence_parser = SentenceReader(self.word_parser, self.linesep)
+        super().__init__(encoding="ISO-8859-2")
+
+    def read(self, text: str):
+        sentences = list()
+        for sent in text.split(self.linesep + self.linesep):
+            if len(sent)-1 > 0:
+                sentences.append(self.sentence_parser.read(sent))
+        paragraph = Paragraph(sentences)
+        document = Document()
+        document.append(paragraph)
+        return document

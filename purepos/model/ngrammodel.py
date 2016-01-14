@@ -33,7 +33,7 @@ from purepos.model.probmodel import ProbModel
 class NGramModel:
     def __init__(self, n: int):
         self.n = n
-        self.root = TrieNode(IntVocabulary.extremal_element(), node_type=int)
+        self.root = TrieNode(IntVocabulary.extremal_element())
         self.lambdas = []
 
     def add_word(self, context: list, word):

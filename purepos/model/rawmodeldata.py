@@ -29,9 +29,10 @@ from purepos.model.compiledmodel import CompiledModelData
 from purepos.common.statistics import Statistics
 from purepos.model.suffixtree import HashSuffixTree
 from purepos.model.ngrammodel import NGramModel
-from purepos.model.lemmaunigrammodel import LemmaUnigramModel
+from purepos.model.vocabulary import LemmaUnigramModel
 
 
+# XXX REPLACE to rawmodel.py
 class RawModelData:
     def __init__(self, tagging_order, emission_order):
         self.stat = Statistics()  # Statistics about trainig

@@ -26,7 +26,7 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import re
-from purepos.model.vocabulary import BaseVocabulary
+from purepos.model.vocabulary import IntVocabulary
 
 
 # StringMapping:
@@ -67,7 +67,7 @@ class StringMapper:  # (BaseMapper):
 
 
 class TagMapper:  # (BaseTagMapper):
-    def __init__(self, tag_vocabulary: BaseVocabulary, tag_mappings: list):
+    def __init__(self, tag_vocabulary: IntVocabulary, tag_mappings: list):
         self.vocabulary = tag_vocabulary
         self.tag_mappings = tag_mappings
 

@@ -25,7 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.model.vocabulary import BaseVocabulary, IntVocabulary, Lexicon
+from purepos.model.vocabulary import IntVocabulary, Lexicon
 
 
 class ModelData:
@@ -41,7 +41,7 @@ class ModelData:
                  rare_frequency: int,
                  standard_tokens_lexicon: Lexicon,
                  spec_tokens_lexicon: Lexicon,
-                 tag_vocabulary: BaseVocabulary):
+                 tag_vocabulary: IntVocabulary):
         self.tagging_order = tagging_order
         self.emission_order = emission_order
         self.suffix_length = suffix_length

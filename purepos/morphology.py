@@ -26,7 +26,8 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from io import TextIOWrapper
-from docmodel.token import Token
+
+from corpusreader.containers import Token
 
 
 class BaseMorphologicalAnalyser:

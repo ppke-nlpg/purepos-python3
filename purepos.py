@@ -26,20 +26,20 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import argparse
+import importlib.machinery
+import math
 import os
 import sys
-import math
-import importlib.machinery
-from corpusreader.corpus_reader import CorpusReader
-from corpusreader.tokenreaders import StemmedTaggedTokenReader
-from docmodel.token import Token, Colors
-from purepos.trainer import Trainer
-from purepos.common.serializer import StandardSerializer
-from purepos.common import util
-from purepos.tagger import POSTagger, MorphTagger
-from purepos.morphology import BaseMorphologicalAnalyser, MorphologicalTable, HumorAnalyser
+
+from corpusreader.containers import Colors, Token
+from corpusreader.tokenreaders import StemmedTaggedTokenReader, CorpusReader
 from purepos.cli.configuration import Configuration
+from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue
+from purepos.common.serializer import StandardSerializer
+from purepos.morphology import BaseMorphologicalAnalyser, MorphologicalTable, HumorAnalyser
+from purepos.tagger import POSTagger, MorphTagger
+from purepos.trainer import Trainer
 
 
 def parse_arguments():
@@ -284,7 +284,7 @@ class PurePos:
         """
         if analyser == PurePos.INTEGRATED_MA:
             try:
-                ma = PurePos.load_humor(humor_path+"/bin/pyhumor/__init__.py", lex_path)
+                ma = PurePos.load_humor(humor_path + "/bin/pyhumor/__init__.py", lex_path)
             except FileNotFoundError:
                 print("Humor module not found. Not using any morphological analyzer.",
                       file=sys.stderr)
@@ -353,6 +353,7 @@ def main():
         PurePos(vars(options)).run()
     except KeyboardInterrupt:
         print("\nBye!", file=sys.stderr)
+
 
 if __name__ == '__main__':
     main()

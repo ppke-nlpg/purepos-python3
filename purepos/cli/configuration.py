@@ -50,21 +50,21 @@ class Configuration:
     def read(filename: str):
         # XML fájlból Configuration beparszolása.
         from xml.etree import ElementTree
-        from purepos.model.mapper import stringmapping
+        import re
         root = ElementTree.parse(filename).getroot()
         tag_mapping_elements = root.findall(Configuration.TAG_MAPPING)
         tag_mappings = []
         for tm in tag_mapping_elements:
             spat = tm.attrib[Configuration.PATTERN]
             stag = tm.attrib[Configuration.TAG]
-            tag_mappings.append(stringmapping(spat, stag))
+            tag_mappings.append(re.compile(spat), stag)
 
         lemma_mapping_elements = root.findall(Configuration.LEMMA_MAPPING)
         lemma_mappings = []
         for lm in lemma_mapping_elements:
             spat = lm.attrib[Configuration.PATTERN]
             stag = lm.attrib[Configuration.TAG]
-            lemma_mappings.append(stringmapping(spat, stag))
+            lemma_mappings.append(re.compile(spat), stag)
 
         marker_elements = root.findall(Configuration.GUESSED_MARKER)
         guessed_marker = marker_elements[0].text if len(marker_elements) > 0 else ""

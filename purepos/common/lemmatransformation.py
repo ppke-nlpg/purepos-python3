@@ -25,8 +25,10 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from docmodel.token import Token
-from purepos.model.vocabulary import BaseVocabulary
+import re
+from operator import itemgetter
+from corpusreader.containers import Token
+from purepos.model.vocabulary import IntVocabulary
 from purepos.model.modeldata import ModelData
 
 
@@ -36,6 +38,28 @@ def def_lemma_representation(word, stem, tag):
 
 def def_lemma_representation_by_token(token: Token, data: ModelData):
     return def_lemma_representation(token.token, token.stem, data.tag_vocabulary.index(token.tag))
+
+main_pos_pat = re.compile("\[([^.\]]*)[.\]]")
+
+
+def batch_convert(prob_map: dict, word: str, vocab: IntVocabulary) -> dict:
+    ret = dict()  # {token: (lemmatransf_tuple, float)}
+    inf = float('-inf')
+    get = ret.get
+    for k, v in prob_map.items():  # (str, int), float
+        # Ami ebben a convertben van, át kéne gondolni. Amit lehet, azt ide kihozni.
+        lemma = k.convert(word, vocab)  # token
+        # Nem egyértelmű kulcs (__postprocess). Jó lenne, ha a jobb valségű győzne, vagy legyen
+        # egyértelmű kulcs
+        # De azért ne nyerjen a kötőjeles lemma.
+        ret[lemma] = max((k, v), get(lemma, (k, inf)), key=itemgetter(1))
+    return ret
+
+
+def main_pos_tag(tag: str):
+    m = re.match(main_pos_pat, tag)
+    if m is not None:
+        return m.group(1)
 
 
 def longest_substring(s1: str, s2: str) -> tuple:
@@ -60,12 +84,6 @@ def longest_substring(s1: str, s2: str) -> tuple:
     return x_longest - longest, longest
 
 
-def lower_transformed(word: str, lemma: str) -> bool:
-    if len(word) > 0 and len(lemma) > 0:
-        return word[0].isupper() and lemma[0].islower()
-    return False
-
-
 class BaseLemmaTransformation:
     def __init__(self, word: str, lemma: str, tag: int):
         self.representation = self.decode(word, lemma, tag)
@@ -76,7 +94,7 @@ class BaseLemmaTransformation:
         # Gyuri hack a kötőjeles lemmák elkerüléséért.
         return self.__postprocess(encoded[0]), encoded[1]
 
-    def convert(self, word: str, vocab: BaseVocabulary) -> Token:
+    def convert(self, word: str, vocab: IntVocabulary) -> Token:
         anal = self.analyse(word)       # (str, int)
         tag = vocab.word(anal[1])       # str
         return Token(word, anal[0], tag)
@@ -181,26 +199,28 @@ class GeneralizedLemmaTransformation(BaseLemmaTransformation):
 
 class SuffixLemmaTransformation(BaseLemmaTransformation):
     def __init__(self, word: str, lemma: str, tag: int):
-        self._SHIFT = 100
+        self.__SHIFT = 100
         super().__init__(word, lemma, tag)
 
     def min_cut_length(self):
-        return self.representation[1] % self._SHIFT
+        return self.representation[1] % self.__SHIFT
 
     def decode(self, word: str, stem: str, tag: int) -> tuple:
         i = 0
         word_len = len(word)
         end = min(word_len, len(stem))
+        # XXX Capitalised tokens handled badly?
+        # Éves#éves#MN.NOM
         while i < end and word[i] == stem[i]:
             i += 1
         cut_size = word_len - i
         lemma_suff = stem[i:]
-        code = self._SHIFT * tag + cut_size
+        code = self.__SHIFT * tag + cut_size
         return lemma_suff, code
 
     def encode(self, word: str, rep: tuple) -> tuple:
-        tag_code = rep[1] // self._SHIFT
-        cut_size = rep[1] % self._SHIFT
+        tag_code = rep[1] // self.__SHIFT
+        cut_size = rep[1] % self.__SHIFT
         add = rep[0]
         lemma = word[0:len(word)-cut_size] + add
         return lemma, tag_code

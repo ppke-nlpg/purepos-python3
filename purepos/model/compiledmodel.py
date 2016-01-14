@@ -23,16 +23,14 @@
 #     Móréh, Tamás - initial API and implementation
 ##############################################################################
 
-
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-
-from purepos.model.lemmaunigrammodel import LemmaUnigramModel
 from purepos.model.mapper import TagMapper
-from purepos.model.vocabulary import BaseVocabulary
+from purepos.model.vocabulary import IntVocabulary, LemmaUnigramModel
 from purepos.model.modeldata import ModelData
 
 
+# XXX REPLACE to modeldata.py
 class CompiledModelData:
     def __init__(self):
         self.unigram_lemma_model = LemmaUnigramModel()
@@ -55,7 +53,7 @@ class CompiledModelData:
 
     # ez a utilból került ide.
     def add_mappings(self,
-                     tag_vocabulary: BaseVocabulary,
+                     tag_vocabulary: IntVocabulary,
                      tag_mappings: list):
         mapper = TagMapper(tag_vocabulary, tag_mappings)
         self.standard_emission_model.context_mapper = mapper

@@ -25,6 +25,11 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
+import os
+
+SENTENCE_SEP = " "
+NL = os.linesep
+
 
 class Colors:
     SEPARATOR = ""
@@ -32,6 +37,43 @@ class Colors:
     LEMMA = ""
     TAGS = ""
     ENDC = ""
+
+
+class Document(list):
+    """Represents a document object which are built of paragraphes."""
+
+    def __init__(self, *paragraphes):
+        super().__init__(*paragraphes)
+
+    def __str__(self):
+        return NL.join([str(x) for x in self])
+
+    def sentences(self):
+        ret = []
+        for p in self:
+            ret.extend(p)
+        return ret
+
+
+class Paragraph(list):
+    """Represents a parapraph of tagged, stemmed sentences."""
+
+    def __init__(self, *sentences):
+        super().__init__(*sentences)
+
+    def __str__(self):
+        return NL.join([str(x) for x in self])
+
+
+class Sentence(list):
+    """Represents a POS-tagged stemmed sentence."""
+
+    def __init__(self, *tokens, score=None):
+        super().__init__(*tokens)
+        self.score = score
+
+    def __str__(self):
+        return SENTENCE_SEP.join([str(x) for x in self])
 
 
 class Token:

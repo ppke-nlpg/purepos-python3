@@ -26,15 +26,10 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
-UNKNOWN_VALUE = -99.0
+from purepos.common.util import UNKNOWN_VALUE
 
 
 class HashSuffixGuesser:  # (BaseSuffixGuesser):
-    @staticmethod
-    def max_probability_tag(probabilities: dict) -> int:
-        m = max(probabilities.items(), key=lambda x: x[1])
-        return m[0]
-
     def __init__(self, freq_table: dict, theta: float):
         self.freq_table = freq_table
         self.theta = theta
@@ -43,25 +38,24 @@ class HashSuffixGuesser:  # (BaseSuffixGuesser):
         self.lemma_mapper = None
 
     def tag_log_probabilities(self, word) -> dict:
-        return {k: math.log(v) for k, v in self.tag_probabilities(word).items()}
-
-    def tag_probabilities(self, word) -> dict:
         mret = dict()
+        freq_table = self.freq_table
+        theta = self.theta
+        theta_plus_one = self.theta_plus_one
         for i in range(len(word), -1, -1):
-            suffix_value = self.freq_table.get(word[i:], [dict(), 0])
-            mret.update({tag: (mret.get(tag, 0.0) + (float(val) / suffix_value[1] * self.theta))
-                         / self.theta_plus_one
-                         for tag, val in suffix_value[0].items()})
-        return mret
+            # Brants (2000) formula 7
+            suffix, prob = freq_table.get(word[i:], [dict(), 0])
+            mret.update({tag: (mret.get(tag, 0.0) + (val / prob * theta)) / theta_plus_one
+                         for tag, val in suffix.items()})
+        return {k: math.log(v) for k, v in mret.items()}
 
     def tag_log_probability(self, word, tag) -> float:
-        prob = self.tag_probability(word, tag)
-        return math.log(prob) if prob > 0 else UNKNOWN_VALUE
-
-    def tag_probability(self, word, tag) -> float:
         if self.mapper is not None:
             tag = self.mapper.map(tag)
-        return self.tag_probabilities(word).get(tag, 0.0)
+        return self.tag_log_probabilities(word).get(tag, UNKNOWN_VALUE)
+
+    def __str__(self):
+        return str(self.freq_table)
 
     # todo not used?
     def tag_prob_hunpos(self, word, tag) -> float:
@@ -77,5 +71,3 @@ class HashSuffixGuesser:  # (BaseSuffixGuesser):
                     break
         return ret
 
-    def __str__(self):
-        return str(self.freq_table)

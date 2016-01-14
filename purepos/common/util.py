@@ -26,13 +26,11 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import os
-from docmodel import token
-from purepos.common.analysisqueue import AnalysisQueue
+import corpusreader.containers
 
 STEM_FILTER_FILE = "purepos_stems.txt"
-UNKOWN_VALUE = -99.0
+UNKNOWN_VALUE = -99.0
 LEMMA_MAPPER = None  # StringMapper
-analysis_queue = AnalysisQueue()
 CONFIGURATION = None  # Nem teszteltük.
 
 
@@ -40,6 +38,7 @@ class Constants:  # todo: ötlet minden konstans egy objektumba -> egy időben t
     # todo: https://github.com/ppke-nlpg/purepos-python3/issues/7
     def __init__(self):
         pass
+
 
 class StemFilter:
     def __init__(self, filename: str):
@@ -79,8 +78,8 @@ class StemFilter:
     # return max_k, max_v
 
 
-def simplify_lemma(t: token.Token):
+def simplify_lemma(t: corpusreader.containers.Token):
     if LEMMA_MAPPER is not None:
-        return token.ModToken(t.token, original_stem=t.stem,
-                              stem=LEMMA_MAPPER.map(t.stem), tag=t.tag)
+        return corpusreader.containers.ModToken(t.token, original_stem=t.stem,
+                                                stem=LEMMA_MAPPER.map(t.stem), tag=t.tag)
     return t

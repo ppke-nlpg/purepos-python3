@@ -52,9 +52,6 @@ class OneWordLexicalModel(BaseProbabilityModel):
         self.probs = probs
         self.word = word
 
-    def prob(self, context: list, word: str) -> float:
-        return math.exp(self.log_prob(context, word))
-
     def log_prob(self, context: list, word: str) -> float:
         if self.element_mapper is not None:
             word = self.element_mapper.map(word)
@@ -71,23 +68,18 @@ class ProbModel(BaseProbabilityModel):
         self.root = self.create_root(orig_root, lambdas)
         super().__init__()
 
-    def prob(self, context: list, word) -> float:
+    def log_prob(self, context: list, word) -> float:
         if self.element_mapper is not None:
             word = self.element_mapper.map(word)
         if self.context_mapper is not None:
             context = self.context_mapper.map_list(context)
         node = self.root
-        for prev in context[::-1]:
-            find_more = prev in node.child_nodes.keys() and \
-                word in node.child_nodes[prev].words.keys()
-            if find_more:
+        for prev in context[::-1]:  # Find more
+            if prev in node.child_nodes.keys() and word in node.child_nodes[prev].words.keys():
                 node = node.child_nodes[prev]
             else:
                 break
-        return node.words.get(word, 0.0)
-
-    def log_prob(self, context: list, word) -> float:
-        prob = self.prob(context, word)
+        prob = node.words.get(word, 0.0)
         return math.log(prob) if prob > 0 else UNKNOWN_VALUE
 
     def create_root(self, node: TrieNode, lambdas: list) -> TrieNode:
@@ -98,13 +90,10 @@ class ProbModel(BaseProbabilityModel):
             new_root.child_nodes[ch.id_] = ch
         return new_root
 
-    def create_child(self,
-                     original_node: TrieNode, parent_words: dict, lambdas: list, level: int)\
-            -> TrieNode:
+    def create_child(self, original_node: TrieNode, parent_words: dict, lambdas: list, level: int) -> TrieNode:
         if len(lambdas) > level:
             node = self.calc_probs(original_node)
-            lamb = lambdas[level]
-            node.words = {k: parent_words[k] + lamb * original_node.apriori_prob(k)
+            node.words = {k: parent_words[k] + lambdas[level] * original_node.apriori_prob(k)
                           for k, v in original_node.words.items()}
             for child in original_node.child_nodes.values():
                 ch = self.create_child(child, node.words, lambdas, level+1)

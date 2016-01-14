@@ -66,4 +66,3 @@ class TrieNode:
 
     def __str__(self):
         return "(id: {}, words: {})".format(self.id_, str(self.words))
-

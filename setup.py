@@ -1,3 +1,4 @@
+# -*- coding: utf-8, vim: expandtab:ts=4 -*-
 from distutils.core import setup
 
 setup(

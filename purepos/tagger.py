@@ -26,12 +26,10 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
-from docmodel.containers import Sentence
-from docmodel.token import Token, ModToken
+from corpusreader.containers import Sentence, Token, ModToken
 from purepos.common import util
-from purepos.common.analysisqueue import AnalysisQueue
-from purepos.common.lemma import batch_convert
-from purepos.common.lemmatransformation import def_lemma_representation_by_token
+from purepos.common.analysisqueue import AnalysisQueue, analysis_queue
+from purepos.common.lemmatransformation import def_lemma_representation_by_token, batch_convert
 from purepos.model.compiledmodel import CompiledModel, CompiledModelData
 from purepos.model.modeldata import ModelData
 from purepos.morphology import BaseMorphologicalAnalyser
@@ -60,15 +58,14 @@ class LemmaComparator:
                                                      self.comp_model_data, self.model_data)
 
 
-
 class POSTagger:
     @staticmethod
     def preprocess_sentence(sentence: list):
-        util.analysis_queue.init(len(sentence))
+        analysis_queue.init(len(sentence))
         ret = []
         for i, word in enumerate(sentence):
             if AnalysisQueue.ispreanalysed(word):
-                util.analysis_queue.add_word(word, i)
+                analysis_queue.add_word(word, i)
                 ret.append(AnalysisQueue.clean(word))
             else:
                 ret.append(word)
@@ -165,8 +162,8 @@ class MorphTagger(POSTagger):
         return tok
 
     def find_best_lemma(self, t: Token, position: int) -> Token:
-        if util.analysis_queue.has_anal(position):
-            stems = self.simplify_lemma(util.analysis_queue.analysises(position))
+        if analysis_queue.has_anal(position):
+            stems = self.simplify_lemma(analysis_queue.analysises(position))
             self.is_last_guessed = False
         else:
             stems = self.analyser.analyse(t.token)
