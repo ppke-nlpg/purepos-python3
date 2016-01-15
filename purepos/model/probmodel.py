@@ -26,7 +26,7 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
-from purepos.model.trienode import TrieNode
+from purepos.model.vocabulary import TrieNode
 
 UNKNOWN_VALUE = -99.0
 

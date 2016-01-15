@@ -25,8 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.model.trienode import TrieNode
-from purepos.model.vocabulary import IntVocabulary
+from purepos.model.vocabulary import IntVocabulary, TrieNode
 from purepos.model.probmodel import ProbModel
 
 
@@ -49,6 +48,7 @@ class NGramModel:
         #     act = act.add_child(c)
         #     act.add_word(word)
 
+    """
     def word_frequency(self, context: list, word) -> list:
         # dead code?
         ret = [self.root.apriori_prob(word), ]
@@ -62,9 +62,26 @@ class NGramModel:
                 ret.extend([0.0 for _ in context[context.index(c)::-1]])
                 break
         return ret
+    """
+
+    """
+    def find_max(self, acc: list, word) -> tuple:
+        # if node_list is None or len(node_list) == 0:
+        #     return None, None
+        # max_pos = -1
+        # max_val = 0.0
+        # for pos, v in enumerate(acc):
+        #     val = self._calculate_modified_freq_val(acc, pos, word)
+        #     if val > max_val:
+        #         max_pos = pos
+        #         max_val = val
+        # egy sor.
+        return max(((pos, self._calculate_modified_freq_val(acc, pos, word)) for pos in range(len(acc))),
+                   key=lambda p: p[1], default=(None, None))  # max_pos, max_val
+    """
 
     @staticmethod
-    def calculate_modified_freq_val(node_list: list, position: int, word) -> float:
+    def _calculate_modified_freq_val(node_list: list, position: int, word) -> float:
         context_freq = node_list[position].num
         word_freq = node_list[position].words[word]
         if context_freq == 1 or word_freq == 1:
@@ -72,45 +89,30 @@ class NGramModel:
         else:
             return (word_freq - 1) / (context_freq - 1)
 
-    def find_max(self, l: list, word) -> tuple:
-        if l is None or len(l) == 0:
-            return None, None
-        # max_pos = -1
-        # max_val = 0.0
-        # for i, v in enumerate(l):
-        #     val = self.calculate_modified_freq_val(l, i, word)
-        #     if val > max_val:
-        #         max_pos = i
-        #         max_val = val
-        # egy sor.
-        t = max([(i, self.calculate_modified_freq_val(l, i, word)) for i, v in enumerate(l)],
-                key=lambda p: p[1])
-        return t  # max_pos, max_val
-
-    def calculate_ngram_lambdas(self):
-        self.lambdas = [0.0 for _ in range(0, self.n + 1, 1)]
-        self.iterate(self.root, [])
-        s = sum(self.lambdas)
-        if s > 0:
-            self.lambdas = [l / s for l in self.lambdas]
-
-    def iterate(self, node: TrieNode, acc: list):
+    def _iterate(self, node: TrieNode, acc: list):
         acc.append(node)
         if node.child_nodes is None or len(node.child_nodes) == 0:
             for word in node.words.keys():
-                mx = self.find_max(acc, word)
-                index = mx[0] + 1
-                if mx[1] != -1:
-                    self.lambdas[index] = self.lambdas[index] + node.words.get(word)
+                max_pos, max_val = max(((pos, self._calculate_modified_freq_val(acc, pos, word))  # max_pos, max_val
+                                        for pos in range(len(acc))), key=lambda p: p[1], default=(None, None))
+                index = max_pos + 1
+                if max_val != -1:
+                    self.lambdas[index] = self.lambdas[index] + node.words[word]
         else:
             for child in node.child_nodes.values():
-                self.iterate(child, acc)
+                self._iterate(child, acc)
         acc.pop()
 
     def create_probability_model(self) -> ProbModel:
-        self.calculate_ngram_lambdas()
+        # Calculate lambdas...
+        self.lambdas = [0.0 for _ in range(0, self.n + 1, 1)]
+        self._iterate(self.root, [])
+        s = sum(self.lambdas)
+        if s > 0:
+            self.lambdas = [l / s for l in self.lambdas]
         return ProbModel(self.root, self.lambdas)
 
+    # XXX inline-olni kéne
     def word_apriori_probs(self) -> dict:
         # apriori valószínűségek számolása
         # ret = dict()

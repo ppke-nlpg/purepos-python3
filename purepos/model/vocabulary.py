@@ -135,3 +135,47 @@ class LemmaUnigramModel(Counter):
     def log_prob(self, key):
         prob = self.__getitem__(key) / self.__len__()
         return math.log(prob) if prob > 0 else UNKNOWN_VALUE
+
+
+class TrieNode:
+    def __init__(self, _id, word=None, node_type=int):
+        self.id_ = _id
+        self.words = dict()
+        self.child_nodes = dict()
+        self.node_type = node_type
+        self.num = self.zero()
+
+        if word is not None:
+            self.add_word(word)
+
+    def zero(self):
+        return self.node_type(0)
+
+    def increment(self, num):
+        return num + self.node_type(1)
+
+    def create_node(self, _id):
+        return TrieNode(_id, node_type=self.node_type)
+
+    def add_word(self, word):
+        if word in self.words.keys():
+            self.words[word] = self.increment(self.words[word])
+        else:
+            self.words[word] = self.increment(self.zero())
+        self.num = self.increment(self.num)
+
+    def add_child(self, child):
+        if child not in self.child_nodes.keys():
+            child_node = self.create_node(child)
+            self.child_nodes[child] = child_node
+            return child_node
+        return self.child_nodes[child]
+
+    def apriori_prob(self, word) -> float:
+        if word in self.words.keys():
+            return self.words[word] / self.num
+        else:
+            return 0.0
+
+    def __str__(self):
+        return "(id: {}, words: {})".format(self.id_, str(self.words))

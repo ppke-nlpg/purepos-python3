@@ -22,6 +22,8 @@
 # Contributors:
 #     Móréh, Tamás - initial API and implementation
 ##############################################################################
+from collections import Counter
+from math import sqrt
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
@@ -72,3 +74,53 @@ class HashSuffixGuesser:  # (BaseSuffixGuesser):
                     break
         return ret
     """
+
+
+class HashSuffixTree:
+
+    @staticmethod
+    def calculate_theta(apriori_probs: dict):
+        """
+        The original solution of brants have been replaced in HunPOS by following libmoot where multiple
+        version of theta calculation is available see mooSuffixTrie.cc.
+        We blindly follow them.
+        :param apriori_probs: apriori tag probs
+        :return: theta
+        """
+        # Simmilar to Brants (2000) formula 11 (see docstring above)
+        pav = sum(val**2 for val in apriori_probs.values())
+        # Simmilar to Brants (2000) formula 10 (see docstring above)
+        theta = sqrt(sum(a_prob * ((a_prob-pav)**2) for a_prob in apriori_probs.values()))
+        return theta
+
+    def __init__(self, max_suff_len: int):
+        self.max_suffix_length = max_suff_len
+        self.total_tag_count = 0
+        self.representation = dict()
+
+    def add_word(self, word, tag, count: int, min_len: int=0):
+        """
+        Count all suffix of a word from a given position till the end of the word
+        :param word: word
+        :param tag:  tag
+        :param count: count of observations
+        :param min_len: minimal suffix length
+        :return: None
+        """
+        end = len(word) - min_len
+        start = max(0, end-self.max_suffix_length)
+        for p in range(start, end + 1):
+            suffix = word[p:]
+            tags_counts = self.representation.setdefault(suffix, [Counter(), 0])[0]
+            tags_counts[tag] += count
+            self.representation[suffix][1] += count
+        self.total_tag_count += count
+
+    def create_guesser(self, theta: float) -> HashSuffixGuesser:
+        return HashSuffixGuesser(self.representation, theta)
+
+
+# XXX REPLACE to suffixguesser.py
+# class HashLemmaTree(HashSuffixTree):
+#     def __init__(self, max_suffix_length: int=10):
+#         super().__init__(max_suffix_length)

@@ -28,10 +28,8 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 from corpusreader.containers import Document, Token
 from purepos.common.util import UNKNOWN_VALUE, CONFIGURATION
 from purepos.common.lemmatransformation import BaseLemmaTransformation, batch_convert
-from purepos.model.modeldata import ModelData
-from purepos.model.rawmodeldata import RawModelData
-from purepos.model.compiledmodel import CompiledModelData
-from purepos.model.suffixtree import HashSuffixTree
+from purepos.model.rawmodel import RawModelData, ModelData, CompiledModelData
+from purepos.model.suffixguesser import HashSuffixTree
 
 
 def default_combiner():

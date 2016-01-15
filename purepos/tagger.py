@@ -30,8 +30,7 @@ from corpusreader.containers import Sentence, Token, ModToken
 from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue, analysis_queue
 from purepos.common.lemmatransformation import def_lemma_representation_by_token, batch_convert
-from purepos.model.compiledmodel import CompiledModel, CompiledModelData
-from purepos.model.modeldata import ModelData
+from purepos.model.rawmodel import ModelData, CompiledModelData, CompiledModel
 from purepos.morphology import BaseMorphologicalAnalyser
 from purepos.decoder.basedecoder import BeamSearch, BeamedViterbi
 

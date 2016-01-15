@@ -29,14 +29,13 @@ import re
 from operator import itemgetter
 from corpusreader.containers import Token
 from purepos.model.vocabulary import IntVocabulary
-from purepos.model.modeldata import ModelData
 
 
 def def_lemma_representation(word, stem, tag):
     return SuffixLemmaTransformation(word, stem, tag)
 
 
-def def_lemma_representation_by_token(token: Token, data: ModelData):
+def def_lemma_representation_by_token(token: Token, data):  # : ModelData
     return def_lemma_representation(token.token, token.stem, data.tag_vocabulary.index(token.tag))
 
 main_pos_pat = re.compile("\[([^.\]]*)[.\]]")

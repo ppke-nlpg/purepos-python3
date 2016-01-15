@@ -30,9 +30,8 @@ import math
 from purepos.common.analysisqueue import analysis_queue
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.morphology import BaseMorphologicalAnalyser
-from purepos.model.rawmodel import CompiledModel
-from purepos.model.ngram import NGram
-from purepos.model.modeldata import ModelData
+from purepos.model.rawmodel import CompiledModel, ModelData
+from purepos.decoder.ngram import NGram
 from purepos.model.probmodel import BaseProbabilityModel
 from purepos.model.history import History
 

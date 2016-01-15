@@ -26,18 +26,17 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import pickle
-from purepos.model.rawmodel import RawModel
 
 
 class StandardSerializer:
     @staticmethod
-    def read_model(filename: str) -> RawModel:
+    def read_model(filename: str):
         with open(filename, mode="rb") as file:
             loaded = pickle.load(file)
         return loaded
 
     @staticmethod
-    def write_model(model: RawModel, filename: str):
+    def write_model(model, filename: str):
         with open(filename, mode="wb") as file:
             pickle.dump(model, file)
 

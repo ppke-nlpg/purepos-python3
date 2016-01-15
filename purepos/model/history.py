@@ -25,7 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.model.ngram import NGram
+from purepos.decoder.ngram import NGram
 
 
 class History:
