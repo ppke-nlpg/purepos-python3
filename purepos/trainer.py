@@ -28,11 +28,11 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import io
 from corpusreader.tokenreaders import CorpusReader
 from purepos.common.statistics import Statistics
-from purepos.model.rawmodel import RawModel, ModelData
+from purepos.model.model import Model
 
 
 class Trainer:
-    """Trainer class. Its role is to build a RawModel from the analysed input."""
+    """Trainer class. Its role is to build a Model from the analysed input."""
     def __init__(self, source: io.TextIOWrapper, reader: CorpusReader):
         """Instantiates a Trainer object.
         (In this version) it reads the whole input with the CorpusReader.
@@ -46,11 +46,10 @@ class Trainer:
     def train(self, tag_order: int,
               emission_order: int,
               max_suffix_length: int,
-              rare_frequency: int) -> RawModel:
-        return self.train_model(RawModel(ModelData.create(tag_order, emission_order,
-                                                          max_suffix_length, rare_frequency)))
+              rare_frequency: int) -> Model:
+        return self.train_model(Model(tag_order, emission_order, max_suffix_length, rare_frequency))
 
-    def train_model(self, raw_model: RawModel) -> RawModel:
+    def train_model(self, raw_model: Model) -> Model:
         raw_model.train(self.document)
         self.stat = raw_model.last_stat()
         return raw_model

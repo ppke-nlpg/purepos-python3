@@ -30,7 +30,7 @@ import math
 from purepos.common.analysisqueue import analysis_queue
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.morphology import BaseMorphologicalAnalyser
-from purepos.model.rawmodel import CompiledModel, ModelData
+from purepos.model.model import Model
 from purepos.decoder.ngram import NGram
 from purepos.model.probmodel import BaseProbabilityModel
 from purepos.model.history import History
@@ -59,7 +59,7 @@ class Node:
 
 
 class BaseDecoder:
-    def __init__(self, model: CompiledModel,
+    def __init__(self, model: Model,
                  morphological_analyzer: BaseMorphologicalAnalyser,
                  log_theta: float,
                  suf_theta: float,
@@ -69,7 +69,7 @@ class BaseDecoder:
         self.log_theta = log_theta
         self.suf_theta = suf_theta
         self.max_guessed_tags = max_guessed_tags
-        self.tags = model.data.tag_vocabulary.tag_indices()
+        self.tags = model.tag_vocabulary.tag_indices()
         self.spectoken_matcher_match_lexical_element = SpecTokenMatcher().match_lexical_element
 
     def decode(self, observations: list, max_res_num: int) -> list:
@@ -78,10 +78,11 @@ class BaseDecoder:
     def next_probs(self, prev_tags_set: set, word: str, position: int, is_first: bool) -> dict:
         # A szóhoz tartozó tag-valószínűségeket gyűjti ki.
         # A token tulajdonságai határozzák meg a konkrét fv-t.
-        if word == ModelData.EOS_TOKEN:
+        if word == Model.EOS_TOKEN:
             # Next for eos token by all prev tags
-            return {prev_tags: {self.model.data.eos_index: (self.model.compiled_data.tag_transition_model.log_prob(
-                                prev_tags.token_list, self.model.data.eos_index), EOS_EMISSION_PROB)}
+            return {prev_tags: {self.model.eos_index: (self.model.tag_transition_model.log_prob(prev_tags.token_list,
+                                                                                                self.model.eos_index),
+                                                       EOS_EMISSION_PROB)}
                     for prev_tags in prev_tags_set}
 
         lword = word.lower()
@@ -99,29 +100,29 @@ class BaseDecoder:
         if len(str_anals) > 0:
             isoov = False
             for tag in str_anals:
-                i = self.model.data.tag_vocabulary.index(tag)
+                i = self.model.tag_vocabulary.index(tag)
                 if i is not None:
                     anals.append(i)
                 else:
-                    anals.append(self.model.data.tag_vocabulary.add_element(tag))
+                    anals.append(self.model.tag_vocabulary.add_element(tag))
 
-        tags = self.model.data.standard_tokens_lexicon.tags(word)
+        tags = self.model.standard_tokens_lexicon.tags(word)
         if len(tags) > 0:
-            word_prob_model = self.model.compiled_data.standard_emission_model
+            word_prob_model = self.model.standard_emission_model
             word_form = word
             seen = SEEN
         else:
-            tags = self.model.data.standard_tokens_lexicon.tags(lword)
+            tags = self.model.standard_tokens_lexicon.tags(lword)
             if is_first and isupper and len(tags) > 0:
-                word_prob_model = self.model.compiled_data.standard_emission_model
+                word_prob_model = self.model.standard_emission_model
                 word_form = lword
                 seen = LOWER_CASED_SEEN
             else:
                 spec_name = self.spectoken_matcher_match_lexical_element(word)
                 is_spec = (spec_name is not None)
                 if is_spec:
-                    word_prob_model = self.model.compiled_data.spec_tokens_emission_model
-                    tags = self.model.data.spec_tokens_lexicon.tags(spec_name)
+                    word_prob_model = self.model.spec_tokens_emission_model
+                    tags = self.model.spec_tokens_lexicon.tags(spec_name)
                     if len(tags) > 0:
                         seen = SPECIAL_TOKEN
                     else:
@@ -131,9 +132,9 @@ class BaseDecoder:
                     seen = UNSEEN
         user_anals = analysis_queue
         if user_anals.has_anal(position):
-            new_tags = user_anals.tags(position, self.model.data.tag_vocabulary)
+            new_tags = user_anals.tags(position, self.model.tag_vocabulary)
             if user_anals.use_probabilities(position):
-                new_word_model = user_anals.lexical_model_for_word(position, self.model.data.tag_vocabulary)
+                new_word_model = user_anals.lexical_model_for_word(position, self.model.tag_vocabulary)
                 return self.next_for_seen_token(prev_tags_set, new_word_model, word_form, is_spec, new_tags, anals)
             else:
                 if seen != UNSEEN:
@@ -170,7 +171,7 @@ class BaseDecoder:
         for prev_tags in prev_tags_set:
             tag_probs = dict()
             for tag in tagset:
-                tag_prob = self.model.compiled_data.tag_transition_model.log_prob(prev_tags.token_list, tag)
+                tag_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag)
                 act_tags = list(prev_tags.token_list)
                 act_tags.append(tag)
                 emission_prob = word_prob_model.log_prob(act_tags, word_form)
@@ -186,16 +187,16 @@ class BaseDecoder:
     def next_for_guessed_token(self, prev_tags_set: set, word_form: str, upper: bool, anals: list or set, oov: bool)\
             -> dict:
         if upper:
-            guesser = self.model.compiled_data.upper_case_suffix_guesser
+            guesser = self.model.upper_case_suffix_guesser
         else:
-            guesser = self.model.compiled_data.lower_case_suffix_guesser
+            guesser = self.model.lower_case_suffix_guesser
         if not oov:
             rrr = dict()
             tag_probs = dict()
             for tag in anals:
                 # XXX There is even not mapper defined...
                 new_tag = guesser.mapper.map(tag)
-                if new_tag > self.model.data.tag_vocabulary.max_index():
+                if new_tag > self.model.tag_vocabulary.max_index():
                     emission_prob = UNKNOWN_TAG_WEIGHT
                     transition_prob = UNKOWN_TAG_TRANSITION
                     tag_probs[tag] = (transition_prob, emission_prob)
@@ -206,9 +207,9 @@ class BaseDecoder:
                     if tag_log_prob == UNKNOWN_VALUE:
                         emission_prob = UNKNOWN_TAG_WEIGHT
                     else:
-                        emission_prob = tag_log_prob - math.log(self.model.compiled_data.apriori_tag_probs[new_tag])
+                        emission_prob = tag_log_prob - math.log(self.model.apriori_tag_probs[new_tag])
                     for prev_tags in prev_tags_set:
-                        transition_prob = self.model.compiled_data.tag_transition_model.log_prob(prev_tags.token_list, tag)
+                        transition_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag)
                         tag_probs[tag] = (transition_prob, emission_prob)
                         rrr[prev_tags] = tag_probs
             return rrr
@@ -240,8 +241,8 @@ class BaseDecoder:
                 for guess in pruned_guessed_tags:
                     emission_prob = guess[1]
                     tag = guess[0]
-                    tag_trans_prob = self.model.compiled_data.tag_transition_model.log_prob(prev_tags.token_list, tag)
-                    apriori_prob = math.log(self.model.compiled_data.apriori_tag_probs[tag])
+                    tag_trans_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag)
+                    apriori_prob = math.log(self.model.apriori_tag_probs[tag])
                     tag_probs[tag] = (tag_trans_prob, emission_prob - apriori_prob)
                 rrr[prev_tags] = tag_probs
             return rrr
@@ -252,7 +253,7 @@ class BaseDecoder:
             tag_probs = dict()
             # tag = anals[0]. Ez setre és listre is működik.
             tag = anals.__iter__().__next__()
-            tag_prob = self.model.compiled_data.tag_transition_model.log_prob(prev_tags.token_list, tag)
+            tag_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag)
             # Itt nem -99 a default, hanem 0
             tag_prob = tag_prob if tag_prob != UNKNOWN_VALUE else 0
             tag_probs[tag] = (tag_prob, 0.0)
@@ -263,7 +264,7 @@ class BaseDecoder:
 class BeamSearch(BaseDecoder):
     # BeamSearch algorithm.
     # Nincs tesztelve.
-    def __init__(self, model: CompiledModel, morph_analyser: BaseMorphologicalAnalyser, log_theta: float,
+    def __init__(self, model: Model, morph_analyser: BaseMorphologicalAnalyser, log_theta: float,
                  suf_theta: float, max_guessed_tags: int, beam_size: int=None):
         if beam_size is None:
             self.beam_size = 10
@@ -277,13 +278,12 @@ class BeamSearch(BaseDecoder):
     def decode(self, observations: list, max_res_num: int) -> list:
         # A mondathoz hozzáfűz egy <MONDATVÉGE> tokent.
         observations = list(observations)
-        observations.append(ModelData.EOS_TOKEN)
+        observations.append(Model.EOS_TOKEN)
 
         # The actual beam search
         # Init beam
         # NÖVEKVŐ SORREND LESZ! [0, 1, 2, 3, 4 ...]
-        start = NGram([self.model.data.bos_index for _ in range(0, self.model.data.tagging_order)],
-                      self.model.data.tagging_order)
+        start = NGram([self.model.bos_index for _ in range(0, self.model.tagging_order)], self.model.tagging_order)
         beam = [History(start, 0.0)]
         # beam search main
         position = 0
@@ -316,7 +316,7 @@ class BeamSearch(BaseDecoder):
             # beam[-1:] = []
             h = beam.pop()
             tag_seq = h.tag_seq.token_list
-            cleaned = tag_seq[self.model.data.tagging_order:]
+            cleaned = tag_seq[self.model.tagging_order:]
             ret.append((cleaned, h.log_prob))
         return ret
 
@@ -325,7 +325,7 @@ class BeamSearch(BaseDecoder):
 
 
 class BeamedViterbi(BaseDecoder):
-    def __init__(self, model: CompiledModel, morph_analyser: BaseMorphologicalAnalyser, log_theta: float,
+    def __init__(self, model: Model, morph_analyser: BaseMorphologicalAnalyser, log_theta: float,
                  suf_theta: float, max_guessed_tags: int):
         super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags)
 
@@ -334,10 +334,9 @@ class BeamedViterbi(BaseDecoder):
         # A modathoz (observations) max_res_num-nyi tag-listát készít
         # A mondathoz hozzáfűz egy <MONDATVÉGE> tokent.
         observations = list(observations)
-        observations.append(ModelData.EOS_TOKEN)
+        observations.append(Model.EOS_TOKEN)
 
-        start = NGram([self.model.data.bos_index for _ in range(0, self.model.data.tagging_order)],
-                      self.model.data.tagging_order)
+        start = NGram([self.model.bos_index for _ in range(0, self.model.tagging_order)], self.model.tagging_order)
         # Maga az algoritmus  # beam {NGram -> Node}
         beam = {start: Node(start, 0.0, None)}
         first = True

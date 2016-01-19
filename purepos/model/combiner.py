@@ -28,8 +28,8 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 from corpusreader.containers import Document, Token
 from purepos.common.util import UNKNOWN_VALUE, CONFIGURATION
 from purepos.common.lemmatransformation import BaseLemmaTransformation, batch_convert
-from purepos.model.rawmodel import RawModelData, ModelData, CompiledModelData
-from purepos.model.suffixguesser import HashSuffixTree
+from purepos.model.model import Model
+# from purepos.model.suffixguesser import HashSuffixTree
 
 
 def default_combiner():
@@ -44,30 +44,30 @@ class BaseCombiner:
     def parameters(self):  # Unused...
         return self.lambdas
 
-    def calculate_params(self, doc: Document, raw_modeldata: RawModelData, modeldata: ModelData):
+    def calculate_params(self, doc: Document, modeldata: Model):
         pass
 
-    def combine(self, token: Token, lem_transf: BaseLemmaTransformation, compiled_modeldata: CompiledModelData,
-                modeldata: ModelData) -> float:
+    def combine(self, token: Token, lem_transf: BaseLemmaTransformation, modeldata: Model) -> float:
         pass
 
 
 class LogLinearBiCombiner(BaseCombiner):
-    def calculate_params(self, doc: Document, raw_modeldata: RawModelData, modeldata: ModelData):
-        apriori_probs = raw_modeldata.tag_ngram_model.word_apriori_probs()
-        theta = HashSuffixTree.calculate_theta(apriori_probs)
-        lemma_suffix_guesser = raw_modeldata.lemma_suffix_tree.create_guesser(theta)
-        lambda_s = 1.0
-        lambda_u = 1.0
+    def __init__(self):
+        super().__init__()
+        self.lambdas = [1.0, 1.0]
+
+    def calculate_params(self, doc: Document, modeldata: Model):
+        lambda_u = self.lambdas[0]
+        lambda_s = self.lambdas[1]
         for sentence in doc.sentences():
             for tok in sentence:
-                suffix_probs = batch_convert(lemma_suffix_guesser.tag_log_probabilities(tok.token), tok.token,
+                suffix_probs = batch_convert(modeldata.lemma_guesser.tag_log_probabilities(tok.token), tok.token,
                                              modeldata.tag_vocabulary)
                 # Tokens mapped to unigram score and the maximal score is selected
-                uni_max_prob = max(raw_modeldata.lemma_unigram_model.log_prob(t.stem) for t in suffix_probs.keys())
+                uni_max_prob = max(modeldata.lemma_unigram_model.log_prob(t.stem) for t in suffix_probs.keys())
                 # Same with sufixes
                 suffix_max_prob = max(prob for _, prob in suffix_probs.values())
-                act_uni_prob = raw_modeldata.lemma_unigram_model.log_prob(tok.stem)
+                act_uni_prob = modeldata.lemma_unigram_model.log_prob(tok.stem)
                 act_suff_prob = suffix_probs.get(tok, (None, UNKNOWN_VALUE))[1]
 
                 uni_prop = act_uni_prob - uni_max_prob
@@ -80,17 +80,17 @@ class LogLinearBiCombiner(BaseCombiner):
         s = lambda_u + lambda_s
         lambda_u /= s
         lambda_s /= s
-        self.lambdas.append(lambda_u)
-        self.lambdas.append(lambda_s)
+        # Bug in PurePOS: incremental learning mishandle lambdas (only the first two elements used but others may added)
+        self.lambdas[0] = lambda_u
+        self.lambdas[1] = lambda_s
 
-    def combine(self, token: Token, lem_transf: BaseLemmaTransformation, compiled_modeldata: CompiledModelData,
-                modeldata: ModelData) -> float:
+    def combine(self, token: Token, lem_transf: BaseLemmaTransformation, modeldata: Model) -> float:
         if CONFIGURATION is not None and CONFIGURATION.weight is not None:
             self.lambdas[0] = CONFIGURATION.weight
             self.lambdas[1] = 1 - CONFIGURATION.weight
 
-        return self.lambdas[0] * compiled_modeldata.unigram_lemma_model.log_prob(token.stem) + \
-               self.lambdas[1] * compiled_modeldata.lemma_guesser.tag_log_probability(token.token, lem_transf)
+        return (self.lambdas[0] * modeldata.lemma_unigram_model.log_prob(token.stem) +
+                self.lambdas[1] * modeldata.lemma_guesser.tag_log_probability(token.token, lem_transf))
 
 
 # Csak a BiCombinert használjuk, ami innen jön, dead code.

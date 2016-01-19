@@ -51,7 +51,8 @@ class BiDict(dict):
         # Here this is enough because __setitem__() take care of everything else
         if not self.__contains__(k):
             self.__setitem__(k, v)
-        return v
+            return v
+        return self.__getitem__(k)
 
     def __delitem__(self, key):
         v = self.__getitem__(key)

@@ -208,6 +208,8 @@ class SuffixLemmaTransformation(BaseLemmaTransformation):
         i = 0
         word_len = len(word)
         end = min(word_len, len(stem))
+        # Bug in PurePOS: If a word case differs from its lemmas cas (start of a sentence)
+        # it won't be included in the freq_table! (Not yet fixed!)
         # XXX Capitalised tokens handled badly?
         # Éves#éves#MN.NOM
         while i < end and word[i] == stem[i]:

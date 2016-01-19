@@ -30,14 +30,13 @@ from corpusreader.containers import Sentence, Token, ModToken
 from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue, analysis_queue
 from purepos.common.lemmatransformation import def_lemma_representation_by_token, batch_convert
-from purepos.model.rawmodel import ModelData, CompiledModelData, CompiledModel
+from purepos.model.model import Model
 from purepos.morphology import BaseMorphologicalAnalyser
 from purepos.decoder.basedecoder import BeamSearch, BeamedViterbi
 
 
 class LemmaComparator:
-    def __init__(self, compilde_model_data: CompiledModelData, model_data: ModelData):
-        self.comp_model_data = compilde_model_data
+    def __init__(self, model_data: Model):
         self.model_data = model_data
 
     # def compare(self, t1: tuple, t2: tuple):
@@ -53,8 +52,7 @@ class LemmaComparator:
     #         return 1
 
     def __call__(self, pair):
-        return self.comp_model_data.combiner.combine(pair[0], pair[1],
-                                                     self.comp_model_data, self.model_data)
+        return self.model_data.combiner.combine(pair[0], pair[1], self.model_data)
 
 
 class POSTagger:
@@ -70,7 +68,7 @@ class POSTagger:
                 ret.append(word)
         return ret
 
-    def __init__(self, model: CompiledModel,
+    def __init__(self, model: Model,
                  analyser: BaseMorphologicalAnalyser,
                  log_theta: float,
                  suf_theta: float,
@@ -91,7 +89,7 @@ class POSTagger:
         return [Sentence(self.merge(sentence, tags[0]), score=tags[1]) for tags in tag_list]
 
     def merge(self, sentence: list, tags: list) -> list:
-        vocab = self.model.data.tag_vocabulary
+        vocab = self.model.tag_vocabulary
         return [Token(sentence[idx], None, vocab.word(tags[idx]))
                 for idx in range(min(len(tags), len(sentence)))]
 
@@ -120,14 +118,14 @@ class POSTagger:
 
 
 class MorphTagger(POSTagger):
-    def __init__(self, model: CompiledModel,
+    def __init__(self, model: Model,
                  analyser: BaseMorphologicalAnalyser,
                  log_theta: float,
                  suf_theta: float,
                  max_guessed_tags: int,
                  use_beam_search: bool):
         super().__init__(model, analyser, log_theta, suf_theta, max_guessed_tags, use_beam_search)
-        self.lemma_comparator = LemmaComparator(model.compiled_data, model.data)
+        self.lemma_comparator = LemmaComparator(model)
         self.stem_filter = util.StemFilter.create_stem_filter()
         self.is_last_guessed = False
 
@@ -168,8 +166,8 @@ class MorphTagger(POSTagger):
             stems = self.analyser.analyse(t.token)
             self.is_last_guessed = False
 
-        tag_log_probs = self.model.compiled_data.lemma_guesser.tag_log_probabilities(t.token)
-        lemma_suff_probs = batch_convert(tag_log_probs, t.token, self.model.data.tag_vocabulary)
+        tag_log_probs = self.model.lemma_guesser.tag_log_probabilities(t.token)
+        lemma_suff_probs = batch_convert(tag_log_probs, t.token, self.model.tag_vocabulary)
 
         use_morph = True
         if len(stems) == 0:
@@ -193,7 +191,7 @@ class MorphTagger(POSTagger):
                 if pair is not None:
                     traf = pair[0]
                 else:
-                    traf = def_lemma_representation_by_token(poss_tok, self.model.data)
+                    traf = def_lemma_representation_by_token(poss_tok, self.model)
                 comp.append((poss_tok, traf))
                 if not use_morph:
                     lower_tok = Token(poss_tok.token, poss_tok.stem.lower(), poss_tok.tag)

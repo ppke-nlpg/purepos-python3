@@ -26,7 +26,7 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import os
-import corpusreader.containers
+from corpusreader.containers import Token, ModToken
 
 STEM_FILTER_FILE = "purepos_stems.txt"
 UNKNOWN_VALUE = -99.0
@@ -78,8 +78,7 @@ class StemFilter:
     # return max_k, max_v
 
 
-def simplify_lemma(t: corpusreader.containers.Token):
+def simplify_lemma(t: Token):
     if LEMMA_MAPPER is not None:
-        return corpusreader.containers.ModToken(t.token, original_stem=t.stem,
-                                                stem=LEMMA_MAPPER.map(t.stem), tag=t.tag)
+        return ModToken(t.token, original_stem=t.stem, stem=LEMMA_MAPPER.map(t.stem), tag=t.tag)
     return t

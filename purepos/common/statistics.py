@@ -62,7 +62,7 @@ Guesser trained with
 {} uppercase tokens
 theta None""".format(self.tokens,
                      self.sentences,
-                     len(model.data.tag_vocabulary),
+                     len(model.tag_vocabulary),
                      self.l_guesser_items,
                      self.u_guesser_items)
 

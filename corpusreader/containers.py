@@ -49,10 +49,7 @@ class Document(list):
         return NL.join([str(x) for x in self])
 
     def sentences(self):
-        ret = []
-        for p in self:
-            ret.extend(p)
-        return ret
+        return (sentence for paragraph in self for sentence in paragraph)
 
 
 class Paragraph(list):
