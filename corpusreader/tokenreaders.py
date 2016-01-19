@@ -27,6 +27,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
 import os
+import sys
 from corpusreader.containers import Document, Paragraph, Sentence, Token
 
 
@@ -34,93 +35,53 @@ class ParsingException(Exception):
     pass
 
 
-class BaseReader:
-    # Minden parser őse.
-    # Pythonban fölösleges. Refaktorálandó
-    def __init__(self, separator: str='#', linesep='\n', encoding='utf-8'):
-        self.separator = separator
-        self.linesep = linesep
+# todo: Be mor Pyhthonic use indices where it possible to avoid string copiing...
+class CorpusReader:
+    def __init__(self, field_sep: str='#', token_sep: str=' ', sentence_sep: str=os.linesep,
+                 para_sep: str=os.linesep+os.linesep, encoding='UTF-8'):
+        self.field_sep = field_sep
+        self.token_sep = token_sep
+        self.sentence_sep = sentence_sep
+        self.para_sep = para_sep
         self.encoding = encoding
 
-    def read(self, text: str):
-        pass
-
     def read_from_io(self, file: io.TextIOWrapper):
-        # todo: Biztos jó ötlet az egész fájlt beolvasni? Esetleg yield? NEM.
-        return self.read(file.read())
-    # todo: line separator
+        # Reads the entire file into memory because it must be read more than one times!
+        return self.read_corpus(file.read())
 
+    def read_corpus(self, text: str):
+        # it parses the whole(!) analysed corpus
+        document = Document()
+        # XXX Ony one pararaph at the moment
+        # for paragraph in text.split(self.para_sep):
+        paragraph = text.rstrip(self.sentence_sep)  # After the last sentence there is nothing
+        if len(paragraph) == 0:
+            raise ParsingException("Empty paragraph in '{}'".format(text))
+        document.append(self.read_paragraph(paragraph))
+        return document
 
-class SimpleTokenReader(BaseReader):
-    def read(self, text: str):
-        return Token(text)
+    def read_paragraph(self, text: str):
+        paragraph = Paragraph()
+        sentenes = text.split(self.sentence_sep)
+        for sentence in sentenes:
+            if len(sentence) == 0:
+                raise ParsingException("Empty sentence in '{}'".format(text))
+            try:
+                paragraph.append(self.read_sentence(sentence))
+            except ParsingException as ex:
+                print("{}\nWARNING: Skipping sentence!".format(print(ex)), file=sys.stderr)
+        return paragraph
 
-
-class TaggedTokenReader(BaseReader):
-    def read(self, text: str):
-        w_parts = text.split(self.separator)
-        if len(w_parts) != 2:
-            raise ParsingException("Malformed input: '{}'".format(text))
-        return Token(w_parts[0], None, w_parts[1])
-
-
-class StemmedTaggedTokenReader(BaseReader):
-    def read(self, text: str):
-        w_parts = text.split(self.separator)
-        if len(w_parts) != 3:
-            raise ParsingException("Malformed input: '{}'".format(text))  # todo dobja el a
-            # mondatot, írja ki, de menjen tovább!
-        return Token(w_parts[0], w_parts[1].replace('_', ' '), w_parts[2])
-
-
-class SentenceReader(BaseReader):
-    def __init__(self, word_parser: BaseReader, separator: str=None):
-        super().__init__(separator)
-        self.word_parser = word_parser
-
-    def read(self, text: str):
-        if not text:
-            return Sentence()
-        tokens = Sentence()
-        for word in text.split(self.separator):
+    def read_sentence(self, text: str):
+        sentence = Sentence()
+        for word in text.split(self.token_sep):
             if len(word) == 0:
                 raise ParsingException("Empty word in '{}'".format(text))
-            tokens.append(self.word_parser.read(word))
-        return tokens
+            sentence.append(self.read_token(word))
+        return sentence
 
-
-class CorpusReader(BaseReader):
-    def __init__(self, token_reader: BaseReader, linesep: str=os.linesep):
-        self.token_reader = token_reader
-        self.sentence_parser = SentenceReader(self.token_reader)
-        super().__init__(linesep=linesep)
-
-    def read(self, text: str):
-        # it parses the whole(!) analysed corpus
-        sentences = list()
-        for line in text.split(self.linesep):
-            if len(line) > 0:
-                sentences.append(self.sentence_parser.read(line))
-        paragraph = Paragraph(sentences)
-        document = Document()
-        document.append(paragraph)
-        return document
-
-
-class HunPosCorpusReader(BaseReader):
-    # Ugyan olyan reader, mint a CorpusReader, csak más a kódolás és a szeparátor.
-    # Célszerű lenne úgy refaktorálni, hogy egy paraméterezhető Corpusreader legyen.
-    def __init__(self):
-        self.word_parser = TaggedTokenReader("\t")
-        self.sentence_parser = SentenceReader(self.word_parser, self.linesep)
-        super().__init__(encoding="ISO-8859-2")
-
-    def read(self, text: str):
-        sentences = list()
-        for sent in text.split(self.linesep + self.linesep):
-            if len(sent)-1 > 0:
-                sentences.append(self.sentence_parser.read(sent))
-        paragraph = Paragraph(sentences)
-        document = Document()
-        document.append(paragraph)
-        return document
+    def read_token(self, text: str):
+        w_parts = text.split(self.field_sep)
+        if len(w_parts) != 3:
+            raise ParsingException("Malformed input: '{}'".format(text))
+        return Token(w_parts[0], w_parts[1].replace('_', ' '), w_parts[2])

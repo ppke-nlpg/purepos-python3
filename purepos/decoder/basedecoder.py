@@ -33,7 +33,6 @@ from purepos.morphology import BaseMorphologicalAnalyser
 from purepos.model.model import Model
 from purepos.decoder.ngram import NGram
 from purepos.model.probmodel import BaseProbabilityModel
-from purepos.model.history import History
 
 # „enum” values
 SEEN = 0
@@ -46,6 +45,21 @@ UNKNOWN_TAG_WEIGHT = -99.0
 UNKOWN_TAG_TRANSITION = -99.0
 UNKNOWN_VALUE = -99.0
 TAB = "\t"  # ez eredetileg field volt.
+
+
+class History:
+    def __init__(self, tag_seq: NGram, log_prob: float):
+        self.tag_seq = tag_seq
+        self.log_prob = log_prob  # compare with.
+
+    def __eq__(self, other):
+        return self.log_prob == other.log_prob
+
+    def __lt__(self, other):
+        return self.log_prob < other.log_prob
+
+    def __gt__(self, other):
+        return self.log_prob > other.log_prob
 
 
 class Node:
@@ -187,9 +201,9 @@ class BaseDecoder:
     def next_for_guessed_token(self, prev_tags_set: set, word_form: str, upper: bool, anals: list or set, oov: bool)\
             -> dict:
         if upper:
-            guesser = self.model.upper_case_suffix_guesser
+            guesser = self.model.upper_suffix_tree
         else:
-            guesser = self.model.lower_case_suffix_guesser
+            guesser = self.model.lower_suffix_tree
         if not oov:
             rrr = dict()
             tag_probs = dict()
@@ -219,7 +233,7 @@ class BaseDecoder:
             rrr = dict()
             tag_probs = dict()
             guessed_tags = guesser.tag_log_probabilities(word_form)
-            # Prune guessed tags
+            # Prune guessed tags  XXX Push down into guesser class?
             # A legnagyobb valószínűségű tag-eket kiszedi, hogy az ismeretlen szavak taggelésénél ne
             # vezessenek félre. // „TnT – A Statistical Part-of-Speech Tagger” Brants, Thorsen 2000, 2.3, 4)
             pruned_guessed_tags = set()

@@ -61,7 +61,7 @@ class LogLinearBiCombiner(BaseCombiner):
         lambda_s = self.lambdas[1]
         for sentence in doc.sentences():
             for tok in sentence:
-                suffix_probs = batch_convert(modeldata.lemma_guesser.tag_log_probabilities(tok.token), tok.token,
+                suffix_probs = batch_convert(modeldata.lemma_suffix_tree.tag_log_probabilities(tok.token), tok.token,
                                              modeldata.tag_vocabulary)
                 # Tokens mapped to unigram score and the maximal score is selected
                 uni_max_prob = max(modeldata.lemma_unigram_model.log_prob(t.stem) for t in suffix_probs.keys())
@@ -90,7 +90,7 @@ class LogLinearBiCombiner(BaseCombiner):
             self.lambdas[1] = 1 - CONFIGURATION.weight
 
         return (self.lambdas[0] * modeldata.lemma_unigram_model.log_prob(token.stem) +
-                self.lambdas[1] * modeldata.lemma_guesser.tag_log_probability(token.token, lem_transf))
+                self.lambdas[1] * modeldata.lemma_suffix_tree.tag_log_probability(token.token, lem_transf))
 
 
 # Csak a BiCombinert használjuk, ami innen jön, dead code.

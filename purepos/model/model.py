@@ -31,7 +31,7 @@ from purepos.common import util
 from purepos.common.lemmatransformation import def_lemma_representation
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.common.statistics import Statistics
-from purepos.model.suffixguesser import HashSuffixTree
+from purepos.model.hashsuffixtree import HashSuffixTree
 from purepos.model.ngrammodel import NGramModel
 from purepos.model.vocabulary import LemmaUnigramModel, Lexicon, IntVocabulary
 from purepos.model.mapper import TagMapper
@@ -167,9 +167,9 @@ class Model:
         # Compile model (almost)...
         self.apriori_tag_probs = self.tag_ngram_model.word_apriori_probs()
         theta = HashSuffixTree.calculate_theta(self.apriori_tag_probs)
-        self.lower_case_suffix_guesser = self.lower_suffix_tree.create_guesser(theta)
-        self.upper_case_suffix_guesser = self.upper_suffix_tree.create_guesser(theta)
-        self.lemma_guesser = self.lemma_suffix_tree.create_guesser(theta)
+        self.lower_suffix_tree.create_guesser(theta)
+        self.upper_suffix_tree.create_guesser(theta)
+        self.lemma_suffix_tree.create_guesser(theta)
         # self.suffix_lemma_model = self.lemma_freq_tree.create_guesser(theta)
 
         # Because combiner needs the document to compute lambdas!
@@ -191,5 +191,5 @@ class Model:
         self.spec_tokens_emission_model.context_mapper = mapper
 
         self.tag_transition_model.element_mapper = mapper
-        self.lower_case_suffix_guesser.mapper = mapper
-        self.upper_case_suffix_guesser.mapper = mapper
+        self.lower_suffix_tree.mapper = mapper
+        self.upper_suffix_tree.mapper = mapper

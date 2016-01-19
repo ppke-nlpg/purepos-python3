@@ -32,7 +32,6 @@ import os
 import sys
 
 from corpusreader.containers import Colors, Token
-from corpusreader.tokenreaders import StemmedTaggedTokenReader, CorpusReader
 from purepos.cli.configuration import Configuration
 from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue
@@ -170,7 +169,7 @@ class PurePos:
             source = open(input_path, encoding=encoding)  # todo default encoding? (a Python3 okos)
         else:
             source = sys.stdin
-        trainer = Trainer(source, CorpusReader(StemmedTaggedTokenReader(separator, linesep)))
+        trainer = Trainer(source, separator, linesep)
 
         if os.path.isfile(model_path):
             print("Reading model... ", file=sys.stderr)
@@ -293,7 +292,7 @@ class PurePos:
             ma = BaseMorphologicalAnalyser()
         else:
             print("Using morphological table at: {}.".format(analyser), file=sys.stderr)
-            ma = MorphologicalTable(open(analyser))
+            ma = MorphologicalTable(analyser)
         print("Reading model... ", file=sys.stderr)
         rawmodel = StandardSerializer.read_model(model_path)
         print("Compiling model... ", file=sys.stderr)

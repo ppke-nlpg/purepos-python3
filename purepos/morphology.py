@@ -25,39 +25,32 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from io import TextIOWrapper
-
 from corpusreader.containers import Token
 
 
 class BaseMorphologicalAnalyser:
     def tags(self, word: str) -> list:
-        return []  # eredetileg None
+        return []
 
     def analyse(self, word: str) -> list:
-        return []  # eredetileg None
+        return []
 
 
 class MorphologicalTable(BaseMorphologicalAnalyser):
-    def __init__(self, file: TextIOWrapper):
-        self.morph_file = file
+    def __init__(self, file: str):
         self.morph_table = dict()
-        for line in file:
-            cells = line.split("\t")
-            if len(cells) > 0:
-                token = cells[0]
-                anals = cells[1:]
-                self.morph_table[token] = anals
-        file.close()
-        # todo ez ugyanaz?:
-        # with file as f:
-        #     self.morph_table = {cells[0]: cells[1:] for line in f for cells in line.split("\t")}
+        with open(file, encoding='UTF-8') as f:
+            for line in f:
+                cells = line.strip().split('\t')
+                if not line.startswith('#') and len(cells) > 1:
+                    token, anals = cells[0], cells[1:]
+                    self.morph_table[token] = anals
 
     def tags(self, word: str):
         return self.morph_table.get(word, [])
 
     def analyse(self, word: str):
-        return []  # eredetileg None
+        return []
 
 
 class HumorAnalyser(BaseMorphologicalAnalyser):

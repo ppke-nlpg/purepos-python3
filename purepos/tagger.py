@@ -166,7 +166,7 @@ class MorphTagger(POSTagger):
             stems = self.analyser.analyse(t.token)
             self.is_last_guessed = False
 
-        tag_log_probs = self.model.lemma_guesser.tag_log_probabilities(t.token)
+        tag_log_probs = self.model.lemma_suffix_tree.tag_log_probabilities(t.token)
         lemma_suff_probs = batch_convert(tag_log_probs, t.token, self.model.tag_vocabulary)
 
         use_morph = True
