@@ -59,7 +59,7 @@ class LogLinearBiCombiner(BaseCombiner):
     def calculate_params(self, doc: Document, modeldata: Model):
         lambda_u = self.lambdas[0]
         lambda_s = self.lambdas[1]
-        for sentence in doc.sentences():
+        for sentence in (sent for para in doc for sent in para):
             for tok in sentence:
                 suffix_probs = batch_convert(modeldata.lemma_suffix_tree.tag_log_probabilities(tok.token), tok.token,
                                              modeldata.tag_vocabulary)

@@ -106,7 +106,7 @@ class Model:
     def train(self, document: Document):
         # todo read lines by lines. See the issue:
         # https://github.com/ppke-nlpg/purepos-python3/issues/5
-        for sentence in document.sentences():
+        for sentence in (sent for para in document for sent in para):
             # add sentence markers
             sentence = Sentence(sentence)  # Le kell másolni különben megváltoztatja a doc-ot...
             sentence.insert(0, Token(Model.BOS_TOKEN, None, Model.BOS_TAG))

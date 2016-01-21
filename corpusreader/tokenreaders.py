@@ -28,14 +28,26 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import io
 import os
 import sys
-from corpusreader.containers import Document, Paragraph, Sentence, Token
+from corpusreader.containers import Token
 
 
 class ParsingException(Exception):
     pass
 
+def find_all(a_str, sub):
+    """
+    Original Source: http://stackoverflow.com/a/4665027
+    """
+    start = 0
+    while True:
+        start = a_str.find(sub, start)
+        if start == -1:
+            yield None   # Slice at the end
+            return
+        yield start
+        start += len(sub) # use start += 1 to find overlapping matches
 
-# todo: Be mor Pyhthonic use indices where it possible to avoid string copiing...
+
 class CorpusReader:
     def __init__(self, field_sep: str='#', token_sep: str=' ', sentence_sep: str=os.linesep,
                  para_sep: str=os.linesep+os.linesep, encoding='UTF-8'):
@@ -45,43 +57,48 @@ class CorpusReader:
         self.para_sep = para_sep
         self.encoding = encoding
 
-    def read_from_io(self, file: io.TextIOWrapper):
+    def read_from_io(self, fileh: io.TextIOWrapper):
         # Reads the entire file into memory because it must be read more than one times!
-        return self.read_corpus(file.read())
+        return self.read_corpus(fileh.read())
 
     def read_corpus(self, text: str):
-        # it parses the whole(!) analysed corpus
-        document = Document()
-        # XXX Ony one pararaph at the moment
-        # for paragraph in text.split(self.para_sep):
-        paragraph = text.rstrip(self.sentence_sep)  # After the last sentence there is nothing
-        if len(paragraph) == 0:
-            raise ParsingException("Empty paragraph in '{}'".format(text))
-        document.append(self.read_paragraph(paragraph))
-        return document
+        """
+        Parses the whole(!) analysed corpus
+        :param text: the whole corpus
+        :return: lists embeded lists embeded...
 
-    def read_paragraph(self, text: str):
-        paragraph = Paragraph()
-        sentenes = text.split(self.sentence_sep)
-        for sentence in sentenes:
-            if len(sentence) == 0:
-                raise ParsingException("Empty sentence in '{}'".format(text))
-            try:
-                paragraph.append(self.read_sentence(sentence))
-            except ParsingException as ex:
-                print("{}\nWARNING: Skipping sentence!".format(print(ex)), file=sys.stderr)
-        return paragraph
+        """
+        # Strip last separators...
+        if text.endswith(self.para_sep):
+            text = text[:-len(self.para_sep)]
+        if text.endswith(self.sentence_sep):
+            text = text[:-len(self.sentence_sep)]
+        if text.endswith(self.token_sep):
+            text = text[:-len(self.token_sep)]
 
-    def read_sentence(self, text: str):
-        sentence = Sentence()
-        for word in text.split(self.token_sep):
-            if len(word) == 0:
-                raise ParsingException("Empty word in '{}'".format(text))
-            sentence.append(self.read_token(word))
-        return sentence
-
-    def read_token(self, text: str):
-        w_parts = text.split(self.field_sep)
-        if len(w_parts) != 3:
-            raise ParsingException("Malformed input: '{}'".format(text))
-        return Token(w_parts[0], w_parts[1].replace('_', ' '), w_parts[2])
+        doc = []
+        para_start = -1
+        for para_end in find_all(text, self.para_sep):
+            para = text[slice(para_start + 1, para_end)]  # No need to check for None ;)
+            sent_start = -1
+            para_sents = []
+            for sent_end in find_all(para, self.sentence_sep):
+                sent = para[slice(sent_start + 1, sent_end)]  # No need to check for None ;)
+                tok_start = -1
+                sent_toks = []
+                try:
+                    for tok_end in find_all(sent, self.token_sep):
+                        tok = sent[slice(tok_start + 1, tok_end)]  # No need to check for None ;)
+                        try:
+                            word, lemma, pos = tok.split(self.field_sep)
+                        except ValueError:
+                            raise ParsingException("Malformed input: '{}'".format(tok))
+                        sent_toks.append(Token(word, lemma.replace('_', ' '), pos))
+                        tok_start = tok_end
+                except ParsingError as ex:
+                    print(ex, 'WARNING: Skipping sentence!', sep=os.linesep, file=sys.stderr)
+                sent_start = sent_end
+                para_sents.append(sent_toks)
+            para_start = para_end
+            doc.append(para_sents)
+        return doc
