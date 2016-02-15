@@ -25,7 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from corpusreader.containers import Document, Sentence, Token
+from corpusreader.containers import Token
 from purepos.cli.configuration import Configuration
 from purepos.common import util
 from purepos.common.lemmatransformation import def_lemma_representation
@@ -103,12 +103,12 @@ class Model:
         from purepos.model.combiner import default_combiner
         self.combiner = default_combiner()
 
-    def train(self, document: Document):
+    def train(self, document: list):
         # todo read lines by lines. See the issue:
         # https://github.com/ppke-nlpg/purepos-python3/issues/5
         for sentence in (sent for para in document for sent in para):
             # add sentence markers
-            sentence = Sentence(sentence)  # Le kell másolni különben megváltoztatja a doc-ot...
+            sentence = list(sentence)  # XXX REMÉLEM ÍGY JÓ! Le kell másolni különben megváltoztatja a doc-ot...
             sentence.insert(0, Token(Model.BOS_TOKEN, None, Model.BOS_TAG))
             # Add sentence
             self.stat.increment_sentence_count()

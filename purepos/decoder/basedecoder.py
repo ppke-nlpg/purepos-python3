@@ -47,37 +47,9 @@ UNKNOWN_VALUE = -99.0
 TAB = "\t"  # ez eredetileg field volt.
 
 
-class History:
-    def __init__(self, tag_seq: NGram, log_prob: float):
-        self.tag_seq = tag_seq
-        self.log_prob = log_prob  # compare with.
-
-    def __eq__(self, other):
-        return self.log_prob == other.log_prob
-
-    def __lt__(self, other):
-        return self.log_prob < other.log_prob
-
-    def __gt__(self, other):
-        return self.log_prob > other.log_prob
-
-
-class Node:
-    def __init__(self, state: NGram, weight: float, previous: NGram or None):
-        self.state = state
-        self.weight = weight
-        self.prev = previous
-
-    def __str__(self):
-        return "{state: {}, weight: {}}".format(str(self.state), str(self.weight))
-
-
 class BaseDecoder:
-    def __init__(self, model: Model,
-                 morphological_analyzer: BaseMorphologicalAnalyser,
-                 log_theta: float,
-                 suf_theta: float,
-                 max_guessed_tags: int):
+    def __init__(self, model: Model, morphological_analyzer: BaseMorphologicalAnalyser, log_theta: float,
+                 suf_theta: float, max_guessed_tags: int):
         self.model = model
         self.morphological_analyzer = morphological_analyzer
         self.log_theta = log_theta
@@ -275,18 +247,27 @@ class BaseDecoder:
         return rrr
 
 
+class History:
+    def __init__(self, tag_seq: NGram, log_prob: float):
+        self.tag_seq = tag_seq
+        self.log_prob = log_prob  # compare with.
+
+    def __eq__(self, other):
+        return self.log_prob == other.log_prob
+
+    def __lt__(self, other):
+        return self.log_prob < other.log_prob
+
+    def __gt__(self, other):
+        return self.log_prob > other.log_prob
+
+
 class BeamSearch(BaseDecoder):
     # BeamSearch algorithm.
     # Nincs tesztelve.
     def __init__(self, model: Model, morph_analyser: BaseMorphologicalAnalyser, log_theta: float,
                  suf_theta: float, max_guessed_tags: int, beam_size: int=None):
-        if beam_size is None:
-            self.beam_size = 10
-            self.fixed_beam = False
-        else:
-            log_theta = 0
-            self.beam_size = beam_size
-            self.fixed_beam = True
+        self.beam_size = beam_size
         super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags)
 
     def decode(self, observations: list, max_res_num: int) -> list:
@@ -297,45 +278,37 @@ class BeamSearch(BaseDecoder):
         # The actual beam search
         # Init beam
         # NÖVEKVŐ SORREND LESZ! [0, 1, 2, 3, 4 ...]
-        start = NGram([self.model.bos_index for _ in range(0, self.model.tagging_order)], self.model.tagging_order)
-        beam = [History(start, 0.0)]
+        start = NGram([self.model.bos_index for _ in range(self.model.tagging_order)], self.model.tagging_order)
+        beam = [History(start, 0.0)]  # tagseq & logbob == prev, state & logprob
         # beam search main
         position = 0
-        for word in observations:
-            contexts = {h.tag_seq for h in beam}  # collect contexts
-            probs = self.next_probs(contexts, word, position, (position == 0))
-            # Update beam
-            new_beam = []
-            for h in beam:
-                context = h.tag_seq
-                old_prob = h.log_prob
-                transitions = probs[context]
-                for next_tag, prob_vals in transitions.items():
-                    new_seq = context.add(next_tag)
-                    new_prob = old_prob + prob_vals[0] + prob_vals[1]
-                    new_beam.append(History(new_seq, new_prob))
-            beam = new_beam.sort()
+        for word in observations:   # collect contexts
+            probs = self.next_probs({h.tag_seq for h in beam}, word, position, (position == 0))
+            # Update beam Add to context, oldprob + currprob => newprob for all context in beam
+            new_beam = [History(h.tag_seq.add(next_tag), h.log_prob + prob_vals[0] + prob_vals[1]) for h in beam
+                        for next_tag, prob_vals in probs[h.tag_seq].items()]  # trainsitions...  New seq + new probs
+            beam = sorted(new_beam)
             # Prune
-            if self.fixed_beam:
+            if self.beam_size is not None:
                 beam[:-self.beam_size] = []  # trololo :)
             else:
-                maxh = beam[-1]
-                while not beam[0].log_prob > (maxh.log_prob - self.log_theta):
-                    beam[0:1] = []
+                maxh = beam[-1].log_prob - self.log_theta
+                while beam[0].log_prob <= maxh:  # Nem lenne egyszerűbb megtartani, ami marad mint eldobálni?
+                    beam.pop(0)
             position += 1
-        # k-top
-        ret = []
-        for i in range(min(max_res_num, len(beam))):
-            # h = beam[-1]
-            # beam[-1:] = []
-            h = beam.pop()
-            tag_seq = h.tag_seq.token_list
-            cleaned = tag_seq[self.model.tagging_order:]
-            ret.append((cleaned, h.log_prob))
-        return ret
+        # k-top (beam[-1].tagseq.token_list[...] => cleaned,  beam[-1].log_prob)
+        return [(beam.pop().tag_seq.token_list[self.model.tagging_order:], beam[-1].log_prob)
+                for _ in range(min(max_res_num, len(beam)))]
 
-# def create_initial_element(self) -> NGram:
-#     pass
+
+class Node:
+    def __init__(self, state: NGram, weight: float, previous: NGram or None):
+        self.state = state
+        self.weight = weight
+        self.prev = previous
+
+    def __str__(self):
+        return "{state: {}, weight: {}}".format(str(self.state), str(self.weight))
 
 
 class BeamedViterbi(BaseDecoder):
@@ -350,25 +323,22 @@ class BeamedViterbi(BaseDecoder):
         observations = list(observations)
         observations.append(Model.EOS_TOKEN)
 
-        start = NGram([self.model.bos_index for _ in range(0, self.model.tagging_order)], self.model.tagging_order)
+        start = NGram([self.model.bos_index for _ in range(self.model.tagging_order)], self.model.tagging_order)
         # Maga az algoritmus  # beam {NGram -> Node}
         beam = {start: Node(start, 0.0, None)}
-        first = True
         pos = 0
         for obs in observations:         # obs: str
             new_beam = dict()            # {NGram -> Node}
             next_probs = dict()          # table: {(NGram, int) -> float} trololo :)
             obs_probs = dict()           # {NGram -> float}
-            contexts = set(beam.keys())  # {NGram}
-            nexts = self.next_probs(contexts, obs, pos, first)  # {NGram -> {int -> (float, float)}}
-            for context, next_context_probs in nexts.items():
+            contexts = set(beam.keys())  # {NGram}  # {NGram -> {int -> (float, float)}}
+            for context, next_context_probs in self.next_probs(contexts, obs, pos, (pos == 0)).items():
                 for tag, pair in next_context_probs.items():    # {int -> (float, float)}.items()
                     # context: NGram,
                     # next_context_probs: {int -> (float, float)}
                     obs_probs[context.add(tag)], next_probs[(context, tag)] = pair
-
-            for cell_index, trans_val in next_probs.items():    # {(NGram, int) -> float}.items()
-                context, next_tag = cell_index            # NGram, int
+            # NGram, int
+            for (context, next_tag), trans_val in next_probs.items():    # {(NGram, int) -> float}.items()
                 new_state = context.add(next_tag)   # NGram
                 from_node = beam[context]           # Node
                 new_weight = trans_val + from_node.weight  # float
@@ -387,14 +357,16 @@ class BeamedViterbi(BaseDecoder):
                     new_beam[tag_seq].weight += obs_probs[tag_seq]
 
             # Prune
+            # XXX A BeamSearch-hoz képest ez csak a teta szerinti vágást ismeri
+            # a beam_size-t nem.
             # Egy küszöb súly alatti node-okat nem veszi be a beam-be.
             # A küszöböt a max súlyú node-ból számolja ki.
             max_node_weight = max(n.weight for n in beam.values())
             beam = {ngram: act_node for ngram, act_node in beam.items()
                     if act_node.weight >= max_node_weight - self.log_theta}
-            first = False
             pos += 1
         # Find max
+        # XXX Ez csak a legjobbat adja vissza agy a k-legjobbat mint a beamsearch?
         sorted_nodes = sorted(beam.values(), key=lambda n: n.weight)  # [Node]
         tag_seq_list = []
         for i in range(results_num):
@@ -402,7 +374,7 @@ class BeamedViterbi(BaseDecoder):
                 break
             max_node = sorted_nodes.pop()
             # Decompose
-            max_tag_seq = list()
+            max_tag_seq = []
             prev, act = max_node.prev, max_node
             while prev is not None:
                 max_tag_seq.append(act.state.last())  # We must reverse the list!

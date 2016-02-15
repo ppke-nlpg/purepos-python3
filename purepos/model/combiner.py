@@ -25,7 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from corpusreader.containers import Document, Token
+from corpusreader.containers import Token
 from purepos.common.util import UNKNOWN_VALUE, CONFIGURATION
 from purepos.common.lemmatransformation import BaseLemmaTransformation, batch_convert
 from purepos.model.model import Model
@@ -44,7 +44,7 @@ class BaseCombiner:
     def parameters(self):  # Unused...
         return self.lambdas
 
-    def calculate_params(self, doc: Document, modeldata: Model):
+    def calculate_params(self, doc: list, modeldata: Model):
         pass
 
     def combine(self, token: Token, lem_transf: BaseLemmaTransformation, modeldata: Model) -> float:
@@ -56,7 +56,7 @@ class LogLinearBiCombiner(BaseCombiner):
         super().__init__()
         self.lambdas = [1.0, 1.0]
 
-    def calculate_params(self, doc: Document, modeldata: Model):
+    def calculate_params(self, doc: list, modeldata: Model):
         lambda_u = self.lambdas[0]
         lambda_s = self.lambdas[1]
         for sentence in (sent for para in doc for sent in para):

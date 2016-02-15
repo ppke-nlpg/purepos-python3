@@ -76,7 +76,6 @@ class HashSuffixTree:
 
     def create_guesser(self, theta: float):
         self.theta = theta
-        return self  # HashSuffixGuesser(self.freq_table, theta)
 
     def tag_log_probabilities(self, word) -> dict:
         mret = dict()

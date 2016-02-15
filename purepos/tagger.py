@@ -26,7 +26,7 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
-from corpusreader.containers import Sentence, Token, ModToken
+from corpusreader.containers import Token, ModToken
 from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue, analysis_queue
 from purepos.common.lemmatransformation import def_lemma_representation_by_token, batch_convert
@@ -83,37 +83,31 @@ class POSTagger:
             self.decoder = BeamedViterbi(model, analyser, log_theta, suf_theta, max_guessed_tags)
 
     # list of strings
-    def tag_sentence(self, sentence: list, max_res: int) -> Sentence:
+    def tag_sentence(self, sentence: list, max_res: int) -> tuple:
         sentence = self.preprocess_sentence(sentence)
-        tag_list = self.decoder.decode(sentence, max_res)
-        return [Sentence(self.merge(sentence, tags[0]), score=tags[1]) for tags in tag_list]
+        return [(self.merge(sentence, tags[0]), tags[1]) for tags in self.decoder.decode(sentence, max_res)]
 
     def merge(self, sentence: list, tags: list) -> list:
-        vocab = self.model.tag_vocabulary
-        return [Token(sentence[idx], None, vocab.word(tags[idx]))
+        return [Token(sentence[idx], None, self.model.tag_vocabulary.word(tags[idx]))
                 for idx in range(min(len(tags), len(sentence)))]
 
     def tag(self, source: io.TextIOWrapper, dest: io.TextIOWrapper, max_results_number: int=1):
         for line in source:
-            sent_str = self.tag_and_format(line, max_results_number)
-            print(sent_str, file=dest)
+            print(self.tag_and_format(line, max_results_number), file=dest)
 
     def tag_and_format(self, line: str, max_res_num: int) -> str:
-        sent_str = ""
-        if line.strip() != "":
-            s = self.tag_sentence(line.split(), max_res_num)
-            sent_str = self.sentences_to_string(s, max_res_num > 1)
+        sent_str = ''
+        line = line.strip().split()
+        if len(line) > 0:
+            sent_str = '\t'.join(self.sent_to_string(s, max_res_num > 1) for s in self.tag_sentence(line, max_res_num))
         return sent_str
 
-    def sentences_to_string(self, sentences: list, show_prob: bool) -> str:
-        return "\t".join([self.sent_to_string(s, show_prob) for s in sentences])
-
     @staticmethod
-    def sent_to_string(sentence: Sentence, show_prob: bool) -> str:
+    def sent_to_string(sentence: tuple, show_prob: bool) -> str:
         # ret = " ".join(str(sentence))
-        ret = str(sentence)
+        ret = str(sentence[0])
         if show_prob:
-            ret += "$${}$$".format(sentence.score)
+            ret += "$${}$$".format(sentence[1])
         return ret
 
 
@@ -130,17 +124,15 @@ class MorphTagger(POSTagger):
         self.is_last_guessed = False
 
     def merge(self, sentence: list, tags: list) -> list:
-        res = super().merge(sentence, tags)
         tmp = []
-        pos = 0
-        for t in res:
+        for pos, t in enumerate(Token(sentence[idx], None, self.model.tag_vocabulary.word(tags[idx]))
+                                for idx in range(min(len(tags), len(sentence)))):
             best_stemmed_token = self.find_best_lemma(t, pos)
             best_stemmed_token = Token(best_stemmed_token.token,
                                        self.mark_guessed(best_stemmed_token.stem.replace(" ", "_")),
                                        best_stemmed_token.tag)
             tmp.append(best_stemmed_token)
-            pos += 1
-        return Sentence(tmp)
+        return tmp
 
     def mark_guessed(self, lemma: str) -> str:
         if self.is_last_guessed and util.CONFIGURATION is not None:
@@ -148,19 +140,9 @@ class MorphTagger(POSTagger):
         else:
             return lemma
 
-    @staticmethod
-    def simplify_lemma(tokens: list or set) -> list:
-        return [util.simplify_lemma(t) for t in tokens]
-
-    @staticmethod
-    def decode_lemma(tok: Token) -> Token:
-        if isinstance(tok, ModToken):
-            return Token(tok.token, tok.original_stem, tok.tag)
-        return tok
-
     def find_best_lemma(self, t: Token, position: int) -> Token:
         if analysis_queue.has_anal(position):
-            stems = self.simplify_lemma(analysis_queue.analysises(position))
+            stems = [util.simplify_lemma(t) for t in analysis_queue.analysises(position)]
             self.is_last_guessed = False
         else:
             stems = self.analyser.analyse(t.token)
@@ -197,4 +179,7 @@ class MorphTagger(POSTagger):
                     lower_tok = Token(poss_tok.token, poss_tok.stem.lower(), poss_tok.tag)
                     comp.append((lower_tok, traf))
             best = (max(comp, key=self.lemma_comparator))[0]
-        return self.decode_lemma(best)
+
+        if isinstance(best, ModToken):
+            return Token(best.token, best.original_stem, best.tag)
+        return best

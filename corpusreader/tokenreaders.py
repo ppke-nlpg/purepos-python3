@@ -34,9 +34,12 @@ from corpusreader.containers import Token
 class ParsingException(Exception):
     pass
 
+
 def find_all(a_str, sub):
     """
     Original Source: http://stackoverflow.com/a/4665027
+    :param sub: substirng to find
+    :param a_str: an input string
     """
     start = 0
     while True:
@@ -45,7 +48,7 @@ def find_all(a_str, sub):
             yield None   # Slice at the end
             return
         yield start
-        start += len(sub) # use start += 1 to find overlapping matches
+        start += len(sub)  # use start += 1 to find overlapping matches
 
 
 class CorpusReader:
@@ -95,7 +98,7 @@ class CorpusReader:
                             raise ParsingException("Malformed input: '{}'".format(tok))
                         sent_toks.append(Token(word, lemma.replace('_', ' '), pos))
                         tok_start = tok_end
-                except ParsingError as ex:
+                except ParsingException as ex:
                     print(ex, 'WARNING: Skipping sentence!', sep=os.linesep, file=sys.stderr)
                 sent_start = sent_end
                 para_sents.append(sent_toks)

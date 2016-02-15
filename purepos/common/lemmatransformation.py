@@ -25,7 +25,6 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-import re
 from operator import itemgetter
 from corpusreader.containers import Token
 from purepos.model.vocabulary import IntVocabulary
@@ -38,9 +37,18 @@ def def_lemma_representation(word, stem, tag):
 def def_lemma_representation_by_token(token: Token, data):  # : ModelData
     return def_lemma_representation(token.token, token.stem, data.tag_vocabulary.index(token.tag))
 
+"""
+import re
 main_pos_pat = re.compile("\[([^.\]]*)[.\]]")
 
+def main_pos_tag(tag: str):
+    m = re.match(main_pos_pat, tag)
+    if m is not None:
+        return m.group(1)
+"""
 
+
+# XXX Ettől lassú az egész, mert ez sokszor hívódik meg!
 def batch_convert(prob_map: dict, word: str, vocab: IntVocabulary) -> dict:
     ret = dict()  # {token: (lemmatransf_tuple, float)}
     inf = float('-inf')
@@ -54,11 +62,7 @@ def batch_convert(prob_map: dict, word: str, vocab: IntVocabulary) -> dict:
         ret[lemma] = max((k, v), get(lemma, (k, inf)), key=itemgetter(1))
     return ret
 
-
-def main_pos_tag(tag: str):
-    m = re.match(main_pos_pat, tag)
-    if m is not None:
-        return m.group(1)
+# Ezek már csak fájlon belül hívódnak meg, ha meghívódnak egyáltalán...
 
 
 def longest_substring(s1: str, s2: str) -> tuple:

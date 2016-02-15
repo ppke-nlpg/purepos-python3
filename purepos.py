@@ -294,16 +294,14 @@ class PurePos:
             print("Using morphological table at: {}.".format(analyser), file=sys.stderr)
             ma = MorphologicalTable(analyser)
         print("Reading model... ", file=sys.stderr)
-        rawmodel = StandardSerializer.read_model(model_path)
+        model = StandardSerializer.read_model(model_path)
         print("Compiling model... ", file=sys.stderr)
-        cmodel = rawmodel.compile(conf)
+        model.compile(conf)
         suff_log_theta = math.log(10)
         if no_stemming:
-            tagger = POSTagger(cmodel, ma, beam_log_theta,
-                               suff_log_theta, max_guessed, use_beam_search)
+            tagger = POSTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, use_beam_search)
         else:
-            tagger = MorphTagger(cmodel, ma, beam_log_theta, suff_log_theta,
-                                 max_guessed, use_beam_search)
+            tagger = MorphTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, use_beam_search)
         return tagger
 
     def __init__(self, options: dict):
