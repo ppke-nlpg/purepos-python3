@@ -49,7 +49,7 @@ TAB = "\t"  # ez eredetileg field volt.
 
 class BaseDecoder:
     def __init__(self, model: Model, morphological_analyzer: BaseMorphologicalAnalyser, log_theta: float,
-                 suf_theta: float, max_guessed_tags: int):
+                 suf_theta: float, max_guessed_tags: int, use_beam_search: bool=False):
         self.model = model
         self.morphological_analyzer = morphological_analyzer
         self.log_theta = log_theta
@@ -266,7 +266,7 @@ class BeamSearch(BaseDecoder):
     # BeamSearch algorithm.
     # Nincs tesztelve.
     def __init__(self, model: Model, morph_analyser: BaseMorphologicalAnalyser, log_theta: float,
-                 suf_theta: float, max_guessed_tags: int, beam_size: int=None):
+                 suf_theta: float, max_guessed_tags: int, beam_size: int=None, use_beam_search=True):
         self.beam_size = beam_size
         super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags)
 
@@ -313,14 +313,16 @@ class Node:
 
 class BeamedViterbi(BaseDecoder):
     def __init__(self, model: Model, morph_analyser: BaseMorphologicalAnalyser, log_theta: float,
-                 suf_theta: float, max_guessed_tags: int):
-        super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags)
+                 suf_theta: float, max_guessed_tags: int, use_beam_search: bool=False):
+        super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags, use_beam_search)
 
     def decode(self, observations: list, results_num: int) -> list:
         # Ez a lényeg, ezt hívuk meg kívülről.
         # A modathoz (observations) max_res_num-nyi tag-listát készít
         # A mondathoz hozzáfűz egy <MONDATVÉGE> tokent.
         observations = list(observations)
+        if len(observations) == 0:
+            return []
         observations.append(Model.EOS_TOKEN)
 
         start = NGram([self.model.bos_index for _ in range(self.model.tagging_order)], self.model.tagging_order)

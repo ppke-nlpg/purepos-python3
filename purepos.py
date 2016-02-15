@@ -37,7 +37,7 @@ from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue
 from purepos.common.serializer import StandardSerializer
 from purepos.morphology import BaseMorphologicalAnalyser, MorphologicalTable, HumorAnalyser
-from purepos.tagger import POSTagger, MorphTagger
+from purepos.tagger import MorphTagger
 from purepos.trainer import Trainer
 
 
@@ -235,9 +235,8 @@ class PurePos:
         else:
             source = open(input_path, encoding=encoding)  # todo default encoding? (a Python3 okos)
 
-        tagger = PurePos.create_tagger(model_path, analyser, no_stemming, max_guessed,
-                                       math.log(beam_theta), use_beam_search, util.CONFIGURATION,
-                                       humor_path, lex_path)
+        tagger = PurePos.create_tagger(model_path, analyser, no_stemming, max_guessed, math.log(beam_theta),
+                                       use_beam_search, util.CONFIGURATION, humor_path, lex_path)
         if not out_path:
             output = sys.stdout
         else:
@@ -267,7 +266,7 @@ class PurePos:
                       use_beam_search: bool,
                       conf: Configuration,
                       humor_path: str,
-                      lex_path: str) -> POSTagger:
+                      lex_path: str) -> MorphTagger:
         """Create a tagger object with the given properties.
 
         :param model_path:
@@ -285,8 +284,7 @@ class PurePos:
             try:
                 ma = PurePos.load_humor(humor_path + "/bin/pyhumor/__init__.py", lex_path)
             except FileNotFoundError:
-                print("Humor module not found. Not using any morphological analyzer.",
-                      file=sys.stderr)
+                print("Humor module not found. Not using any morphological analyzer.", file=sys.stderr)
                 ma = BaseMorphologicalAnalyser()
         elif analyser == PurePos.NONE_MA:
             ma = BaseMorphologicalAnalyser()
@@ -298,11 +296,7 @@ class PurePos:
         print("Compiling model... ", file=sys.stderr)
         model.compile(conf)
         suff_log_theta = math.log(10)
-        if no_stemming:
-            tagger = POSTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, use_beam_search)
-        else:
-            tagger = MorphTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, use_beam_search)
-        return tagger
+        return MorphTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, use_beam_search, no_stemming)
 
     def __init__(self, options: dict):
         self.options = options

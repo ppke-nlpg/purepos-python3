@@ -37,7 +37,8 @@ class Trainer:
         """Instantiates a Trainer object.
         (In this version) it reads the whole input with the CorpusReader.
         :param source: TextIOWrapper input
-        :param reader: CorpusReader object to parse the input
+        :param field_separator: Separator for fields
+        :param sentence_separator: Separator for sentences
         """
         self.stat = Statistics()
         reader = CorpusReader(field_sep=field_separator, sentence_sep=sentence_separator)
