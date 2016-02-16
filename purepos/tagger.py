@@ -36,12 +36,13 @@ from purepos.decoder.basedecoder import BeamedViterbi
 
 
 class MorphTagger:
-    def __init__(self, model: Model, analyser: BaseMorphologicalAnalyser,
-                 log_theta: float, suf_theta: float, max_guessed_tags: int, use_beam_search: bool, no_stemming: bool):
+    def __init__(self, model: Model, analyser: BaseMorphologicalAnalyser, log_theta: float, suf_theta: float,
+                 max_guessed_tags: int, beam_size: int, no_stemming: bool, toksep: str):
         self.model = model
         self.analyser = analyser
-        self.decoder = BeamedViterbi(model, analyser, log_theta, suf_theta, max_guessed_tags, use_beam_search)
+        self.decoder = BeamedViterbi(model, analyser, log_theta, suf_theta, max_guessed_tags, beam_size)
         self.no_stemming = no_stemming
+        self.toksep = toksep
         if not self.no_stemming:
             self.stem_filter = util.StemFilter.create_stem_filter()
             self.is_last_guessed = False
@@ -51,10 +52,13 @@ class MorphTagger:
             print(self.tag_and_format(line, max_results_number), file=dest)
 
     def tag_and_format(self, line: str, max_res_num: int) -> str:
-        writer = lambda x: str(x[0])
-        if max_res_num > 1:
-            writer = lambda x: '{0}$${1}$$'.format(x[0], x[1])
-        return '\t'.join(writer(s) for s in self.tag_sentence(line.strip().split(), max_res_num))
+        return '\t'.join(self.sent_to_string(s, (max_res_num > 1)) for s in self.tag_sentence(line.strip().split(), max_res_num))
+
+    def sent_to_string(self, sentence: tuple, show_prob: bool) -> str:
+        ret = self.toksep.join(str(i) for i in sentence[0])
+        if show_prob:
+            ret += "$${}$$".format(sentence[1])  # todo: kivezetni konfigba a formátumot
+        return ret
 
     # list of strings
     def tag_sentence(self, sentence: list, max_res: int) -> tuple:

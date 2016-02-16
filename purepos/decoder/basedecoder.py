@@ -49,12 +49,13 @@ TAB = "\t"  # ez eredetileg field volt.
 
 class BaseDecoder:
     def __init__(self, model: Model, morphological_analyzer: BaseMorphologicalAnalyser, log_theta: float,
-                 suf_theta: float, max_guessed_tags: int, use_beam_search: bool=False):
+                 suf_theta: float, max_guessed_tags: int, beam_size: int=None):
         self.model = model
         self.morphological_analyzer = morphological_analyzer
         self.log_theta = log_theta
         self.suf_theta = suf_theta
         self.max_guessed_tags = max_guessed_tags
+        self.beam_size = beam_size
         self.tags = model.tag_vocabulary.tag_indices()
         self.spectoken_matcher_match_lexical_element = SpecTokenMatcher().match_lexical_element
 
@@ -266,9 +267,8 @@ class BeamSearch(BaseDecoder):
     # BeamSearch algorithm.
     # Nincs tesztelve.
     def __init__(self, model: Model, morph_analyser: BaseMorphologicalAnalyser, log_theta: float,
-                 suf_theta: float, max_guessed_tags: int, beam_size: int=None, use_beam_search=True):
-        self.beam_size = beam_size
-        super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags)
+                 suf_theta: float, max_guessed_tags: int, beam_size: int=0):
+        super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags, beam_size)
 
     def decode(self, observations: list, max_res_num: int) -> list:
         # A mondathoz hozzáfűz egy <MONDATVÉGE> tokent.
@@ -289,7 +289,7 @@ class BeamSearch(BaseDecoder):
                         for next_tag, prob_vals in probs[h.tag_seq].items()]  # trainsitions...  New seq + new probs
             beam = sorted(new_beam)
             # Prune
-            if self.beam_size is not None:
+            if self.beam_size > 0:
                 beam[:-self.beam_size] = []  # trololo :)
             else:
                 maxh = beam[-1].log_prob - self.log_theta
@@ -313,8 +313,8 @@ class Node:
 
 class BeamedViterbi(BaseDecoder):
     def __init__(self, model: Model, morph_analyser: BaseMorphologicalAnalyser, log_theta: float,
-                 suf_theta: float, max_guessed_tags: int, use_beam_search: bool=False):
-        super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags, use_beam_search)
+                 suf_theta: float, max_guessed_tags: int, beam_size: int=0):
+        super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags, beam_size)
 
     def decode(self, observations: list, results_num: int) -> list:
         # Ez a lényeg, ezt hívuk meg kívülről.
@@ -338,7 +338,7 @@ class BeamedViterbi(BaseDecoder):
                 for tag, pair in next_context_probs.items():    # {int -> (float, float)}.items()
                     # context: NGram,
                     # next_context_probs: {int -> (float, float)}
-                    obs_probs[context.add(tag)], next_probs[(context, tag)] = pair
+                    next_probs[(context, tag)], obs_probs[context.add(tag)] = pair
             # NGram, int
             for (context, next_tag), trans_val in next_probs.items():    # {(NGram, int) -> float}.items()
                 new_state = context.add(next_tag)   # NGram
@@ -358,31 +358,31 @@ class BeamedViterbi(BaseDecoder):
                 for tag_seq in new_beam.keys():     # {NGram -> Node}.keys()
                     new_beam[tag_seq].weight += obs_probs[tag_seq]
 
-            # Prune
-            # XXX A BeamSearch-hoz képest ez csak a teta szerinti vágást ismeri
-            # a beam_size-t nem.
-            # Egy küszöb súly alatti node-okat nem veszi be a beam-be.
-            # A küszöböt a max súlyú node-ból számolja ki.
-            max_node_weight = max(n.weight for n in beam.values())
-            beam = {ngram: act_node for ngram, act_node in beam.items()
-                    if act_node.weight >= max_node_weight - self.log_theta}
+            # Prune (newbeam -> Beam)
+            if self.beam_size > 0:  # todo: better representation!
+                beam = dict(sorted(new_beam.items(), key=lambda x: x[1].weight, reverse=True)[:self.beam_size])
+            else:
+                # Egy küszöb súly alatti node-okat nem veszi be a beam-be.
+                # A küszöböt a max súlyú node-ból számolja ki.
+                max_node_weight = max(n.weight for n in new_beam.values())
+                beam = {ngram: act_node for ngram, act_node in new_beam.items()
+                        if act_node.weight >= max_node_weight - self.log_theta}
             pos += 1
         # Find max
-        # XXX Ez csak a legjobbat adja vissza agy a k-legjobbat mint a beamsearch?
         sorted_nodes = sorted(beam.values(), key=lambda n: n.weight)  # [Node]
         tag_seq_list = []
-        for i in range(results_num):
+        for _ in range(results_num):  # k-top, k = results_num
             if len(sorted_nodes) == 0:
                 break
             max_node = sorted_nodes.pop()
             # Decompose
             max_tag_seq = []
-            prev, act = max_node.prev, max_node
+            prev = max_node
+            act = max_node.prev
             while prev is not None:
-                max_tag_seq.append(act.state.last())  # We must reverse the list!
-                prev, act = act.prev, prev
-            tag_seq_list.append((max_tag_seq[::-1], max_node.weight))  # Reverse here!
-        # Clean results
-        # A taglistákról leszedi az utolsó, MONDATVÉGE token tag-jét.
-        # XXX Esetleg ezt lehetne begyúrni az előző ciklusba?
-        return [(element[0][:-1], element[1]) for element in tag_seq_list]  # [element]: [([int],float)]
+                max_tag_seq.insert(0, act.state.last())
+                act = prev
+                prev = act.prev
+
+            tag_seq_list.append((max_tag_seq[:-1], max_node.weight))  # Strip 'End of Sentence' tag
+        return tag_seq_list  # [element]: [([int],float)]

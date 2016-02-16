@@ -193,11 +193,12 @@ class PurePos:
             max_guessed: int,
             max_resnum: int,
             beam_theta: int,
-            use_beam_search: bool,
+            beam_size: int,
             out_path: str,
             use_colored_stdout: bool,
             humor_path: str,
-            lex_path: str):  # todo IDÁIG KIHOZNI A HUMOR KONSTRUKTOR ELEMEIT *args, **kwargs
+            lex_path: str,  # todo IDÁIG KIHOZNI A HUMOR KONSTRUKTOR ELEMEIT *args, **kwargs
+            toksep: str):
         """Perform tagging on the given input with the given model an properties to the given
         output. The in and output can be also the standard IO.
 
@@ -210,11 +211,12 @@ class PurePos:
         :param max_guessed:  # todo
         :param max_resnum:  # todo
         :param beam_theta:  # todo
-        :param use_beam_search: Using Beam Search algorithm instead of Viterbi.
+        :param beam_size: Beam size of the Beam Search algorithm.
         :param out_path: Path of the output file. If None, stdout will be used.
         :param use_colored_stdout: Use colored output only if the output is the stdout.
         :param humor_path: The path of the pyhumor module file.
         :param lex_path: The path of the lex directory for humor.
+        :param toksep: Token separator
         """
         if not input_path:
             source = sys.stdin
@@ -236,7 +238,7 @@ class PurePos:
             source = open(input_path, encoding=encoding)  # todo default encoding? (a Python3 okos)
 
         tagger = PurePos.create_tagger(model_path, analyser, no_stemming, max_guessed, math.log(beam_theta),
-                                       use_beam_search, util.CONFIGURATION, humor_path, lex_path)
+                                       beam_size, util.CONFIGURATION, humor_path, lex_path, toksep)
         if not out_path:
             output = sys.stdout
         else:
@@ -263,10 +265,11 @@ class PurePos:
                       no_stemming: bool,
                       max_guessed: int,
                       beam_log_theta: float,
-                      use_beam_search: bool,
+                      beam_size: int,
                       conf: Configuration,
                       humor_path: str,
-                      lex_path: str) -> MorphTagger:
+                      lex_path: str,
+                      toksep: str) -> MorphTagger:
         """Create a tagger object with the given properties.
 
         :param model_path:
@@ -274,10 +277,11 @@ class PurePos:
         :param no_stemming:
         :param max_guessed:
         :param beam_log_theta:
-        :param use_beam_search:
+        :param beam_size:
         :param conf:
         :param humor_path:
         :param lex_path:
+        :param toksep:
         :return: a tagger object.
         """
         if analyser == PurePos.INTEGRATED_MA:
@@ -296,7 +300,7 @@ class PurePos:
         print("Compiling model... ", file=sys.stderr)
         model.compile(conf)
         suff_log_theta = math.log(10)
-        return MorphTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, use_beam_search, no_stemming)
+        return MorphTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, beam_size, no_stemming, toksep)
 
     def __init__(self, options: dict):
         self.options = options
@@ -331,11 +335,12 @@ class PurePos:
                      self.options["max_guessed"],
                      self.options["max_results"],
                      self.options["beam_theta"],
-                     self.options.get("beam_decoder", False),
+                     self.options.get("beam_decoder", 0),
                      self.options["output_file"],
                      self.options.get("color_stdout", False),
                      self.options["pyhumor_path"],
-                     self.options["lex_path"])
+                     self.options["lex_path"],
+                     ' ')  # self.options["separator"]
 
 
 def main():
