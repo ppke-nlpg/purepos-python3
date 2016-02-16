@@ -32,7 +32,7 @@ from purepos.common.analysisqueue import AnalysisQueue, analysis_queue
 from purepos.common.lemmatransformation import def_lemma_representation_by_token, batch_convert
 from purepos.model.model import Model
 from purepos.morphology import BaseMorphologicalAnalyser
-from purepos.decoder.basedecoder import BeamedViterbi
+from purepos.decoder.beamedviterbi import BeamedViterbi
 
 
 class MorphTagger:
@@ -52,7 +52,8 @@ class MorphTagger:
             print(self.tag_and_format(line, max_results_number), file=dest)
 
     def tag_and_format(self, line: str, max_res_num: int) -> str:
-        return '\t'.join(self.sent_to_string(s, (max_res_num > 1)) for s in self.tag_sentence(line.strip().split(), max_res_num))
+        return '\t'.join(self.sent_to_string(s, (max_res_num > 1)) for s in self.tag_sentence(line.strip().split(),
+                                                                                              max_res_num))
 
     def sent_to_string(self, sentence: tuple, show_prob: bool) -> str:
         ret = self.toksep.join(str(i) for i in sentence[0])

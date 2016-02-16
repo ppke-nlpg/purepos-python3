@@ -47,7 +47,17 @@ UNKNOWN_VALUE = -99.0
 TAB = "\t"  # ez eredetileg field volt.
 
 
-class BaseDecoder:
+class Node:
+    def __init__(self, state: NGram, weight: float, previous: NGram or None):
+        self.state = state
+        self.weight = weight
+        self.prev = previous
+
+    def __str__(self):
+        return "{state: {}, weight: {}}".format(str(self.state), str(self.weight))
+
+
+class BeamedViterbi:
     def __init__(self, model: Model, morphological_analyzer: BaseMorphologicalAnalyser, log_theta: float,
                  suf_theta: float, max_guessed_tags: int, beam_size: int=None):
         self.model = model
@@ -58,9 +68,6 @@ class BaseDecoder:
         self.beam_size = beam_size
         self.tags = model.tag_vocabulary.tag_indices()
         self.spectoken_matcher_match_lexical_element = SpecTokenMatcher().match_lexical_element
-
-    def decode(self, observations: list, max_res_num: int) -> list:
-        pass
 
     def next_probs(self, prev_tags_set: set, word: str, position: int, is_first: bool) -> dict:
         # A szóhoz tartozó tag-valószínűségeket gyűjti ki.
@@ -246,75 +253,6 @@ class BaseDecoder:
             tag_probs[tag] = (tag_prob, 0.0)
             rrr[prev_tags] = tag_probs
         return rrr
-
-
-class History:
-    def __init__(self, tag_seq: NGram, log_prob: float):
-        self.tag_seq = tag_seq
-        self.log_prob = log_prob  # compare with.
-
-    def __eq__(self, other):
-        return self.log_prob == other.log_prob
-
-    def __lt__(self, other):
-        return self.log_prob < other.log_prob
-
-    def __gt__(self, other):
-        return self.log_prob > other.log_prob
-
-
-class BeamSearch(BaseDecoder):
-    # BeamSearch algorithm.
-    # Nincs tesztelve.
-    def __init__(self, model: Model, morph_analyser: BaseMorphologicalAnalyser, log_theta: float,
-                 suf_theta: float, max_guessed_tags: int, beam_size: int=0):
-        super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags, beam_size)
-
-    def decode(self, observations: list, max_res_num: int) -> list:
-        # A mondathoz hozzáfűz egy <MONDATVÉGE> tokent.
-        observations = list(observations)
-        observations.append(Model.EOS_TOKEN)
-
-        # The actual beam search
-        # Init beam
-        # NÖVEKVŐ SORREND LESZ! [0, 1, 2, 3, 4 ...]
-        start = NGram([self.model.bos_index for _ in range(self.model.tagging_order)], self.model.tagging_order)
-        beam = [History(start, 0.0)]  # tagseq & logbob == prev, state & logprob
-        # beam search main
-        position = 0
-        for word in observations:   # collect contexts
-            probs = self.next_probs({h.tag_seq for h in beam}, word, position, (position == 0))
-            # Update beam Add to context, oldprob + currprob => newprob for all context in beam
-            new_beam = [History(h.tag_seq.add(next_tag), h.log_prob + prob_vals[0] + prob_vals[1]) for h in beam
-                        for next_tag, prob_vals in probs[h.tag_seq].items()]  # trainsitions...  New seq + new probs
-            beam = sorted(new_beam)
-            # Prune
-            if self.beam_size > 0:
-                beam[:-self.beam_size] = []  # trololo :)
-            else:
-                maxh = beam[-1].log_prob - self.log_theta
-                while beam[0].log_prob <= maxh:  # Nem lenne egyszerűbb megtartani, ami marad mint eldobálni?
-                    beam.pop(0)
-            position += 1
-        # k-top (beam[-1].tagseq.token_list[...] => cleaned,  beam[-1].log_prob)
-        return [(beam.pop().tag_seq.token_list[self.model.tagging_order:], beam[-1].log_prob)
-                for _ in range(min(max_res_num, len(beam)))]
-
-
-class Node:
-    def __init__(self, state: NGram, weight: float, previous: NGram or None):
-        self.state = state
-        self.weight = weight
-        self.prev = previous
-
-    def __str__(self):
-        return "{state: {}, weight: {}}".format(str(self.state), str(self.weight))
-
-
-class BeamedViterbi(BaseDecoder):
-    def __init__(self, model: Model, morph_analyser: BaseMorphologicalAnalyser, log_theta: float,
-                 suf_theta: float, max_guessed_tags: int, beam_size: int=0):
-        super().__init__(model, morph_analyser, log_theta, suf_theta, max_guessed_tags, beam_size)
 
     def decode(self, observations: list, results_num: int) -> list:
         # Ez a lényeg, ezt hívuk meg kívülről.
