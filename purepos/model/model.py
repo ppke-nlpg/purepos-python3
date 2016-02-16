@@ -112,11 +112,10 @@ class Model:
             sentence.insert(0, Token(Model.BOS_TOKEN, None, Model.BOS_TAG))
             # Add sentence
             self.stat.increment_sentence_count()
-            tags = []
             # Visszafelé kell haladni a tag szótár felépítésekor
             # todo: változtat az eredményen, ha előre haladunk és nem fodítjuk meg a tags-et?
-            for token in sentence[::-1]:
-                tags.append(self.tag_vocabulary.add_element(token.tag))
+            # (Az indexek felcserélésén kívül?)
+            tags = [self.tag_vocabulary.add_element(token.tag) for token in sentence[::-1]]
             tags.reverse()
 
             self.tag_ngram_model.add_word(tags, self.eos_index)

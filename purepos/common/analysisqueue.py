@@ -77,11 +77,7 @@ class AnalysisQueue:
         self.words = [None for _ in range(capacity)]
 
     def add_word(self, inp: str, position: int):
-        r = self.parse(inp)
-        word = r[0]
-        anals_list = r[1]
-
-        self.words[position] = word
+        self.words[position], anals_list = self.parse(inp)
         self.anals[position] = {}
 
         for anal in anals_list:
@@ -97,35 +93,18 @@ class AnalysisQueue:
     def has_anal(self, position: int) -> bool:
         return len(self.anals) > position and self.anals[position] is not None
 
-    def use_probabilities(self, pos: int) -> bool:
-        if len(self.use_prob) > pos:
-            return self.use_prob[pos] is not None
-        else:
-            return False
+    def use_probabilities(self, position: int) -> bool:
+        return len(self.use_prob) > position and self.use_prob[position] is not None
 
     def lexical_model_for_word(self, pos: int, tag_voc: IntVocabulary) -> BaseProbabilityModel:
-        mp = self.transform_tags(pos, tag_voc)
-        return OneWordLexicalModel(mp, self.words[pos])
+        return OneWordLexicalModel({tag_voc.add_element(self.anal2tag(k)): v  # anal->tagstr->tag->index
+                                    for k, v in self.anals[pos]}, self.words[pos])
 
-    def transform_tags(self, pos: int, tag_voc: IntVocabulary) -> dict:
-        mp = {}
-        for k, v in self.anals[pos]:
-            tagstr = self.anal2tag(k)
-            tag = tag_voc.index(tagstr)
-            if tag is None:
-                tag = tag_voc.add_element(tagstr)
-            mp[tag] = v
-        return mp
+    def tags(self, pos: int, tag_voc: IntVocabulary) -> set:  # XXX Ez nem lenne jobb inkább listának a decoderben?
+        return {tag_voc.add_element(self.anal2tag(k)) for k in self.anals[pos].keys()}  # anal->tagstr->tag->index
 
-    def tags(self, pos: int, tag_voc: IntVocabulary) -> set:
-        return set(self.transform_tags(pos, tag_voc).keys())
-
-    def analysises(self, pos: int) -> set:
-        fanals = self.anals[pos].keys()
-        ret = set()
-        for fa in fanals:
-            ret.add(Token(self.words[pos], self.anal2lemma(fa), self.anal2tag(fa)))
-        return ret
+    def analysises(self, pos: int) -> set:  # fa = fanals
+        return {Token(self.words[pos], self.anal2lemma(fa), self.anal2tag(fa)) for fa in self.anals[pos].keys()}
 
 # XXX: Move declaration to Utils
 analysis_queue = AnalysisQueue()

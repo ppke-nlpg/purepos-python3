@@ -35,7 +35,7 @@ def def_lemma_representation(word, stem, tag):
 
 
 def def_lemma_representation_by_token(token: Token, data):  # : ModelData
-    return def_lemma_representation(token.token, token.stem, data.tag_vocabulary.index(token.tag))
+    return def_lemma_representation(token.token, token.stem, data.tag_vocabulary.index(token.tag))  # Get
 
 """
 import re

@@ -95,3 +95,15 @@ class HashSuffixTree:
         if self.mapper is not None:
             tag = self.mapper.map(tag)
         return self.tag_log_probabilities(word).get(tag, UNKNOWN_VALUE)
+
+    def tag_log_probabilities_w_max(self, word, max_guessed_tags: int, suf_theta: float) -> dict:
+        # Prune guessed tags  todo: Push down into guesser class?
+        # A legnagyobb valószínűségű tag-eket kiszedi, hogy az ismeretlen szavak taggelésénél ne
+        # vezessenek félre. // „TnT – A Statistical Part-of-Speech Tagger” Brants, Thorsen 2000, 2.3, 4)
+        guessed_tags = self.tag_log_probabilities(word)
+        min_val = max(guessed_tags.values()) - suf_theta  # Max probability - theta
+        pruned_guessed_tags = {(k, v) for k, v in guessed_tags.items() if v > min_val}
+        if len(pruned_guessed_tags) > max_guessed_tags:
+            pruned_guessed_tags = sorted(pruned_guessed_tags, key=lambda ent: ent[1],
+                                         reverse=True)[-max_guessed_tags:]
+        return pruned_guessed_tags

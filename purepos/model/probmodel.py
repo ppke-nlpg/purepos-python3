@@ -45,7 +45,8 @@ class BaseProbabilityModel:
 
 
 class OneWordLexicalModel(BaseProbabilityModel):
-    # Csak az analysisqueue-ban. Valóban kell?
+    # Csak az analysisqueue-ban. Akkor működik, ha a felhasznál megadja a valószínűségeket is az elemzései mellé.
+    # Össze kéne olvasztani a ProbModel-el...
     # Ez eredetileg common: package hu.ppke.itk.nlpg.purepos.common;
     def __init__(self, probs: dict, word: str):
         super().__init__()
@@ -68,7 +69,7 @@ class ProbModel(BaseProbabilityModel):
         self.root = self.create_root(orig_root, lambdas)
         super().__init__()
 
-    def log_prob(self, context: list, word) -> float:
+    def log_prob(self, context: list, word, unk_value=UNKNOWN_VALUE) -> float:
         if self.element_mapper is not None:
             word = self.element_mapper.map(word)
         if self.context_mapper is not None:
@@ -80,7 +81,7 @@ class ProbModel(BaseProbabilityModel):
             else:
                 break
         prob = node.words.get(word, 0.0)
-        return math.log(prob) if prob > 0 else UNKNOWN_VALUE
+        return math.log(prob) if prob > 0 else unk_value
 
     def create_root(self, node: TrieNode, lambdas: list) -> TrieNode:
         new_root = self.calc_probs(node)

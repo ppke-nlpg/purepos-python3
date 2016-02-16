@@ -77,7 +77,7 @@ class TagMapper:  # (BaseTagMapper):
                 p = mapping[0]
                 if p.fullmatch(tag_str):
                     rep_tagstr = p.sub(mapping[1], tag_str)
-                    ret_tag = self.vocabulary.index(rep_tagstr)
+                    ret_tag = self.vocabulary.index(rep_tagstr)  # Get
                     if ret_tag is not None:
                         return ret_tag
         return tag
