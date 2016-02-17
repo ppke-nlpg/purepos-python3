@@ -30,7 +30,7 @@ import math
 from purepos.common.analysisqueue import analysis_queue
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.morphology import BaseMorphologicalAnalyser
-from purepos.model.model import Model
+from purepos.model.model import Model, HashSuffixTree
 from purepos.decoder.ngram import NGram
 from purepos.model.probmodel import BaseProbabilityModel
 
@@ -83,7 +83,7 @@ class BeamedViterbi:
         word_prob_model = self.model.standard_emission_model
         tags = self.model.standard_tokens_lexicon.tags(word)
         anals = [self.model.tag_vocabulary.add_element(tag) for tag in self.morphological_analyzer.tags(word)]
-        isoov = len(anals) > 0
+        isoov = len(anals) == 0
         seen = False
 
         if len(tags) > 0:
@@ -97,6 +97,7 @@ class BeamedViterbi:
                 # SEEN, BUT LOWERCASED: First of a sentence uppercase and seen only in lowercase form
                 # word_prob_model = self.model.standard_emission_model
                 word_form = lword
+                isupper = False  # todo: Maybe to use both lower and uppercased guessers for unseen...
                 seen = True
             else:  # elif
                 # SPECIAL TOKEN?
@@ -110,6 +111,12 @@ class BeamedViterbi:
                         seen = True
                         # else SPECIAL UNSEEN -> UNSEEN XXX why?
 
+        # Set guesser for casing of word_form...
+        if isupper:
+            guesser = self.model.upper_suffix_tree
+        else:
+            guesser = self.model.lower_suffix_tree
+
         # User's own stuff... May overdefine (almost) everything... (left as is: isupper, lword, wordform)
         if self.user_anals.has_anal(position):
             isoov = False
@@ -118,56 +125,49 @@ class BeamedViterbi:
             if self.user_anals.use_probabilities(position):
                 word_prob_model = self.user_anals.lexical_model_for_word(position, self.model.tag_vocabulary)
                 seen = True
+        else:  # User's anals do not need filtering...
+            # Filter tags with morphology (tags = tags & anals )
+            mapper = word_prob_model.context_mapper
+            if anals is not None:
+                if mapper is not None:
+                    common = set(mapper.filter(anals, tags))
+                else:
+                    common = set(anals)
+                    common = common.intersection(tags)
+                if len(common) > 0:
+                    tags = common
 
         if seen:
-            return self.next_for_seen_token(prev_tags_set, word_prob_model, word_form, tags, anals)
+            return self.next_for_seen_token(prev_tags_set, word_prob_model, word_form, tags)
         else:
             if len(anals) == 1:
                 return self.next_for_single_tagged_token(prev_tags_set, anals)
             else:
-                return self.next_for_guessed_token(prev_tags_set, anals, lword, isupper, isoov)
+                return self.next_for_guessed_token(prev_tags_set, anals, lword, guesser, isoov)
 
-    def next_for_seen_token(self, prev_tags_set: set, word_prob_model: BaseProbabilityModel, word_form: str, tags: set,
-                            anals: list):
-        mapper = word_prob_model.context_mapper
-        # Filter tags with morphology
-        tagset = tags
-        if anals is not None:
-            if mapper is not None:
-                common = set(mapper.filter(anals, tags))
-            else:
-                common = set(anals)
-                common = common.intersection(tags)
-            if len(common) > 0:
-                tagset = common
+    def next_for_seen_token(self, prev_tags_set: set, word_prob_model: BaseProbabilityModel, word_form: str, tags: set):
+        # For every pev_tag list combined with every tag compute probs...
+        return {prev_tags: {tag: (self.model.tag_transition_model.log_prob(prev_tags.token_list, tag),  # tagprob
+                                  word_prob_model.log_prob(prev_tags.token_list + [tag], word_form))    # emissionprob
+                            for tag in tags} for prev_tags in prev_tags_set}
 
-        ret = dict()
+    def next_for_single_tagged_token(self, prev_tags_set: set, anals: list or set) -> dict:
+        rrr = dict()
+        tag = anals.__iter__().__next__()  # tag = anals[0]. Ez setre és listre is működik.
         for prev_tags in prev_tags_set:
             tag_probs = dict()
-            for tag in tagset:
-                tag_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag)
-                act_tags = list(prev_tags.token_list)
-                act_tags.append(tag)
-                emission_prob = word_prob_model.log_prob(act_tags, word_form)
-                # ez nem kell, mert nem -inf lesz, hanem 99
-                # if tag_prob == float("-inf"):
-                #     tag_prob = UNKOWN_TAG_TRANSITION
-                # if emission_prob == float("-inf"):
-                #     emission_prob = UNKNOWN_TAG_WEIGHT
-                tag_probs[tag] = (tag_prob, emission_prob)
-            ret[prev_tags] = tag_probs
-        return ret
+            # Itt 0 az unk value -99 helyett
+            tag_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag, 0)
+            tag_probs[tag] = (tag_prob, 0.0)
+            rrr[prev_tags] = tag_probs
+        return rrr
 
-    def next_for_guessed_token(self, prev_tags_set: set, anals: list or set, word_form: str, upper: bool, oov: bool)\
-            -> dict:
-        guesser = self.model.lower_suffix_tree   # XXX feljebb nyomni ezt az if-et...
-        if upper:
-            guesser = self.model.upper_suffix_tree
+    def next_for_guessed_token(self, prev_tags_set: set, anals: list or set, word_form: str, guesser: HashSuffixTree,
+                               oov: bool) -> dict:
         if not oov:
             rrr = dict()
             tag_probs = dict()  # todo: Megérteni, hogy itt mit csinál és Gyuri mit gondolhatott
             for tag in anals:
-                # XXX There is even not mapper defined...
                 new_tag = guesser.mapper.map(tag)
                 if new_tag > self.model.tag_vocabulary.max_index():
                     tag_probs[tag] = (UNKOWN_TAG_TRANSITION, UNKNOWN_TAG_WEIGHT)  # (transion_prob, emission_prob)
@@ -180,8 +180,8 @@ class BeamedViterbi:
                     else:
                         emission_prob = tag_log_prob - math.log(self.model.apriori_tag_probs[new_tag])
                     for prev_tags in prev_tags_set:
-                        transition_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag)
-                        tag_probs[tag] = (transition_prob, emission_prob)
+                        tag_probs[tag] = (self.model.tag_transition_model.log_prob(prev_tags.token_list, tag),  # trans
+                                          emission_prob)                                                       # emision
                         rrr[prev_tags] = tag_probs
             return rrr
 
@@ -197,17 +197,6 @@ class BeamedViterbi:
                                       emission_prob - math.log(self.model.apriori_tag_probs[tag]))  # emision - appriori
                 rrr[prev_tags] = tag_probs
             return rrr
-
-    def next_for_single_tagged_token(self, prev_tags_set: set, anals: list or set) -> dict:
-        rrr = dict()
-        tag = anals.__iter__().__next__()  # tag = anals[0]. Ez setre és listre is működik.
-        for prev_tags in prev_tags_set:
-            tag_probs = dict()
-            # Itt 0 az unk value -99
-            tag_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag, 0)
-            tag_probs[tag] = (tag_prob, 0.0)
-            rrr[prev_tags] = tag_probs
-        return rrr
 
     def decode(self, observations: list, results_num: int) -> list:
         # Ez a lényeg, ezt hívuk meg kívülről.

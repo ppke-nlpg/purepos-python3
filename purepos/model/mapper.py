@@ -54,11 +54,7 @@ class StringMapper:  # (BaseMapper):
 
     # ok.
     def map(self, element: str):
-        for m in self.mappings:
-            # pattern = m[0]
-            # replacement = m[1]
-            return m[0].sub(m[1], element)
-        return element
+        return {pattern.sub(replacement, element) for pattern, replacement in self.mappings}
 
     def map_list(self, elements: list):
         # dead code? But useful. :)
@@ -73,11 +69,9 @@ class TagMapper:  # (BaseTagMapper):
     def map(self, tag: int) -> int:
         if self.vocabulary.max_index() < tag:
             tag_str = self.vocabulary.word(tag)
-            for mapping in self.tag_mappings:
-                p = mapping[0]
-                if p.fullmatch(tag_str):
-                    rep_tagstr = p.sub(mapping[1], tag_str)
-                    ret_tag = self.vocabulary.index(rep_tagstr)  # Get
+            for patt, repl in self.tag_mappings:
+                if patt.fullmatch(tag_str):
+                    ret_tag = self.vocabulary.index(patt.sub(repl, tag_str))  # Get
                     if ret_tag is not None:
                         return ret_tag
         return tag
