@@ -77,7 +77,6 @@ class TagMapper:  # (BaseTagMapper):
         return tag
 
     def map_list(self, elements: list):
-        # dead code? But useful. :)
         return [self.map(e) for e in elements]
 
     def filter(self, morph_anals: list or set, possible_tags: list or set) -> list:

@@ -26,13 +26,11 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-import math
 from purepos.common.analysisqueue import analysis_queue
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.morphology import BaseMorphologicalAnalyser
-from purepos.model.model import Model, HashSuffixTree
+from purepos.model.model import Model
 from purepos.decoder.ngram import NGram
-from purepos.model.probmodel import BaseProbabilityModel
 
 EOS_EMISSION_PROB = 1.0
 UNKNOWN_TAG_WEIGHT = -99.0
@@ -69,10 +67,12 @@ class BeamedViterbi:
         # A token tulajdonságai határozzák meg a konkrét fv-t.
         if word == Model.EOS_TOKEN:
             # Next for eos token by all prev tags
-            return {prev_tags: {self.model.eos_index: (self.model.tag_transition_model.log_prob(prev_tags.token_list,
-                                                                                                self.model.eos_index),
-                                                       EOS_EMISSION_PROB)}
-                    for prev_tags in prev_tags_set}
+            rrr = dict()
+            for prev_tags in prev_tags_set:
+                transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, self.model.eos_index)
+                emission_prob = EOS_EMISSION_PROB
+                rrr[prev_tags] = {self.model.eos_index: (transion_prob, emission_prob)}
+            return rrr
 
         # Defaults:
         # word_prob_model = spec_tokens_emission_model | spec_tokens_emission_model
@@ -83,7 +83,6 @@ class BeamedViterbi:
         word_prob_model = self.model.standard_emission_model
         tags = self.model.standard_tokens_lexicon.tags(word)
         anals = [self.model.tag_vocabulary.add_element(tag) for tag in self.morphological_analyzer.tags(word)]
-        isoov = len(anals) == 0
         seen = False
 
         if len(tags) > 0:
@@ -119,12 +118,11 @@ class BeamedViterbi:
 
         # User's own stuff... May overdefine (almost) everything... (left as is: isupper, lword, wordform)
         if self.user_anals.has_anal(position):
-            isoov = False
             anals = self.user_anals.tags(position, self.model.tag_vocabulary)
-            tags = anals  # Here is the same
             if self.user_anals.use_probabilities(position):
                 word_prob_model = self.user_anals.lexical_model_for_word(position, self.model.tag_vocabulary)
                 seen = True
+                tags = anals  # Here is the same
         else:  # User's anals do not need filtering...
             # Filter tags with morphology (tags = tags & anals )
             mapper = word_prob_model.context_mapper
@@ -135,68 +133,41 @@ class BeamedViterbi:
                     common = set(anals)
                     common = common.intersection(tags)
                 if len(common) > 0:
-                    tags = common
+                    anals = common
 
-        if seen:
-            return self.next_for_seen_token(prev_tags_set, word_prob_model, word_form, tags)
-        else:
-            if len(anals) == 1:
-                return self.next_for_single_tagged_token(prev_tags_set, anals)
-            else:
-                return self.next_for_guessed_token(prev_tags_set, anals, lword, guesser, isoov)
-
-    def next_for_seen_token(self, prev_tags_set: set, word_prob_model: BaseProbabilityModel, word_form: str, tags: set):
         # For every pev_tag list combined with every tag compute probs...
-        return {prev_tags: {tag: (self.model.tag_transition_model.log_prob(prev_tags.token_list, tag),  # tagprob
-                                  word_prob_model.log_prob(prev_tags.token_list + [tag], word_form))    # emissionprob
-                            for tag in tags} for prev_tags in prev_tags_set}
-
-    def next_for_single_tagged_token(self, prev_tags_set: set, anals: list or set) -> dict:
         rrr = dict()
-        tag = anals.__iter__().__next__()  # tag = anals[0]. Ez setre és listre is működik.
         for prev_tags in prev_tags_set:
             tag_probs = dict()
-            # Itt 0 az unk value -99 helyett
-            tag_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag, 0)
-            tag_probs[tag] = (tag_prob, 0.0)
+            if seen:
+                for tag in tags:
+                    transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag)
+                    emission_prob = word_prob_model.log_prob(prev_tags.token_list + [tag], word_form)
+                    tag_probs[tag] = (transion_prob, emission_prob)
+            elif len(anals) == 1:  # Single anal...
+                tag = anals[0]  # tag = anals[0]. Unified for set and list: anals.__iter__().__next__()
+                transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag, 0.0)
+                emission_prob = 0.0  # We are sure! P = 1 -> log(P) = 0.0
+                tag_probs[tag] = (transion_prob, emission_prob)
+
+            elif len(anals) > 0:  # Not OOV (Morphology or the training set knows better...)
+                for tag in anals:  # Mapping is made one level lower...
+                    transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag,
+                                                                             UNKOWN_TAG_TRANSITION)
+                    # Emission prob: tagprob - tag_apriori_prob (If not seen: UNK - 0)
+                    emission_prob = guesser.tag_log_probability(lword, tag, UNKNOWN_TAG_WEIGHT) \
+                                    - self.model.apriori_tag_probs.log_prob(tag, 0.0)
+                    tag_probs[tag] = (transion_prob, emission_prob)
+
+            else:  # Guessed OOV (Do not have any clue.)
+                for tag, tag_prob in guesser.tag_log_probabilities_w_max(lword, self.max_guessed_tags,
+                                                                         self.suf_theta):
+                    transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag)
+                    # Emission prob: tag_prob - tag_apriori_prob (If not seen: UNK - 0)
+                    emission_prob = tag_prob - self.model.apriori_tag_probs.log_prob(tag, 0.0)
+                    tag_probs[tag] = (transion_prob, emission_prob)
             rrr[prev_tags] = tag_probs
         return rrr
-
-    def next_for_guessed_token(self, prev_tags_set: set, anals: list or set, word_form: str, guesser: HashSuffixTree,
-                               oov: bool) -> dict:
-        if not oov:
-            rrr = dict()
-            tag_probs = dict()  # todo: Megérteni, hogy itt mit csinál és Gyuri mit gondolhatott
-            for tag in anals:
-                new_tag = guesser.mapper.map(tag)
-                if new_tag > self.model.tag_vocabulary.max_index():
-                    tag_probs[tag] = (UNKOWN_TAG_TRANSITION, UNKNOWN_TAG_WEIGHT)  # (transion_prob, emission_prob)
-                    for prev_tags in prev_tags_set:
-                        rrr[prev_tags] = tag_probs  # Ez örökli az összes tag összes mindenét...
-                else:
-                    tag_log_prob = guesser.tag_log_probability(word_form, tag)
-                    if tag_log_prob == UNKNOWN_VALUE:
-                        emission_prob = UNKNOWN_TAG_WEIGHT
-                    else:
-                        emission_prob = tag_log_prob - math.log(self.model.apriori_tag_probs[new_tag])
-                    for prev_tags in prev_tags_set:
-                        tag_probs[tag] = (self.model.tag_transition_model.log_prob(prev_tags.token_list, tag),  # trans
-                                          emission_prob)                                                       # emision
-                        rrr[prev_tags] = tag_probs
-            return rrr
-
-        else:
-            # Next for guessed oov token
-            rrr = dict()
-            tag_probs = dict()
-            pruned_guessed_tags = guesser.tag_log_probabilities_w_max(word_form, self.max_guessed_tags, self.suf_theta)
-
-            for prev_tags in prev_tags_set:
-                for tag, emission_prob in pruned_guessed_tags:
-                    tag_probs[tag] = (self.model.tag_transition_model.log_prob(prev_tags.token_list, tag),  # trans
-                                      emission_prob - math.log(self.model.apriori_tag_probs[tag]))  # emision - appriori
-                rrr[prev_tags] = tag_probs
-            return rrr
 
     def decode(self, observations: list, results_num: int) -> list:
         # Ez a lényeg, ezt hívuk meg kívülről.

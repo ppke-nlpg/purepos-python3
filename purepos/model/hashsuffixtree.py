@@ -91,10 +91,10 @@ class HashSuffixTree:
                          for tag, val in suffix.items()})
         return {k: log(v) for k, v in mret.items()}
 
-    def tag_log_probability(self, word, tag) -> float:
+    def tag_log_probability(self, word, tag, unk_value=UNKNOWN_VALUE) -> float:
         if self.mapper is not None:
             tag = self.mapper.map(tag)
-        return self.tag_log_probabilities(word).get(tag, UNKNOWN_VALUE)
+        return self.tag_log_probabilities(word).get(tag, unk_value)
 
     def tag_log_probabilities_w_max(self, word, max_guessed_tags: int, suf_theta: float) -> dict:
         # Prune guessed tags: Filter most probable tags to avoid them for OOVS (Brants 2000, sect 2.3, 4. point)

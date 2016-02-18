@@ -70,6 +70,8 @@ class ProbModel(BaseProbabilityModel):
         super().__init__()
 
     def log_prob(self, context: list, word, unk_value=UNKNOWN_VALUE) -> float:
+        # todo: Somehow indicate if the mapper maps to something that were never seen (new in vocabulary)
+        # Beacause then we can skip climbing the suffix trie and return unk_value...
         if self.element_mapper is not None:
             word = self.element_mapper.map(word)
         if self.context_mapper is not None:

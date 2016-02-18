@@ -192,3 +192,5 @@ class Model:
         self.tag_transition_model.element_mapper = mapper
         self.lower_suffix_tree.mapper = mapper
         self.upper_suffix_tree.mapper = mapper
+
+        self.apriori_tag_probs.mapper = mapper

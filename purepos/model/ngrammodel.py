@@ -22,11 +22,14 @@
 # Contributors:
 #     Móréh, Tamás - initial API and implementation
 ##############################################################################
+from numpy.distutils.conv_template import unique_key
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
+import math
 from purepos.model.vocabulary import IntVocabulary, TrieNode
 from purepos.model.probmodel import ProbModel
+UNKNOWN_VALUE = -99.0
 
 
 class NGramModel:
@@ -119,4 +122,18 @@ class NGramModel:
         # sum_freg = self.root.num
         # for k, v in self.root.words.items():
         #     ret[k] = v / sum_freg
-        return {k: v / self.root.num for k, v in self.root.words.items()}
+        return WordAprioriProbModel({k: v / self.root.num for k, v in self.root.words.items()})
+
+
+class WordAprioriProbModel(dict):
+    def __init__(self, *args, **kwargs):
+        self.mapper = None
+        super().__init__(*args, **kwargs)
+
+    def log_prob(self, tag, unk_value=UNKNOWN_VALUE):
+        if self.mapper is not None:
+            tag = self.mapper.map(tag)
+        elem = self.get(tag)
+        if elem is not None:
+            return math.log(elem)
+        return unk_value
