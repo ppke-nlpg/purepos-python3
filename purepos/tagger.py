@@ -26,10 +26,10 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
-from corpusreader.containers import Token, ModToken
+from corpusreader.containers import Token, ModToken, simplify_lemma
 from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue, analysis_queue
-from purepos.common.lemmatransformation import def_lemma_representation_by_token, batch_convert
+from purepos.common.lemmatransformation import def_lemma_representation, batch_convert
 from purepos.model.model import Model
 from purepos.morphology import BaseMorphologicalAnalyser
 from purepos.decoder.beamedviterbi import BeamedViterbi
@@ -78,45 +78,31 @@ class MorphTagger:
                for idx in range(min(len(tags), len(sentence)))]
         if self.no_stemming:
             return tmp
+        return [self._find_best_lemma(t, pos) for pos, t in enumerate(tmp)]
 
-        ret = []
-        for pos, t in enumerate(tmp):
-            best_stemmed_token = self._find_best_lemma(t, pos)
-            best_stemmed_token = Token(best_stemmed_token.token,
-                                       self._mark_guessed(best_stemmed_token.stem.replace(" ", "_")),
-                                       best_stemmed_token.tag)
-            ret.append(best_stemmed_token)
-        return ret
-
-    def _mark_guessed(self, lemma: str) -> str:
-        if self.is_last_guessed and util.CONFIGURATION is not None:
-            return util.CONFIGURATION.guessed_lemma_marker + lemma
-        else:
-            return lemma
-
+    # todo: ezen van még mit optimalizálni (tényleg mindenhol új tokent kell gyártani?)
     def _find_best_lemma(self, t: Token, position: int) -> Token:
         if analysis_queue.has_anal(position):
-            stems = [util.simplify_lemma(t) for t in analysis_queue.analysises(position)]
+            stems = [simplify_lemma(t) for t in analysis_queue.analysises(position)]
             self.is_last_guessed = False
         else:
             stems = self.analyser.analyse(t.token)
             self.is_last_guessed = False
 
-        tag_log_probs = self.model.lemma_suffix_tree.tag_log_probabilities(t.token)
-        lemma_suff_probs = batch_convert(tag_log_probs, t.token, self.model.tag_vocabulary)
+        lemma_suff_probs = batch_convert(self.model.lemma_suffix_tree.tag_log_probabilities(t.token), t.token,
+                                         self.model.tag_vocabulary)
 
         use_morph = True
         if len(stems) == 0:
             self.is_last_guessed = True
             use_morph = False
-            stems = set(lemma_suff_probs.keys())
+            stems = lemma_suff_probs.keys()
 
         possible_stems = [ct for ct in stems if t.tag == ct.tag]
 
         if len(possible_stems) == 0:
-            return Token(t.token, t.token, t.tag)
-
-        if len(possible_stems) == 1 and t.token == t.token.lower():
+            best = Token(t.token, t.token, t.tag)  # todo: Muszáj lemásolni?
+        elif len(possible_stems) == 1 and t.token == t.token.lower():
             best = possible_stems[0]
         else:
             if self.stem_filter is not None:
@@ -127,7 +113,8 @@ class MorphTagger:
                 if pair is not None:
                     traf = pair[0]
                 else:
-                    traf = def_lemma_representation_by_token(poss_tok, self.model)
+                    traf = def_lemma_representation(poss_tok.token, poss_tok.stem,
+                                                    self.model.tag_vocabulary.index(poss_tok.tag))  # Get
                 comp.append((poss_tok, traf))
                 if not use_morph:
                     lower_tok = Token(poss_tok.token, poss_tok.stem.lower(), poss_tok.tag)
@@ -135,5 +122,10 @@ class MorphTagger:
             best = (max(comp, key=lambda p: self.model.combiner.combine(p[0], p[1], self.model)))[0]
 
         if isinstance(best, ModToken):
-            return Token(best.token, best.original_stem, best.tag)
-        return best
+            best = Token(best.token, best.original_stem, best.tag)
+
+        lemma = best.stem.replace(" ", "_")
+        if self.is_last_guessed and util.CONFIGURATION is not None:
+            lemma = util.CONFIGURATION.guessed_lemma_marker + lemma
+
+        return Token(best.token, lemma, best.tag)

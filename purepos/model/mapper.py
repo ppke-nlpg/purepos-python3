@@ -34,21 +34,10 @@ def stringmapping(pattern: str, replacement: str):
     return re.compile(pattern), replacement
 """
 
-# Ez a fájl sok halott kódot és még több szügségtelen class-t tartalmaz. Ezeket kikommenteltem.
-# class BaseMapper:
-#     def map(self, element):
-#         pass
-#
-#     def map_list(self, elements: list):
-#         pass
-#
-#
-# class BaseTagMapper(BaseMapper):
-#     def filter(self, morph_anals: list or set, possible_tags: list or set) -> list:
-#         pass
+# Ez a fájl sok halott kódot és még több szügségtelen class-t tartalmaz.
 
 
-class StringMapper:  # (BaseMapper):
+class StringMapper:
     def __init__(self, mappings: list):
         self.mappings = mappings
 
@@ -61,7 +50,7 @@ class StringMapper:  # (BaseMapper):
         return [self.map(e) for e in elements]
 
 
-class TagMapper:  # (BaseTagMapper):
+class TagMapper:
     def __init__(self, tag_vocabulary: IntVocabulary, tag_mappings: list):
         self.vocabulary = tag_vocabulary
         self.tag_mappings = tag_mappings

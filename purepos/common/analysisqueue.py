@@ -26,11 +26,33 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from corpusreader.containers import Token
-from purepos.model.probmodel import BaseProbabilityModel, OneWordLexicalModel
+from purepos.common.util import UNKNOWN_VALUE
 from purepos.model.vocabulary import IntVocabulary
 
 
+class OneWordLexicalModel:
+    # Csak az analysisqueue-ban. Akkor működik, ha a felhasznál megadja a valószínűségeket is az elemzései mellé.
+    # Össze kéne olvasztani az analysisqueue-val...
+    # Ez eredetileg common: package hu.ppke.itk.nlpg.purepos.common;
+    def __init__(self, probs: dict, word: str):
+        self.element_mapper = None
+        self.context_mapper = None
+        self.probs = probs
+        self.word = word
+
+    def log_prob(self, context: list, word: str) -> float:
+        if self.element_mapper is not None:
+            word = self.element_mapper.map(word)
+        if self.context_mapper is not None:
+            context = self.context_mapper.map_list(context[-1])  # Is contextmapper and element mapper differs?
+        tag = context[-1]
+        if word == self.word and tag in self.probs.keys():
+            return self.probs[tag]
+        return UNKNOWN_VALUE
+
+
 class AnalysisQueue:
+    # Ezzel az osztállyal a felhasználó tud saját analíziseket adni simán vagy valószínűséggel
     # todo: ezt is ki kell vezetni a parancssorig
     # todo ki kéne tesztelni ilyen szintaktikájú korpuszon!!!
     # Ezen kívül a DOLLARS-t át is lehetne nevezni.
@@ -96,7 +118,7 @@ class AnalysisQueue:
     def use_probabilities(self, position: int) -> bool:
         return len(self.use_prob) > position and self.use_prob[position] is not None
 
-    def lexical_model_for_word(self, pos: int, tag_voc: IntVocabulary) -> BaseProbabilityModel:
+    def lexical_model_for_word(self, pos: int, tag_voc: IntVocabulary) -> OneWordLexicalModel:
         return OneWordLexicalModel({tag_voc.add_element(self.anal2tag(k)): v  # anal->tagstr->tag->index
                                     for k, v in self.anals[pos]}, self.words[pos])
 

@@ -26,7 +26,6 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import os
-from corpusreader.containers import Token, ModToken
 
 STEM_FILTER_FILE = "purepos_stems.txt"
 UNKNOWN_VALUE = -99.0
@@ -59,26 +58,3 @@ class StemFilter:
         # Régi örökség, de jó ha van. Lásd: Obamának -> Obama, Obamá, Obam
         if os.path.isfile(STEM_FILTER_FILE):
             return StemFilter(STEM_FILTER_FILE)
-
-
-# Inlined everywhere.
-# def find_max(d: dict) -> tuple:  # {key: value}
-#     return max(d.items(), key=lambda e: e[1])  # select the value of order key.
-
-
-# def find_max_pair(d: dict) -> tuple:  # {key: (bármi, float)}
-#     t = max(d.items(), key=lambda e: e[1][1])
-#     return t[0], t[1][1]
-    # max_k = None
-    # max_v = float("-inf")
-    # for key, pair in d.items():
-    #     if pair[1] > max_v:
-    #         max_k = key
-    #         max_v = pair[1]
-    # return max_k, max_v
-
-
-def simplify_lemma(t: Token):
-    if LEMMA_MAPPER is not None:
-        return ModToken(t.token, original_stem=t.stem, stem=LEMMA_MAPPER.map(t.stem), tag=t.tag)
-    return t

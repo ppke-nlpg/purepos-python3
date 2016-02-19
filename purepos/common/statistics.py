@@ -25,8 +25,6 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-# from purepos.model.model import BaseModel
-
 
 class Statistics:
     # Ez az osztály azt a célt szolgálja, hogy a train fázisban számláljon

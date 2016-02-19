@@ -35,8 +35,6 @@ from purepos.decoder.ngram import NGram
 EOS_EMISSION_PROB = 1.0
 UNKNOWN_TAG_WEIGHT = -99.0
 UNKOWN_TAG_TRANSITION = -99.0
-UNKNOWN_VALUE = -99.0
-TAB = "\t"  # ez eredetileg field volt.
 
 
 class Node:
@@ -160,8 +158,7 @@ class BeamedViterbi:
                     tag_probs[tag] = (transion_prob, emission_prob)
 
             else:  # Guessed OOV (Do not have any clue.)
-                for tag, tag_prob in guesser.tag_log_probabilities_w_max(lword, self.max_guessed_tags,
-                                                                         self.suf_theta):
+                for tag, tag_prob in guesser.tag_log_probabilities_w_max(lword, self.max_guessed_tags, self.suf_theta):
                     transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag)
                     # Emission prob: tag_prob - tag_apriori_prob (If not seen: UNK - 0)
                     emission_prob = tag_prob - self.model.apriori_tag_probs.log_prob(tag, 0.0)

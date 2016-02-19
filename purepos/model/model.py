@@ -25,7 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from corpusreader.containers import Token
+from corpusreader.containers import Token, simplify_lemma
 from purepos.cli.configuration import Configuration
 from purepos.common import util
 from purepos.common.lemmatransformation import def_lemma_representation
@@ -123,7 +123,7 @@ class Model:
             for i in range(len(sentence)-1, -1, -1):
                 token = sentence[i]
                 if token.token != Model.BOS_TOKEN:
-                    token = util.simplify_lemma(token)  # Innentől ModToken típus lenne, ha mappelné a lemmát...
+                    token = simplify_lemma(token)  # Innentől ModToken típus lenne, ha mappelné a lemmát...
                 word = token.token
                 lemma = token.stem
                 tag = tags[i]
@@ -190,6 +190,9 @@ class Model:
         self.spec_tokens_emission_model.context_mapper = mapper
 
         self.tag_transition_model.element_mapper = mapper
+        self.standard_emission_model.element_mapper = mapper
+        self.spec_tokens_emission_model.element_mapper = mapper
+
         self.lower_suffix_tree.mapper = mapper
         self.upper_suffix_tree.mapper = mapper
 

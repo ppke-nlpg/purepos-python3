@@ -22,14 +22,64 @@
 # Contributors:
 #     Móréh, Tamás - initial API and implementation
 ##############################################################################
-from numpy.distutils.conv_template import unique_key
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
 from purepos.model.vocabulary import IntVocabulary, TrieNode
-from purepos.model.probmodel import ProbModel
-UNKNOWN_VALUE = -99.0
+from purepos.common.util import UNKNOWN_VALUE
+
+
+class ProbModel:
+    def __init__(self, orig_root: TrieNode, lambdas: list):
+        self.root = self.create_root(orig_root, lambdas)
+        self.element_mapper = None
+        self.context_mapper = None
+        super().__init__()
+
+    def log_prob(self, context: list, word, unk_value=UNKNOWN_VALUE) -> float:
+        # todo: Somehow indicate if the mapper maps to something that were never seen (new in vocabulary)
+        # Beacause then we can skip climbing the suffix trie and return unk_value...
+        if self.element_mapper is not None:
+            word = self.element_mapper.map(word)
+        if self.context_mapper is not None:
+            context = self.context_mapper.map_list(context)
+        node = self.root
+        for prev in context[::-1]:  # Find more
+            if prev in node.child_nodes.keys() and word in node.child_nodes[prev].words.keys():
+                node = node.child_nodes[prev]
+            else:
+                break
+        prob = node.words.get(word, 0.0)
+        return math.log(prob) if prob > 0 else unk_value
+
+    def create_root(self, node: TrieNode, lambdas: list) -> TrieNode:
+        new_root = self.calc_probs(node)
+        new_root.words = {k: lambdas[0] + lambdas[1] * v for k, v in new_root.words.items()}
+        for child in node.child_nodes.values():
+            ch = self.create_child(child, new_root.words, lambdas, 2)
+            new_root.child_nodes[ch.id_] = ch
+        return new_root
+
+    # Recursive function!
+    def create_child(self, original_node: TrieNode, parent_words: dict, lambdas: list, level: int) -> TrieNode:
+        if len(lambdas) > level:
+            node = self.calc_probs(original_node)
+            node.words = {k: parent_words[k] + lambdas[level] * original_node.apriori_prob(k)
+                          for k, v in original_node.words.items()}
+            for child in original_node.child_nodes.values():
+                ch = self.create_child(child, node.words, lambdas, level+1)
+                if ch is not None:
+                    node.child_nodes[ch.id_] = ch
+            return node
+        else:
+            return None
+
+    @staticmethod
+    def calc_probs(node: TrieNode) -> TrieNode:
+        new_root = TrieNode(node.id_, node_type=float)
+        new_root.words = {word: node.apriori_prob(word) for word in node.words.keys()}
+        return new_root
 
 
 class NGramModel:

@@ -25,10 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-import os
-
-SENTENCE_SEP = " "
-NL = os.linesep
+from purepos.common.util import LEMMA_MAPPER
 
 
 class Colors:
@@ -85,3 +82,9 @@ class ModToken(Token):
     def __init__(self, token: str, original_stem: str=None, stem: str=None, tag: str=None):
         self.original_stem = original_stem
         super().__init__(token, stem, tag)
+
+
+def simplify_lemma(t: Token):
+    if LEMMA_MAPPER is not None:
+        return ModToken(t.token, original_stem=t.stem, stem=LEMMA_MAPPER.map(t.stem), tag=t.tag)
+    return t
