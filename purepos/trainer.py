@@ -50,7 +50,7 @@ class Trainer:
               rare_frequency: int) -> Model:
         return self.train_model(Model(tag_order, emission_order, max_suffix_length, rare_frequency))
 
-    def train_model(self, raw_model: Model) -> Model:
-        raw_model.train(self.document)
-        self.stat = raw_model.last_stat()
-        return raw_model
+    def train_model(self, model: Model) -> Model:
+        model.train(self.document)
+        self.stat = model.last_stat()
+        return model

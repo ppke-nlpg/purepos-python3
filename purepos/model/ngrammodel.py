@@ -30,12 +30,34 @@ from purepos.model.vocabulary import IntVocabulary, TrieNode
 from purepos.common.util import UNKNOWN_VALUE
 
 
-class ProbModel:
-    def __init__(self, orig_root: TrieNode, lambdas: list):
-        self.root = self.create_root(orig_root, lambdas)
-        self.element_mapper = None
+class NGramModel:
+    def __init__(self, n: int):
+        self.n = n
+        self.root = TrieNode(IntVocabulary.extremal_element())
+        self.lambdas = []
+        self.word_apriori_probs = None
+        self.apriori_word_mapper = None
         self.context_mapper = None
-        super().__init__()
+        self.element_mapper = None
+
+    def add_word(self, context: list, word):
+        act = self.root
+        act.add_word(word)
+        for c in context[:-self.n:-1]:
+            act = act.add_child(c)
+            act.add_word(word)
+
+    def create_probability_model(self, context_mapper, element_mapper):
+        # Add mappings...
+        self.context_mapper = context_mapper
+        self.element_mapper = element_mapper
+        # Calculate lambdas...
+        self.lambdas = [0.0 for _ in range(0, self.n + 1, 1)]
+        self._iterate(self.root, [])
+        s = sum(self.lambdas)
+        if s > 0:
+            self.lambdas = [l / s for l in self.lambdas]
+        self._create_root(self.root, self.lambdas)
 
     def log_prob(self, context: list, word, unk_value=UNKNOWN_VALUE) -> float:
         # todo: Somehow indicate if the mapper maps to something that were never seen (new in vocabulary)
@@ -53,85 +75,16 @@ class ProbModel:
         prob = node.words.get(word, 0.0)
         return math.log(prob) if prob > 0 else unk_value
 
-    def create_root(self, node: TrieNode, lambdas: list) -> TrieNode:
-        new_root = self.calc_probs(node)
-        new_root.words = {k: lambdas[0] + lambdas[1] * v for k, v in new_root.words.items()}
-        for child in node.child_nodes.values():
-            ch = self.create_child(child, new_root.words, lambdas, 2)
-            new_root.child_nodes[ch.id_] = ch
-        return new_root
+    def apriori_log_prob(self, tag, unk_value=UNKNOWN_VALUE):
+        if self.apriori_word_mapper is not None:
+            tag = self.apriori_word_mapper.map(tag)
+        elem = self.word_apriori_probs.get(tag)
+        if elem is not None:
+            return math.log(elem)
+        return unk_value
 
-    # Recursive function!
-    def create_child(self, original_node: TrieNode, parent_words: dict, lambdas: list, level: int) -> TrieNode:
-        if len(lambdas) > level:
-            node = self.calc_probs(original_node)
-            node.words = {k: parent_words[k] + lambdas[level] * original_node.apriori_prob(k)
-                          for k, v in original_node.words.items()}
-            for child in original_node.child_nodes.values():
-                ch = self.create_child(child, node.words, lambdas, level+1)
-                if ch is not None:
-                    node.child_nodes[ch.id_] = ch
-            return node
-        else:
-            return None
-
-    @staticmethod
-    def calc_probs(node: TrieNode) -> TrieNode:
-        new_root = TrieNode(node.id_, node_type=float)
-        new_root.words = {word: node.apriori_prob(word) for word in node.words.keys()}
-        return new_root
-
-
-class NGramModel:
-    def __init__(self, n: int):
-        self.n = n
-        self.root = TrieNode(IntVocabulary.extremal_element())
-        self.lambdas = []
-
-    def add_word(self, context: list, word):
-        act = self.root
-        act.add_word(word)
-        for c in context[:-self.n:-1]:
-            act = act.add_child(c)
-            act.add_word(word)
-        # size = self.n - 1
-        # for c in context[::-1]:
-        #     if not i < size:
-        #         break
-        #     act = act.add_child(c)
-        #     act.add_word(word)
-
-    """
-    def word_frequency(self, context: list, word) -> list:
-        # dead code?
-        ret = [self.root.apriori_prob(word), ]
-        act_node = self.root
-        for c in context[::-1]:
-            prev = c
-            if prev in act_node.child_nodes.keys():
-                act_node = act_node.child_nodes[prev]
-                ret.append(act_node.apriori_prob(word))
-            else:
-                ret.extend([0.0 for _ in context[context.index(c)::-1]])
-                break
-        return ret
-    """
-
-    """
-    def find_max(self, acc: list, word) -> tuple:
-        # if node_list is None or len(node_list) == 0:
-        #     return None, None
-        # max_pos = -1
-        # max_val = 0.0
-        # for pos, v in enumerate(acc):
-        #     val = self._calculate_modified_freq_val(acc, pos, word)
-        #     if val > max_val:
-        #         max_pos = pos
-        #         max_val = val
-        # egy sor.
-        return max(((pos, self._calculate_modified_freq_val(acc, pos, word)) for pos in range(len(acc))),
-                   key=lambda p: p[1], default=(None, None))  # max_pos, max_val
-    """
+    def count_word_apriori_probs(self):  # apriori valószínűségek számolása
+        self.word_apriori_probs = {k: v / self.root.num for k, v in self.root.words.items()}
 
     @staticmethod
     def _calculate_modified_freq_val(node_list: list, position: int, word) -> float:
@@ -156,34 +109,30 @@ class NGramModel:
                 self._iterate(child, acc)
         acc.pop()
 
-    def create_probability_model(self) -> ProbModel:
-        # Calculate lambdas...
-        self.lambdas = [0.0 for _ in range(0, self.n + 1, 1)]
-        self._iterate(self.root, [])
-        s = sum(self.lambdas)
-        if s > 0:
-            self.lambdas = [l / s for l in self.lambdas]
-        return ProbModel(self.root, self.lambdas)
+    def _create_root(self, node: TrieNode, lambdas: list) -> TrieNode:
+        new_root = self._calc_probs(node)
+        new_root.words = {k: lambdas[0] + lambdas[1] * v for k, v in new_root.words.items()}
+        for child in node.child_nodes.values():
+            ch = self._create_child(child, new_root.words, lambdas, 2)
+            new_root.child_nodes[ch.id_] = ch
+        return new_root
 
-    # XXX inline-olni kéne
-    def word_apriori_probs(self) -> dict:
-        # apriori valószínűségek számolása
-        # ret = dict()
-        # sum_freg = self.root.num
-        # for k, v in self.root.words.items():
-        #     ret[k] = v / sum_freg
-        return WordAprioriProbModel({k: v / self.root.num for k, v in self.root.words.items()})
+    # Recursive function!
+    def _create_child(self, original_node: TrieNode, parent_words: dict, lambdas: list, level: int) -> TrieNode:
+        if len(lambdas) > level:
+            node = self._calc_probs(original_node)
+            node.words = {k: parent_words[k] + lambdas[level] * original_node.apriori_prob(k)
+                          for k, v in original_node.words.items()}
+            for child in original_node.child_nodes.values():
+                ch = self._create_child(child, node.words, lambdas, level + 1)
+                if ch is not None:
+                    node.child_nodes[ch.id_] = ch
+            return node
+        else:
+            return None
 
-
-class WordAprioriProbModel(dict):
-    def __init__(self, *args, **kwargs):
-        self.mapper = None
-        super().__init__(*args, **kwargs)
-
-    def log_prob(self, tag, unk_value=UNKNOWN_VALUE):
-        if self.mapper is not None:
-            tag = self.mapper.map(tag)
-        elem = self.get(tag)
-        if elem is not None:
-            return math.log(elem)
-        return unk_value
+    @staticmethod
+    def _calc_probs(node: TrieNode) -> TrieNode:
+        new_root = TrieNode(node.id_, node_type=float)
+        new_root.words = {word: node.apriori_prob(word) for word in node.words.keys()}
+        return new_root

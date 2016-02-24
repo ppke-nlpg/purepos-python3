@@ -56,5 +56,6 @@ class StemFilter:
     @staticmethod
     def create_stem_filter():
         # Régi örökség, de jó ha van. Lásd: Obamának -> Obama, Obamá, Obam
+        # Ezt "váltotta fel" az AnalysisQueue kell még?
         if os.path.isfile(STEM_FILTER_FILE):
             return StemFilter(STEM_FILTER_FILE)

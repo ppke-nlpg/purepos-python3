@@ -43,6 +43,7 @@ class Token:
     def __init__(self, token: str, stem: str=None, tag: str=None):
         self.token = token
         self.stem = stem
+        self.original_stem = None
         self.tag = tag
         # Unique hash cached for faster access
         self.hash_code = hash((self.stem, self.tag, self.token))
@@ -76,15 +77,8 @@ class Token:
         """
         return isinstance(other, Token) and self.__hash__() == other.__hash__()
 
-
-class ModToken(Token):
-    # Érdemes átgondolni, hogy kell-e erre egy külön osztály
-    def __init__(self, token: str, original_stem: str=None, stem: str=None, tag: str=None):
-        self.original_stem = original_stem
-        super().__init__(token, stem, tag)
-
-
-def simplify_lemma(t: Token):
-    if LEMMA_MAPPER is not None:
-        return ModToken(t.token, original_stem=t.stem, stem=LEMMA_MAPPER.map(t.stem), tag=t.tag)
-    return t
+    def simplify_lemma(self):
+        if LEMMA_MAPPER is not None:
+            self.original_stem = self.stem
+            self.stem = LEMMA_MAPPER.map(self.stem)
+        return self

@@ -28,7 +28,6 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import math
 from collections import Counter, defaultdict
 from purepos.common.util import UNKNOWN_VALUE
-# from purepos.model.ngram import NGram
 
 
 class BiDict(dict):
@@ -95,15 +94,6 @@ class IntVocabulary(BiDict):
     def word(self, index):
         # Better: return self.inverse[index]
         return self.inverse.get(index)
-
-    """
-    def indices(self, wlist: list):
-        # Dead code?
-        try:
-            return NGram([self.__getitem__(w) for w in wlist])
-        except KeyError:
-            return None
-    """
 
     def add_element(self, element):
         return self.setdefault(element, self.__len__())

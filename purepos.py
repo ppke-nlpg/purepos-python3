@@ -36,7 +36,7 @@ from purepos.cli.configuration import Configuration
 from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue
 from purepos.common.serializer import StandardSerializer
-from purepos.morphology import BaseMorphologicalAnalyser, MorphologicalTable, HumorAnalyser
+from purepos.morphology import Morphology
 from purepos.tagger import MorphTagger
 from purepos.trainer import Trainer
 
@@ -247,7 +247,7 @@ class PurePos:
         tagger.tag(source, output, max_resnum)
 
     @staticmethod
-    def load_humor(humor_path: str, lex_path: str) -> HumorAnalyser:
+    def load_humor(humor_path: str, lex_path: str):
         """Tries to load and instantiate the pyhumor module.
         It raises FileNotFoundError if any parameter is invalid.
 
@@ -256,8 +256,7 @@ class PurePos:
         :return: A HumorAnalyser object.
         """
         humor_module = importlib.machinery.SourceFileLoader("humor", humor_path).load_module()
-        humor = humor_module.Humor(_lex_path=lex_path)
-        return HumorAnalyser(humor)
+        return humor_module.Humor(_lex_path=lex_path)
 
     @staticmethod
     def create_tagger(model_path: str,
@@ -289,12 +288,12 @@ class PurePos:
                 ma = PurePos.load_humor(humor_path + "/bin/pyhumor/__init__.py", lex_path)
             except FileNotFoundError:
                 print("Humor module not found. Not using any morphological analyzer.", file=sys.stderr)
-                ma = BaseMorphologicalAnalyser()
+                ma = Morphology(None)
         elif analyser == PurePos.NONE_MA:
-            ma = BaseMorphologicalAnalyser()
+            ma = Morphology(None)
         else:
             print("Using morphological table at: {}.".format(analyser), file=sys.stderr)
-            ma = MorphologicalTable(analyser)
+            ma = Morphology(analyser)
         print("Reading model... ", file=sys.stderr)
         model = StandardSerializer.read_model(model_path)
         print("Compiling model... ", file=sys.stderr)

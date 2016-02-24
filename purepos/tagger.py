@@ -26,17 +26,17 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
-from corpusreader.containers import Token, ModToken, simplify_lemma
+from corpusreader.containers import Token
 from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue, analysis_queue
 from purepos.common.lemmatransformation import def_lemma_representation, batch_convert
 from purepos.model.model import Model
-from purepos.morphology import BaseMorphologicalAnalyser
+from purepos.morphology import Morphology
 from purepos.decoder.beamedviterbi import BeamedViterbi
 
 
 class MorphTagger:
-    def __init__(self, model: Model, analyser: BaseMorphologicalAnalyser, log_theta: float, suf_theta: float,
+    def __init__(self, model: Model, analyser: Morphology, log_theta: float, suf_theta: float,
                  max_guessed_tags: int, beam_size: int, no_stemming: bool, toksep: str):
         self.model = model
         self.analyser = analyser
@@ -83,7 +83,9 @@ class MorphTagger:
     # todo: ezen van még mit optimalizálni (tényleg mindenhol új tokent kell gyártani?)
     def _find_best_lemma(self, t: Token, position: int) -> Token:
         if analysis_queue.has_anal(position):
-            stems = [simplify_lemma(t) for t in analysis_queue.analysises(position)]
+            stems = analysis_queue.analysises(position)
+            for t in stems:
+                t.simplify_lemma()
             self.is_last_guessed = False
         else:
             stems = self.analyser.analyse(t.token)
@@ -121,8 +123,8 @@ class MorphTagger:
                     comp.append((lower_tok, traf))
             best = (max(comp, key=lambda p: self.model.combiner.combine(p[0], p[1], self.model)))[0]
 
-        if isinstance(best, ModToken):
-            best = Token(best.token, best.original_stem, best.tag)
+        if best.original_stem is not None:
+            best.stem = best.original_stem
 
         lemma = best.stem.replace(" ", "_")
         if self.is_last_guessed and util.CONFIGURATION is not None:

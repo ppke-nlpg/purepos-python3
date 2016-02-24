@@ -28,37 +28,36 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 from corpusreader.containers import Token
 
 
-class BaseMorphologicalAnalyser:
-    def tags(self, word: str) -> list:
-        return []
+class Morphology:
+    def __init__(self, source=None):
+        self.tags = self.morph_table_tags
+        self.analyse = self.morph_table_analyse
+        if source is None:
+            self.anal_source = dict()  # None
+        elif isinstance(str, source):
+            self.create(source)  # Table
+        else:
+            self.anal_source = source  # Integrated morphology (any inicialised class with analyse method)
+            self.integrated_ma_tags = self.integrated_ma_tags
+            self.analyse = self.integrated_ma_analyse
 
-    def analyse(self, word: str) -> list:
-        return []
+    def create(self, file: str or None):
+        if file is not None:
+            with open(file, encoding='UTF-8') as f:
+                for line in f:
+                    cells = line.strip().split('\t')
+                    if not line.startswith('#') and len(cells) > 1:  # todo: kivezetni a forátumot...
+                        token, anals = cells[0], cells[1:]
+                        self.anal_source[token] = anals
 
+    def morph_table_tags(self, word: str):
+        return self.anal_source.get(word, [])
 
-class MorphologicalTable(BaseMorphologicalAnalyser):
-    def __init__(self, file: str):
-        self.morph_table = dict()
-        with open(file, encoding='UTF-8') as f:
-            for line in f:
-                cells = line.strip().split('\t')
-                if not line.startswith('#') and len(cells) > 1:
-                    token, anals = cells[0], cells[1:]
-                    self.morph_table[token] = anals
+    def morph_table_analyse(self, word: str):
+        return self.anal_source.get(word, [])
 
-    def tags(self, word: str):
-        return self.morph_table.get(word, [])
+    def integrated_ma_tags(self, word: str) -> list:
+        return [anal[1] for anal in self.anal_source.analyze(word)]
 
-    def analyse(self, word: str):
-        return []
-
-
-class HumorAnalyser(BaseMorphologicalAnalyser):
-    def __init__(self, humor):
-        self.humor = humor
-
-    def tags(self, word: str) -> list:
-        return [anal[1] for anal in self.humor.analyze(word)]
-
-    def analyse(self, word: str) -> list:
-        return [Token(word, anal[0], anal[1]) for anal in self.humor.analyze(word)]
+    def integrated_ma_analyse(self, word: str) -> list:
+        return [Token(word, anal[0], anal[1]) for anal in self.anal_source.analyze(word)]

@@ -110,7 +110,7 @@ class LogLinearMLCombiner(BaseCombiner):
 
 class LogLinearTriCombiner(BaseCombiner):
     def calculate_params(self, doc: Document, raw_modeldata: RawModelData, modeldata: ModelData):
-        theta = HashSuffixTree.calculate_theta(raw_modeldata.tag_ngram_model.word_apriori_probs())
+        theta = HashSuffixTree.calculate_theta(raw_modeldata.tag_ngram_model.count_word_apriori_probs())
         lemma_suffix_tag_log_probabilities = raw_modeldata.lemma_suffix_tree.create_guesser(theta).tag_log_probabilities
         lemma_unigram_model_log_prob = raw_modeldata.lemma_unigram_model.log_prob
         lemma_tag_log_probability = raw_modeldata.lemma_freq_tree.create_guesser(theta).tag_log_probability

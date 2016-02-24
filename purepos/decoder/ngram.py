@@ -66,3 +66,13 @@ class NGram:
 
     def last(self):
         return self.token_list[-1]
+
+
+class Node:
+    def __init__(self, state: NGram, weight: float, previous: NGram or None):
+        self.state = state
+        self.weight = weight
+        self.prev = previous
+
+    def __str__(self):
+        return "{state: {}, weight: {}}".format(str(self.state), str(self.weight))
