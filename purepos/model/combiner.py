@@ -27,7 +27,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 from corpusreader.containers import Token
 from purepos.common.util import UNKNOWN_VALUE, CONFIGURATION
-from purepos.common.lemmatransformation import BaseLemmaTransformation, batch_convert
+from purepos.common.lemmatransformation import LemmaTransformation, batch_convert
 from purepos.model.model import Model
 # from purepos.model.suffixguesser import HashSuffixTree
 
@@ -47,7 +47,7 @@ class BaseCombiner:
     def calculate_params(self, doc: list, modeldata: Model):
         pass
 
-    def combine(self, token: Token, lem_transf: BaseLemmaTransformation, modeldata: Model) -> float:
+    def combine(self, token: Token, lem_transf: LemmaTransformation, modeldata: Model) -> float:
         pass
 
 
@@ -84,7 +84,7 @@ class LogLinearBiCombiner(BaseCombiner):
         self.lambdas[0] = lambda_u
         self.lambdas[1] = lambda_s
 
-    def combine(self, token: Token, lem_transf: BaseLemmaTransformation, modeldata: Model) -> float:
+    def combine(self, token: Token, lem_transf: LemmaTransformation, modeldata: Model) -> float:
         if CONFIGURATION is not None and CONFIGURATION.weight is not None:
             self.lambdas[0] = CONFIGURATION.weight
             self.lambdas[1] = 1 - CONFIGURATION.weight
@@ -96,6 +96,14 @@ class LogLinearBiCombiner(BaseCombiner):
 # Csak a BiCombinert használjuk, ami innen jön, dead code.
 
 """
+import re
+main_pos_pat = re.compile("\[([^.\]]*)[.\]]")
+
+def main_pos_tag(tag: str):
+    m = re.match(main_pos_pat, tag)
+    if m is not None:
+        return m.group(1)
+
 class LogLinearMLCombiner(BaseCombiner):
     def calculate_params(self, doc: Document,
                          raw_modeldata: RawModelData,

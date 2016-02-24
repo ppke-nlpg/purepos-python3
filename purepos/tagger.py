@@ -28,7 +28,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import io
 from corpusreader.containers import Token
 from purepos.common import util
-from purepos.common.analysisqueue import AnalysisQueue, analysis_queue
+from purepos.common.analysisqueue import AnalysisQueue
 from purepos.common.lemmatransformation import def_lemma_representation, batch_convert
 from purepos.model.model import Model
 from purepos.morphology import Morphology
@@ -37,15 +37,19 @@ from purepos.decoder.beamedviterbi import BeamedViterbi
 
 class MorphTagger:
     def __init__(self, model: Model, analyser: Morphology, log_theta: float, suf_theta: float,
-                 max_guessed_tags: int, beam_size: int, no_stemming: bool, toksep: str):
+                 max_guessed_tags: int, beam_size: int, no_stemming: bool, toksep: str, anal_queue: AnalysisQueue):
         self.model = model
         self.analyser = analyser
         self.decoder = BeamedViterbi(model, analyser, log_theta, suf_theta, max_guessed_tags, beam_size)
         self.no_stemming = no_stemming
         self.toksep = toksep
+        self.find_best_lemma = self._find_best_lemma
+        self.analysis_queue = []
+        self.analysis_queue_parser = anal_queue
         if not self.no_stemming:
             self.stem_filter = util.StemFilter.create_stem_filter()
             self.is_last_guessed = False
+            self.find_best_lemma = lambda x, _: x
 
     def tag(self, source: io.TextIOWrapper, dest: io.TextIOWrapper, max_results_number: int=1):
         for line in source:
@@ -62,34 +66,34 @@ class MorphTagger:
         return ret
 
     # list of strings
-    def tag_sentence(self, sentence: list, max_res: int) -> tuple:
-        analysis_queue.init(len(sentence))
+    def tag_sentence(self, sentence: list, max_res: int) -> tuple:  # todo: formátumválasztást alkalmazni...
+        self.analysis_queue = [None for _ in range(len(sentence))]  # Allocate memory for faster filling...
         preped_sent = []
         for i, word in enumerate(sentence):
-            if AnalysisQueue.ispreanalysed(word):
-                analysis_queue.add_word(word, i)
-                preped_sent.append(AnalysisQueue.clean(word))
+            if self.analysis_queue_parser.ispreanalysed(word):
+                self.analysis_queue[i] = self.analysis_queue_parser.add_word(word, self.model.tag_vocabulary)
+                preped_sent.append(self.analysis_queue_parser.clean(word))
             else:
                 preped_sent.append(word)
-        return [(self.merge(preped_sent, tags[0]), tags[1]) for tags in self.decoder.decode(preped_sent, max_res)]
+        ret = []
+        for tag_list, weight in self.decoder.decode(preped_sent, max_res, self.analysis_queue):
+            sent = []
+            for idx in range(min(len(tag_list), len(preped_sent))):
+                tok = Token(preped_sent[idx], None, self.model.tag_vocabulary.word(tag_list[idx]))
+                sent.append(self.find_best_lemma(tok, idx))  # Optionally find best lemma or leave as is ...
+            ret.append((sent, weight))  # Every tag combination with the probability for the current sentence
 
-    def merge(self, sentence: list, tags: list) -> list:
-        tmp = [Token(sentence[idx], None, self.model.tag_vocabulary.word(tags[idx]))
-               for idx in range(min(len(tags), len(sentence)))]
-        if self.no_stemming:
-            return tmp
-        return [self._find_best_lemma(t, pos) for pos, t in enumerate(tmp)]
+        return ret
 
     # todo: ezen van még mit optimalizálni (tényleg mindenhol új tokent kell gyártani?)
     def _find_best_lemma(self, t: Token, position: int) -> Token:
-        if analysis_queue.has_anal(position):
-            stems = analysis_queue.analysises(position)
+        self.is_last_guessed = False
+        if self.analysis_queue[position] is not None:
+            stems = self.analysis_queue[position].word_anals()
             for t in stems:
                 t.simplify_lemma()
-            self.is_last_guessed = False
         else:
             stems = self.analyser.analyse(t.token)
-            self.is_last_guessed = False
 
         lemma_suff_probs = batch_convert(self.model.lemma_suffix_tree.tag_log_probabilities(t.token), t.token,
                                          self.model.tag_vocabulary)

@@ -299,13 +299,14 @@ class PurePos:
         print("Compiling model... ", file=sys.stderr)
         model.compile(conf)
         suff_log_theta = math.log(10)
-        return MorphTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, beam_size, no_stemming, toksep)
+        return MorphTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, beam_size, no_stemming, toksep,
+                           AnalysisQueue())  # todo: itt vezethetők ki az AnalysisQueue paraméterei...
 
     def __init__(self, options: dict):
         self.options = options
         seps = options["input_separator"][1:].split(options["input_separator"][0])
         AnalysisQueue.ANAL_OPEN = seps[0]
-        AnalysisQueue.ANAL_SPLIT_RE = seps[1]
+        AnalysisQueue.ANAL_SEP = seps[1]
         AnalysisQueue.ANAL_CLOSE = seps[2]
         AnalysisQueue.ANAL_TAG_OPEN = seps[3]
 

@@ -26,7 +26,6 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.common.analysisqueue import analysis_queue
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.decoder.ngram import NGram, Node
 from purepos.model.model import Model
@@ -48,9 +47,8 @@ class BeamedViterbi:
         self.beam_size = beam_size
         self.tags = model.tag_vocabulary.tag_indices()
         self.spectoken_matcher_match_lexical_element = SpecTokenMatcher().match_lexical_element
-        self.user_anals = analysis_queue
 
-    def next_probs(self, prev_tags_set: set, word: str, position: int) -> dict:
+    def next_probs(self, prev_tags_set: set, word: str, position: int, user_anals: list) -> dict:
         # A szóhoz tartozó tag-valószínűségeket gyűjti ki.
         # A token tulajdonságai határozzák meg a konkrét fv-t.
         if word == Model.EOS_TOKEN:
@@ -101,10 +99,11 @@ class BeamedViterbi:
             guesser = self.model.lower_suffix_tree
 
         # User's own stuff... May overdefine (almost) everything... (left as is: isupper, lword, wordform)
-        if self.user_anals.has_anal(position):
-            tags = self.user_anals.tags(position, self.model.tag_vocabulary)
-            if self.user_anals.use_probabilities(position):
-                word_prob_model = self.user_anals.lexical_model_for_word(position, self.model.tag_vocabulary)
+        if user_anals[position] is not None:
+            # todo: biztos nem változik meg eddig itt vagy ezután a tag_vocabulary?
+            word_prob_model = user_anals[position]  # .lexical_model_for_word(self.model.tag_vocabulary)  # May not exist
+            tags = word_prob_model.word_tags()
+            if user_anals[position].use_probabilities:  # És mi van ha nem?
                 seen = True
         # User's morph_anals do not need filtering...
         # Filter tags with morphology (tags = tags & morph_anals )
@@ -140,7 +139,7 @@ class BeamedViterbi:
         return tag_probs
 
     def next_for_single_tagged_token(self, _, __, ___, ____, _____, prev_tags, tags):  # Single anal...
-        tag = tags[0]  # tag = morph_anals[0]. Unified for set and list: morph_anals.__iter__().__next__()
+        tag = tags[0]
         transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag, 0.0)
         emission_prob = 0.0  # We are sure! P = 1 -> log(P) = 0.0
         return {tag: (transion_prob, emission_prob)}
@@ -171,7 +170,7 @@ class BeamedViterbi:
         emission_prob = EOS_EMISSION_PROB
         return {self.model.eos_index: (transion_prob, emission_prob)}
 
-    def decode(self, observations: list, results_num: int) -> list:
+    def decode(self, observations: list, results_num: int, user_anals: list) -> list:
         # Ez a lényeg, ezt hívuk meg kívülről.
         # A modathoz (observations) max_res_num-nyi tag-listát készít
         # A mondathoz hozzáfűz egy <MONDATVÉGE> tokent.
@@ -190,7 +189,7 @@ class BeamedViterbi:
             obs_probs = dict()           # {NGram -> float}
             contexts = set(beam.keys())  # {NGram}  # {NGram -> {int -> (float, float)}}
             # XXX Innentől az 'adding observation probabilities'-al bezárólag egy ciklusban nem lenne jobb?
-            for context, next_context_probs in self.next_probs(contexts, obs, pos).items():
+            for context, next_context_probs in self.next_probs(contexts, obs, pos, user_anals).items():
                 for tag, (trans_prob, obs_prob) in next_context_probs.items():    # {int -> (float, float)}.items()
                     # context: NGram,
                     # next_context_probs: {int -> (float, float)}

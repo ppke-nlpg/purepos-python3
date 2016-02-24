@@ -31,14 +31,14 @@ from purepos.model.vocabulary import IntVocabulary
 
 
 class OneWordLexicalModel:
-    # Csak az analysisqueue-ban. Akkor működik, ha a felhasznál megadja a valószínűségeket is az elemzései mellé.
-    # Össze kéne olvasztani az analysisqueue-val...
-    # Ez eredetileg common: package hu.ppke.itk.nlpg.purepos.common;
-    def __init__(self, probs: dict, word: str):
+    # Ez biztosítja az AnalysisQueue-t...
+    def __init__(self, probs: dict, word: str, anals: set, use_probs):
         self.element_mapper = None
         self.context_mapper = None
         self.probs = probs
         self.word = word
+        self.anals = list(anals)
+        self.use_probabilities = use_probs
 
     def log_prob(self, context: list, word: str) -> float:
         if self.element_mapper is not None:
@@ -50,83 +50,55 @@ class OneWordLexicalModel:
             return self.probs[tag]
         return UNKNOWN_VALUE
 
+    def word_tags(self) -> list:
+        return list(self.probs)
+
+    def word_anals(self) -> list:
+        return [Token(self.word, anal, prob) for anal, prob in self.probs.items()]
+
 
 class AnalysisQueue:
     # Ezzel az osztállyal a felhasználó tud saját analíziseket adni simán vagy valószínűséggel
+    # Ez csak a parser...
     # todo: ezt is ki kell vezetni a parancssorig
     # todo ki kéne tesztelni ilyen szintaktikájú korpuszon!!!
-    # Ezen kívül a DOLLARS-t át is lehetne nevezni.
-    ANAL_SPLIT_RE = "||"
-    ANAL_OPEN = "{{"
-    ANAL_CLOSE = "}}"
-    ANAL_TAG_OPEN = "["
-    DOLLARS = "$$"
 
-    @staticmethod
-    def parse(token: str) -> tuple:
-        word_rb = token.find(AnalysisQueue.ANAL_OPEN)
-        anal_rb = token.find(AnalysisQueue.ANAL_CLOSE)
+    def ispreanalysed(self, word: str) -> bool:
+        return word.find(self.ANAL_OPEN) > 0 and word.rfind(self.ANAL_CLOSE) > 0
+
+    def clean(self, word: str) -> str:
+        return word[:word.find(self.ANAL_OPEN)]
+
+    def __init__(self, ANAL_SEP='||', ANAL_OPEN='{{', ANAL_CLOSE='}}', ANAL_TAG_OPEN='[', ANAL_TAG_CLOSE=']',
+                 PROB_SEP='$$'):
+        self.ANAL_SEP = ANAL_SEP
+        self.ANAL_OPEN = ANAL_OPEN
+        self.ANAL_CLOSE = ANAL_CLOSE
+        self.ANAL_TAG_OPEN = ANAL_TAG_OPEN
+        self.ANAL_TAG_CLOSE = ANAL_TAG_CLOSE
+        self.PROB_SEP = PROB_SEP
+
+    def add_word(self, token: str, tag_voc: IntVocabulary):
+        word_rb = token.find(self.ANAL_OPEN)
+        anal_rb = token.find(self.ANAL_CLOSE)
         word = token[:word_rb]
-        anals_strs = token[word_rb+len(AnalysisQueue.ANAL_OPEN):anal_rb]
-        anals_list = anals_strs.split(AnalysisQueue.ANAL_SPLIT_RE)
-        return word, anals_list
+        anals_strs = token[word_rb+len(self.ANAL_OPEN):anal_rb]
+        anals_list = anals_strs.split(self.ANAL_SEP)
 
-    @staticmethod
-    def ispreanalysed(word: str) -> bool:
-        return word.find(AnalysisQueue.ANAL_OPEN) > 0 and word.rfind(AnalysisQueue.ANAL_CLOSE) > 0
-
-    @staticmethod
-    def clean(word: str) -> str:
-        return word[:word.find(AnalysisQueue.ANAL_OPEN)]
-
-    @staticmethod
-    def anal2tag(anal: str) -> str:
-        return anal[anal.find(AnalysisQueue.ANAL_TAG_OPEN):]
-
-    @staticmethod
-    def anal2lemma(anal: str) -> str:
-        return anal[:anal.find(AnalysisQueue.ANAL_TAG_OPEN)]
-
-    def __init__(self):
-        self.anals = []
-        self.use_prob = []
-        self.words = []
-
-    def init(self, capacity: int):
-        # capacity méretűre allokáljuk a listákat a későbbi gyorsabb feltöltéshez.
-        self.anals = [None for _ in range(capacity)]
-        self.use_prob = [None for _ in range(capacity)]
-        self.words = [None for _ in range(capacity)]
-
-    def add_word(self, inp: str, position: int):
-        self.words[position], anals_list = self.parse(inp)
-        self.anals[position] = {}
-
+        tags = {}
+        anals = set()
+        use_prob = False
         for anal in anals_list:
-            val_sep_index = anal.find(self.DOLLARS)
-            lemmatag = anal
+            val_sep_index = anal.find(self.PROB_SEP)
             prob = 1.0
             if val_sep_index > -1:
-                self.use_prob[position] = True
-                prob = float(anal[val_sep_index + len(self.DOLLARS):])
-                lemmatag = anal[:val_sep_index]
-            self.anals[position][lemmatag] = prob
-
-    def has_anal(self, position: int) -> bool:
-        return len(self.anals) > position and self.anals[position] is not None
-
-    def use_probabilities(self, position: int) -> bool:
-        return len(self.use_prob) > position and self.use_prob[position] is not None
-
-    def lexical_model_for_word(self, pos: int, tag_voc: IntVocabulary) -> OneWordLexicalModel:
-        return OneWordLexicalModel({tag_voc.add_element(self.anal2tag(k)): v  # anal->tagstr->tag->index
-                                    for k, v in self.anals[pos]}, self.words[pos])
-
-    def tags(self, pos: int, tag_voc: IntVocabulary) -> set:  # XXX Ez nem lenne jobb inkább listának a decoderben?
-        return {tag_voc.add_element(self.anal2tag(k)) for k in self.anals[pos].keys()}  # anal->tagstr->tag->index
-
-    def analysises(self, pos: int) -> set:  # fa = fanals
-        return {Token(self.words[pos], self.anal2lemma(fa), self.anal2tag(fa)) for fa in self.anals[pos].keys()}
-
-# XXX: Move declaration to Utils
-analysis_queue = AnalysisQueue()
+                use_prob = True
+                prob = float(anal[val_sep_index + len(self.PROB_SEP):])
+                anal = anal[:val_sep_index]
+            tag_rb = anal.find(self.ANAL_TAG_OPEN)
+            tag_lb = anal.find(self.ANAL_TAG_CLOSE)
+            lemma = anal[:tag_rb]
+            tag = tag_voc.add_element(anal[tag_rb + len(self.ANAL_TAG_OPEN):tag_lb])  # Tag transformed to ID...
+            tags[tag] = prob  # tag -> prob
+            anals.add(Token(word, lemma, tag))
+        return OneWordLexicalModel(tags, word, anals, use_prob)

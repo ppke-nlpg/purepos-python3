@@ -31,17 +31,7 @@ from purepos.model.vocabulary import IntVocabulary
 
 
 def def_lemma_representation(word, stem, tag):
-    return SuffixLemmaTransformation(word, stem, tag)
-
-"""
-import re
-main_pos_pat = re.compile("\[([^.\]]*)[.\]]")
-
-def main_pos_tag(tag: str):
-    m = re.match(main_pos_pat, tag)
-    if m is not None:
-        return m.group(1)
-"""
+    return LemmaTransformation(word, stem, tag)
 
 
 # XXX Ettől lassú az egész, mert ez sokszor hívódik meg!
@@ -51,7 +41,7 @@ def batch_convert(prob_map: dict, word: str, vocab: IntVocabulary) -> dict:
     get = ret.get
     for k, v in prob_map.items():  # (str, int), float
         # Ami ebben a convertben van, át kéne gondolni. Amit lehet, azt ide kihozni.
-        lemma = k.convert(word, vocab)  # token
+        lemma = k.encode(word, vocab)  # token
         # Nem egyértelmű kulcs (__postprocess). Jó lenne, ha a jobb valségű győzne, vagy legyen
         # egyértelmű kulcs
         # De azért ne nyerjen a kötőjeles lemma.
@@ -83,63 +73,37 @@ def longest_substring(s1: str, s2: str) -> tuple:
     return x_longest - longest, longest
 
 
-class BaseLemmaTransformation:
+class LemmaTransformation:
     def __init__(self, word: str, lemma: str, tag: int):
-        self.representation = self.decode(word, lemma, tag)
+        """
+        Bug in PurePOS: If a word case differs from its lemmas case (start of a sentence)
+        it won't be included in the freq_table! (Fixed!) eg. Éves#éves#MN.NOM
+        :param word: word
+        :param lemma: lemma
+        :param tag: label
+        :return: decoded to our representation
+        """
+        word_lemma = longest_substring(word, lemma)
+        lemma_word = longest_substring(lemma, word)
 
-    def analyse(self, word) -> tuple:
-        encoded = self.encode(word, self.representation)
-        # return encoded[0], encoded[1]
-        # Gyuri hack a kötőjeles lemmák elkerüléséért.
-        return self.__postprocess(encoded[0]), encoded[1]
+        self.lowered = False  # is lowered?
+        self.uppered = False  # is uppered?
+        self.l = '-'
+        if len(word) > 0 and len(lemma) > 0:
+            self.lowered = word[0].isupper() and lemma[0].islower()  # Budapesti -> budapesti (at the begin of sentence)
+            self.uppered = word[0].islower() and lemma[0].isupper()  # budapesti -> Budapest
+            if self.lowered:
+                self.l = '_'
+            elif self.uppered:
+                self.l = '^'
 
-    def convert(self, word: str, vocab: IntVocabulary) -> Token:
-        anal = self.analyse(word)       # (str, int)
-        tag = vocab.word(anal[1])       # str
-        return Token(word, anal[0], tag)
-
-    def __str__(self) -> str:
-        return str(self.representation)
-
-    def __hash__(self):
-        return self.representation.__hash__()
-
-    def __eq__(self, other) -> bool:
-        return isinstance(other, type(self)) and self.representation == other.representation
-
-    def min_cut_length(self) -> int:
-        pass
-
-    def decode(self, word: str, lemma: str, tag: int):
-        pass
-
-    def encode(self, word: str, rep) -> tuple:
-        pass
-
-    @staticmethod
-    def __postprocess(lemma: str) -> str:
-        # Lemma végi „-” leszedése.
-        # pl.: Delacroix-é -> Delacroix-[FN][POS][NOM] -> Delacroix
-        if len(lemma) > 1 and lemma[-1] == '-':
-            return lemma[:-1]
-        return lemma
-        # return lemma.rstrip('-', )
-
-    @staticmethod
-    def token(word: str, lemma: str, tag: str) -> Token:
-        return Token(word, lemma, tag)
-
-
-class Transformation:
-    def __init__(self, rem_start: int, rem_end: int, add_start: str, add_end: str, tag: int, lowered: bool):
-        self.remove_start = rem_start
-        self.remove_end = rem_end
-        self.add_start = add_start
-        self.add_end = add_end
+        self.remove_start = word_lemma[0]
+        self.remove_end = len(word) - (word_lemma[0] + word_lemma[1])
+        self.add_start = lemma[0:lemma_word[0]]
+        self.add_end = lemma[lemma_word[0] + lemma_word[1]:]
         self.tag = tag
-        self.lowered = lowered
-        l = "_" if self.lowered else "-"
-        self.str_rep = "({0},< -{1}+\'{2}\', >-{3}+\'{4}\' -{5})".format(l, rem_start, add_start, rem_end, add_end, tag)
+        self.str_rep = '({0},< -{1}+\'{2}\', >-{3}+\'{4}\' -{5})'.format(self.l, self.remove_start, self.add_start,
+                                                                         self.remove_end, self.add_end, self.tag)
         self.hash_code = hash(self.str_rep)
 
     def __str__(self):
@@ -156,72 +120,22 @@ class Transformation:
         by default; they all compare unequal (except with themselves), and their hash value is derived from their id().
         Source: https://docs.python.org/3/glossary.html#term-hashable
         """
-        return isinstance(other, Transformation) and self.__hash__() == other.__hash__()
-
-
-class GeneralizedLemmaTransformation(BaseLemmaTransformation):
-    def __init__(self, word: str, lemma: str, tag: int):
-        super().__init__(word, lemma, tag)
+        return isinstance(other, type(self)) and self.__hash__() == other.__hash__()
 
     def min_cut_length(self) -> int:
-        return self.representation.remove_end
+        return self.remove_end
 
-    def decode(self, word: str, lemma: str, tag: int) -> Transformation:
-        """
-        XXX Fails on budapesti -> Budapest
-        :param word: word
-        :param lemma: lemma
-        :param tag: label
-        :return: decoded to our representation
-        """
-        pos_word_lemma = longest_substring(word, lemma)
-        pos_lemma_word = longest_substring(lemma, word)
-
-        lowered = False  # is lowered?
-        if len(word) > 0 and len(lemma) > 0:
-            lowered = word[0].isupper() and lemma[0].islower()
-
-        remove_start = pos_word_lemma[0]
-        remove_end = len(word) - (pos_word_lemma[0] + pos_word_lemma[1])
-        add_start = lemma[0:pos_lemma_word[0]]
-        add_end = lemma[pos_lemma_word[0] + pos_lemma_word[1]:]
-        return Transformation(remove_start, remove_end, add_start, add_end, tag, lowered)
-
-    def encode(self, word: str, rep: Transformation) -> tuple:
-        sub_end = max(0, len(word) - rep.remove_end)
-        lemma = word[0:sub_end] + rep.add_end
-        lemma = (rep.add_start + lemma[min(rep.remove_start, len(lemma)):]).lower()
-        if word != word.lower() and not rep.lowered and len(lemma) > 0:
+    def encode(self, word: str, vocab: IntVocabulary) -> Token:
+        sub_end = max(0, len(word) - self.remove_end)
+        lemma = word[0:sub_end] + self.add_end
+        lemma = (self.add_start + lemma[min(self.remove_start, len(lemma)):])
+        if len(word) > 0 and word[0] != word[0].lower() and self.lowered and len(lemma) > 0:
+            lemma = lemma[0].lower() + lemma[1:]
+        elif len(word) > 0 and word[0] != word[0].upper() and self.uppered and len(lemma) > 0:
             lemma = lemma[0].upper() + lemma[1:]
-        return lemma, rep.tag
-
-
-class SuffixLemmaTransformation(BaseLemmaTransformation):
-    def __init__(self, word: str, lemma: str, tag: int):
-        self.__SHIFT = 100
-        super().__init__(word, lemma, tag)
-
-    def min_cut_length(self):
-        return self.representation[1] % self.__SHIFT
-
-    def decode(self, word: str, stem: str, tag: int) -> tuple:
-        i = 0
-        word_len = len(word)
-        end = min(word_len, len(stem))
-        # Bug in PurePOS: If a word case differs from its lemmas cas (start of a sentence)
-        # it won't be included in the freq_table! (Not yet fixed!)
-        # XXX Capitalised tokens handled badly?
-        # Éves#éves#MN.NOM
-        while i < end and word[i] == stem[i]:
-            i += 1
-        cut_size = word_len - i
-        lemma_suff = stem[i:]
-        code = self.__SHIFT * tag + cut_size
-        return lemma_suff, code
-
-    def encode(self, word: str, rep: tuple) -> tuple:
-        tag_code = rep[1] // self.__SHIFT
-        cut_size = rep[1] % self.__SHIFT
-        add = rep[0]
-        lemma = word[0:len(word)-cut_size] + add
-        return lemma, tag_code
+        # Gyuri hack a kötőjeles lemmák elkerüléséért.
+        # Lemma végi „-” leszedése.
+        # pl.: Delacroix-é -> Delacroix-[FN][POS][NOM] -> Delacroix
+        if len(lemma) > 1 and lemma[-1] == '-':
+            lemma = lemma[:-1]
+        return Token(word, lemma, vocab.word(self.tag))
