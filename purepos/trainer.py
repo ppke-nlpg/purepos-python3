@@ -27,8 +27,9 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
 from corpusreader.tokenreaders import CorpusReader
-from purepos.common.statistics import Statistics
+from purepos.common.util import Statistics
 from purepos.model.model import Model
+from purepos.common.spectokenmatcher import SpecTokenMatcher
 
 
 class Trainer:
@@ -47,8 +48,8 @@ class Trainer:
     def train(self, tag_order: int,
               emission_order: int,
               max_suffix_length: int,
-              rare_frequency: int) -> Model:
-        return self.train_model(Model(tag_order, emission_order, max_suffix_length, rare_frequency))
+              rare_frequency: int, spec_token_matcher: SpecTokenMatcher) -> Model:
+        return self.train_model(Model(tag_order, emission_order, max_suffix_length, rare_frequency, spec_token_matcher))
 
     def train_model(self, model: Model) -> Model:
         model.train(self.document)

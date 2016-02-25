@@ -26,14 +26,14 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from corpusreader.containers import Token
-from purepos.cli.configuration import Configuration
 from purepos.common.lemmatransformation import LemmaTransformation
 from purepos.common.spectokenmatcher import SpecTokenMatcher
-from purepos.common.statistics import Statistics
+from purepos.common.util import Statistics
+from purepos.configuration import Configuration
 from purepos.model.hashsuffixtree import HashSuffixTree
+from purepos.model.mapper import TagMapper
 from purepos.model.ngrammodel import NGramModel
 from purepos.model.vocabulary import LemmaUnigramModel, Lexicon, IntVocabulary
-from purepos.model.mapper import TagMapper
 
 
 class Model:
@@ -48,7 +48,9 @@ class Model:
     def last_stat(self) -> Statistics:
         return self.stat
 
-    def __init__(self, tagging_order: int, emission_order: int, suffix_length: int, rare_frequency: int):
+    def __init__(self, tagging_order: int, emission_order: int, suffix_length: int, rare_frequency: int,
+                 spec_token_matcher: SpecTokenMatcher):
+        self.spec_token_matcher = spec_token_matcher
         self.tagging_order = tagging_order
         self.emission_order = emission_order
         self.suffix_length = suffix_length
@@ -122,7 +124,7 @@ class Model:
                     self.tag_transition_model.add_word(prev_tags, tag)
                     self.standard_tokens_lexicon.add_token(word, tag)
                     self.standard_emission_model.add_word(context, word)
-                    spec_name = SpecTokenMatcher.match_lexical_element(word)
+                    spec_name = self.spec_token_matcher.match_lexical_element(word)
                     if spec_name is not None:
                         self.spec_tokens_emission_model.add_word(context, spec_name)
                         self.spec_tokens_lexicon.add_token(spec_name, tag)
@@ -166,3 +168,4 @@ class Model:
         self.upper_suffix_tree.mapper = mapper
 
         self.tag_transition_model.apriori_word_mapper = mapper
+        self.combiner.conf = conf

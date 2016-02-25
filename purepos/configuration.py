@@ -25,6 +25,12 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
+LEMMA_MAPPER = None  # StringMapper  # todo: Ezeket a globálokat be kéne zavarni a Configuration osztályba...
+EOS_EMISSION_PROB = 1.0
+UNKNOWN_TAG_WEIGHT = -99.0
+UNKOWN_TAG_TRANSITION = -99.0
+UNKNOWN_VALUE = -99.0
+
 
 class Configuration:
     # Mappingek konfigurálása külső, XML fájlon keresztül.
@@ -73,3 +79,9 @@ class Configuration:
         weight = float(param_elements[0].text) if len(param_elements) > 0 else None
 
         return Configuration(tag_mappings, lemma_mappings, guessed_marker, weight)
+
+
+class Constants:  # todo: ötlet minden konstans egy objektumba -> egy időben több különböző PurePOS
+    # todo: https://github.com/ppke-nlpg/purepos-python3/issues/7
+    def __init__(self):
+        pass

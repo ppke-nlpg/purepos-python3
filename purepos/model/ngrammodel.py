@@ -26,8 +26,8 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
+from purepos.configuration import UNKNOWN_VALUE
 from purepos.model.vocabulary import IntVocabulary, TrieNode
-from purepos.common.util import UNKNOWN_VALUE
 
 
 class NGramModel:

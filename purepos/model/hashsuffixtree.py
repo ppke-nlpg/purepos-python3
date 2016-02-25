@@ -27,7 +27,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 from collections import Counter
 from math import sqrt, log
-from purepos.common.util import UNKNOWN_VALUE
+from purepos.configuration import UNKNOWN_VALUE
 
 
 class HashSuffixTree:

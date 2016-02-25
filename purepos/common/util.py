@@ -25,13 +25,71 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-
-UNKNOWN_VALUE = -99.0
-LEMMA_MAPPER = None  # StringMapper
-CONFIGURATION = None  # Nem teszteltük.
+import pickle
 
 
-class Constants:  # todo: ötlet minden konstans egy objektumba -> egy időben több különböző PurePOS
-    # todo: https://github.com/ppke-nlpg/purepos-python3/issues/7
+class StandardSerializer:
+    @staticmethod
+    def read_model(filename: str):
+        with open(filename, mode="rb") as file:
+            loaded = pickle.load(file)
+        return loaded
+
+    @staticmethod
+    def write_model(model, filename: str):
+        with open(filename, mode="wb") as file:
+            pickle.dump(model, file)
+
+    # Halott kód, később haszna lehet (pl. felhő back-end)
+    # @staticmethod
+    # def delete_model(filename: str):
+    #     try:
+    #         os.remove(filename)
+    #     except FileNotFoundError:
+    #         raise Warning("Invalid filename! Nothing deleted.")
+
+
+class Statistics:
+    # Ez az osztály azt a célt szolgálja, hogy a train fázisban számláljon
+    # A modellbe elmenti, hogy mekkora anyagon tanult, valamint kiírja a tanulás végén.
     def __init__(self):
-        pass
+        self.sentences = 0
+        self.tokens = 0
+        self.l_guesser_items = 0
+        self.u_guesser_items = 0
+        # self.theta = None Nem használtuk.
+
+    def increment_lower_guesser_items(self, num: int):
+        self.l_guesser_items += num
+
+    def increment_upper_guesser_items(self, num: int):
+        self.u_guesser_items += num
+
+    def increment_token_count(self):
+        self.tokens += 1
+
+    def increment_sentence_count(self):
+        self.sentences += 1
+
+    def stat(self, model):
+        return \
+            """Training corpus:
+{} tokens
+{} sentences
+{} different tag
+
+Guesser trained with
+{} lowercase
+{} uppercase tokens
+theta None""".format(self.tokens,
+                     self.sentences,
+                     len(model.tag_vocabulary),
+                     self.l_guesser_items,
+                     self.u_guesser_items)
+
+    def __eq__(self, other):
+        return isinstance(other, Statistics) and \
+            self.sentences == other.sentences and \
+            self.tokens == other.tokens and \
+            self.l_guesser_items == other.l_guesser_items and \
+            self.u_guesser_items == other.u_guesser_items

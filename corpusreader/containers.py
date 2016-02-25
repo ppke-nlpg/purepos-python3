@@ -25,7 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.common.util import LEMMA_MAPPER
+from purepos.configuration import LEMMA_MAPPER
 
 
 class Colors:

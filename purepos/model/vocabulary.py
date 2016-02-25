@@ -27,7 +27,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
 from collections import Counter, defaultdict
-from purepos.common.util import UNKNOWN_VALUE
+from purepos.configuration import UNKNOWN_VALUE
 
 
 class BiDict(dict):

@@ -26,15 +26,15 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from corpusreader.containers import Token
-from purepos.common.util import UNKNOWN_VALUE, CONFIGURATION
 from purepos.common.lemmatransformation import LemmaTransformation, batch_convert
+from purepos.configuration import UNKNOWN_VALUE
 from purepos.model.model import Model
 # from purepos.model.suffixguesser import HashSuffixTree
 
 
 class LogLinearBiCombiner:
     def __init__(self):
-        super().__init__()
+        self.conf = None
         self.lambdas = [1.0, 1.0]
 
     def parameters(self):  # Unused...
@@ -70,9 +70,9 @@ class LogLinearBiCombiner:
         self.lambdas[1] = lambda_s
 
     def combine(self, token: Token, lem_transf: LemmaTransformation, modeldata: Model) -> float:
-        if CONFIGURATION is not None and CONFIGURATION.weight is not None:
-            self.lambdas[0] = CONFIGURATION.weight
-            self.lambdas[1] = 1 - CONFIGURATION.weight
+        if self.conf is not None and self.conf.weight is not None:
+            self.lambdas[0] = self.conf.weight
+            self.lambdas[1] = 1 - self.conf.weight
 
         return (self.lambdas[0] * modeldata.lemma_unigram_model.log_prob(token.stem) +
                 self.lambdas[1] * modeldata.lemma_suffix_tree.tag_log_probability(token.token, lem_transf))

@@ -27,25 +27,29 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
 from corpusreader.containers import Token
-from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue
 from purepos.common.lemmatransformation import LemmaTransformation, batch_convert
+from purepos.configuration import Configuration
+from purepos.decoder.beamedviterbi import BeamedViterbi
 from purepos.model.model import Model
 from purepos.morphology import Morphology
-from purepos.decoder.beamedviterbi import BeamedViterbi
+from purepos.common.spectokenmatcher import SpecTokenMatcher
 
 
 class MorphTagger:
     def __init__(self, model: Model, analyser: Morphology, log_theta: float, suf_theta: float,
-                 max_guessed_tags: int, beam_size: int, no_stemming: bool, toksep: str, anal_queue: AnalysisQueue):
+                 max_guessed_tags: int, beam_size: int, no_stemming: bool, toksep: str, anal_queue: AnalysisQueue,
+                 conf: Configuration, spec_token_matcher: SpecTokenMatcher):
         self.model = model
         self.analyser = analyser
-        self.decoder = BeamedViterbi(model, analyser, log_theta, suf_theta, max_guessed_tags, beam_size)
+        self.decoder = BeamedViterbi(model, analyser, log_theta, suf_theta, max_guessed_tags, spec_token_matcher,
+                                     beam_size)
         self.no_stemming = no_stemming
         self.toksep = toksep
         self.find_best_lemma = self._find_best_lemma
         self.analysis_queue = []
         self.analysis_queue_parser = anal_queue
+        self.conf = conf
         if not self.no_stemming:
             self.find_best_lemma = lambda x, _: x
 
@@ -123,7 +127,7 @@ class MorphTagger:
             best.stem = best.original_stem
 
         lemma = best.stem.replace(' ', '_')
-        if guessed and util.CONFIGURATION is not None:
-            lemma = util.CONFIGURATION.guessed_lemma_marker + lemma
+        if guessed and self.conf is not None:
+            lemma = self.conf.guessed_lemma_marker + lemma
 
         return Token(best.token, lemma, best.tag)

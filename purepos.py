@@ -32,13 +32,13 @@ import os
 import sys
 
 from corpusreader.containers import Colors, Token
-from purepos.cli.configuration import Configuration
-from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue
-from purepos.common.serializer import StandardSerializer
+from purepos.common.util import StandardSerializer
+from purepos.configuration import Configuration
 from purepos.morphology import Morphology
 from purepos.tagger import MorphTagger
 from purepos.trainer import Trainer
+from purepos.common.spectokenmatcher import SpecTokenMatcher
 
 
 def parse_arguments():
@@ -151,7 +151,8 @@ class PurePos:
               suff_length: int,
               rare_freq: int,
               separator: str,
-              linesep: str):  # todo verbose mode
+              linesep: str,
+              spec_token_matcher: SpecTokenMatcher):  # todo verbose mode
         """Create a language model from an analysed corpora (and optionally from an existing model).
         It performs on the given input which can be also the stdin.
 
@@ -164,6 +165,7 @@ class PurePos:
         :param rare_freq:  # todo
         :param separator: The sepatator character(s) inside the token. Default/traditionally: '#'.
         :param linesep: The sepatator character(s) between the sentences. Default: newline.
+        :param spec_token_matcher
         """
         if input_path is not None:
             source = open(input_path, encoding=encoding)  # todo default encoding? (a Python3 okos)
@@ -178,7 +180,7 @@ class PurePos:
             ret_model = trainer.train_model(ret_model)
         else:
             print("Training model... ", file=sys.stderr)
-            ret_model = trainer.train(tag_order, emission_order, suff_length, rare_freq)
+            ret_model = trainer.train(tag_order, emission_order, suff_length, rare_freq, spec_token_matcher)
         print(trainer.stat.stat(ret_model), file=sys.stderr)
         print("Writing model... ", file=sys.stderr)
         StandardSerializer.write_model(ret_model, model_path)
@@ -198,7 +200,10 @@ class PurePos:
             use_colored_stdout: bool,
             humor_path: str,
             lex_path: str,  # todo IDÁIG KIHOZNI A HUMOR KONSTRUKTOR ELEMEIT *args, **kwargs
-            toksep: str):
+            toksep: str,
+            configuration: Configuration,
+            analysis_queue: AnalysisQueue,
+            spec_token_matcher: SpecTokenMatcher):
         """Perform tagging on the given input with the given model an properties to the given
         output. The in and output can be also the standard IO.
 
@@ -217,6 +222,9 @@ class PurePos:
         :param humor_path: The path of the pyhumor module file.
         :param lex_path: The path of the lex directory for humor.
         :param toksep: Token separator
+        :param configuration: Configuration
+        :param analysis_queue:
+        :param spec_token_matcher:
         """
         if not input_path:
             source = sys.stdin
@@ -238,7 +246,8 @@ class PurePos:
             source = open(input_path, encoding=encoding)  # todo default encoding? (a Python3 okos)
 
         tagger = PurePos.create_tagger(model_path, analyser, no_stemming, max_guessed, math.log(beam_theta),
-                                       beam_size, util.CONFIGURATION, humor_path, lex_path, toksep)
+                                       beam_size, configuration, humor_path, lex_path, toksep, analysis_queue,
+                                       spec_token_matcher)
         if not out_path:
             output = sys.stdout
         else:
@@ -268,7 +277,9 @@ class PurePos:
                       conf: Configuration,
                       humor_path: str,
                       lex_path: str,
-                      toksep: str) -> MorphTagger:
+                      toksep: str,
+                      analysis_queue: AnalysisQueue,
+                      spec_token_matcher: SpecTokenMatcher) -> MorphTagger:
         """Create a tagger object with the given properties.
 
         :param model_path:
@@ -281,6 +292,8 @@ class PurePos:
         :param humor_path:
         :param lex_path:
         :param toksep:
+        :param analysis_queue:
+        :param spec_token_matcher:
         :return: a tagger object.
         """
         if analyser == PurePos.INTEGRATED_MA:
@@ -300,20 +313,23 @@ class PurePos:
         model.compile(conf)
         suff_log_theta = math.log(10)
         return MorphTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, beam_size, no_stemming, toksep,
-                           AnalysisQueue())  # todo: itt vezethetők ki az AnalysisQueue paraméterei...
+                           analysis_queue, conf, spec_token_matcher)
+        # todo: itt vezethetők ki az AnalysisQueue paraméterei...
 
     def __init__(self, options: dict):
         self.options = options
         # todo: ezt értelmesebben kivezetni
         #seps = options["input_separator"][1:].split(options["input_separator"][0])
-        #self.options.analysisQueue = {'ANAL_OPEN': seps[0], 'ANAL_SEP': seps[1], 'ANAL_CLOSE': seps[2],
+        #analysisQueue_seps = {'ANAL_OPEN': seps[0], 'ANAL_SEP': seps[1], 'ANAL_CLOSE': seps[2],
         #                              'ANAL_TAG_OPEN': seps[3], 'ANAL_TAG_CLOSE': seps[4], 'PROB_SEP': seps[5]}
 
     def run(self):
         if self.options.get("config_file") is None:
-            util.CONFIGURATION = Configuration()
+            configuration = Configuration()
         else:
-            util.CONFIGURATION = Configuration.read(self.options["config_file"])
+            configuration = Configuration.read(self.options["config_file"])
+        analysis_queue = AnalysisQueue()
+        spec_token_matcher = SpecTokenMatcher
         Token.SEP = self.options["separator"]
         if self.options["command"] == self.TRAIN_OPT:
             self.train(self.options["encoding"],
@@ -324,7 +340,7 @@ class PurePos:
                        self.options["suffix_length"],
                        self.options["rare_frequency"],
                        self.options["separator"],
-                       "\n")  # todo sor elválasztó?
+                       "\n", spec_token_matcher)  # todo sor elválasztó?
         elif self.options["command"] == self.TAG_OPT:
             self.tag(self.options["encoding"],
                      self.options["model"],
@@ -339,7 +355,9 @@ class PurePos:
                      self.options.get("color_stdout", False),
                      self.options["pyhumor_path"],
                      self.options["lex_path"],
-                     ' ')  # self.options["separator"]
+                     ' ', configuration,
+                     analysis_queue,
+                     spec_token_matcher)  # self.options["separator"]
 
 
 def main():

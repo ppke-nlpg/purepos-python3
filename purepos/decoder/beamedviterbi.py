@@ -23,22 +23,18 @@
 #     Móréh, Tamás - initial API and implementation
 ##############################################################################
 
-
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.decoder.ngram import NGram, Node
 from purepos.model.model import Model
 from purepos.morphology import Morphology
-
-EOS_EMISSION_PROB = 1.0
-UNKNOWN_TAG_WEIGHT = -99.0
-UNKOWN_TAG_TRANSITION = -99.0
+from purepos.configuration import EOS_EMISSION_PROB, UNKNOWN_TAG_WEIGHT, UNKOWN_TAG_TRANSITION
 
 
 class BeamedViterbi:
     def __init__(self, model: Model, morphological_analyzer: Morphology, log_theta: float,
-                 suf_theta: float, max_guessed_tags: int, beam_size: int=None):
+                 suf_theta: float, max_guessed_tags: int, spectoken_matcher: SpecTokenMatcher, beam_size: int=None):
         self.model = model
         self.morphological_analyzer = morphological_analyzer
         self.log_theta = log_theta
@@ -46,7 +42,7 @@ class BeamedViterbi:
         self.max_guessed_tags = max_guessed_tags
         self.beam_size = beam_size
         self.tags = model.tag_vocabulary.tag_indices()
-        self.spectoken_matcher_match_lexical_element = SpecTokenMatcher().match_lexical_element
+        self.spectoken_matcher_match_lexical_element = spectoken_matcher.match_lexical_element
 
     def next_probs(self, prev_tags_set: set, word: str, position: int, user_anals: list) -> dict:
         # A szóhoz tartozó tag-valószínűségeket gyűjti ki.
