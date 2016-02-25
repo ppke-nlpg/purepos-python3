@@ -30,6 +30,7 @@ from purepos.common.corpusrepresentation import Token
 from purepos.model.vocabulary import IntVocabulary
 
 
+# todo: talán ez is a model-ben jobb helyen lenne?
 # XXX Ettől lassú az egész, mert ez sokszor hívódik meg!
 def batch_convert(prob_map: dict, word: str, vocab: IntVocabulary) -> dict:
     ret = dict()  # {token: (lemmatransf_tuple, float)}

@@ -31,6 +31,54 @@ from purepos.configuration import UNKNOWN_VALUE
 from purepos.trainer import Model
 
 
+def find_best_lemma(t: Token, position: int, analysis_queue, analyser, model, conf) -> Token:
+    # todo: Ezt végig kéne gondolni, hogy tényleg így a legjobb-e...
+    if analysis_queue[position] is not None:
+        stems = analysis_queue[position].word_anals()
+        for t in stems:
+            t.simplify_lemma()
+    else:
+        stems = analyser.analyse(t.token)
+
+    # dict: lemma -> (lemmatrans, prob)
+    lemma_suff_probs = batch_convert(model.lemma_suffix_tree.tag_log_probabilities(t.token), t.token,
+                                     model.tag_vocabulary)
+
+    guessed = len(stems) == 0
+    if guessed:
+        stems = lemma_suff_probs.keys()
+
+    possible_stems = [ct for ct in stems if t.tag == ct.tag]
+
+    if len(possible_stems) == 0:
+        best = Token(t.token, t.token, t.tag)  # lemma = token
+    elif len(possible_stems) == 1 and t.token == t.token.lower():  # If upper then it could be at sentence start...
+        best = possible_stems[0]
+    else:
+        comp = []
+        for poss_tok in possible_stems:
+            pair = lemma_suff_probs.get(poss_tok)  # (lemmatrans, prob)
+            if pair is not None:
+                traf = pair[0]
+            else:
+                traf = LemmaTransformation(poss_tok.token, poss_tok.stem,
+                                           model.tag_vocabulary.index(poss_tok.tag))  # Get
+            comp.append((poss_tok, traf))
+            if guessed:  # Append lowercased stems...
+                lower_tok = Token(poss_tok.token, poss_tok.stem.lower(), poss_tok.tag)
+                comp.append((lower_tok, traf))
+        best = (max(comp, key=lambda p: model.combiner.combine(p[0], p[1], model)))[0]
+
+    if best.original_stem is not None:
+        best.stem = best.original_stem
+
+    lemma = best.stem.replace(' ', '_')
+    if guessed and conf is not None:
+        lemma = conf.guessed_lemma_marker + lemma
+
+    return Token(best.token, lemma, best.tag)
+
+
 class LogLinearBiCombiner:
     def __init__(self):
         self.conf = None

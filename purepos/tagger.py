@@ -27,10 +27,10 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
 from purepos.common.analysisqueue import AnalysisQueue
-from purepos.common.lemmatransformation import LemmaTransformation, batch_convert
 from purepos.common.morphology import Morphology
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.common.corpusrepresentation import Token
+from purepos.model.combiner import find_best_lemma
 from purepos.configuration import Configuration
 from purepos.decoder.beamedviterbi import BeamedViterbi
 from purepos.trainer import Model
@@ -46,12 +46,13 @@ class MorphTagger:
                                      beam_size)
         self.no_stemming = no_stemming
         self.toksep = toksep
-        self.find_best_lemma = self._find_best_lemma
+        self.find_best_lemma = lambda tok, pos: find_best_lemma(tok, pos, self.analysis_queue, self.analyser,
+                                                                self.model, self.conf)
         self.analysis_queue = []
         self.analysis_queue_parser = anal_queue
         self.conf = conf
         if not self.no_stemming:
-            self.find_best_lemma = lambda x, _: x
+            self.find_best_lemma = lambda tok, _: tok
 
     # todo: Ebben a függvényben és a sent_to_string() függvényben kéne a bemeneti formátumot egységesíteni...
     def tag(self, source: io.TextIOWrapper, dest: io.TextIOWrapper, max_results_number: int=1):
@@ -84,50 +85,3 @@ class MorphTagger:
             ret.append((sent, weight))  # Every tag combination with the probability for the current sentence
 
         return ret
-
-    # todo: Ezt végig kéne gondolni, hogy tényleg így a legjobb-e...
-    def _find_best_lemma(self, t: Token, position: int) -> Token:
-        if self.analysis_queue[position] is not None:
-            stems = self.analysis_queue[position].word_anals()
-            for t in stems:
-                t.simplify_lemma()
-        else:
-            stems = self.analyser.analyse(t.token)
-
-        # dict: lemma -> (lemmatrans, prob)
-        lemma_suff_probs = batch_convert(self.model.lemma_suffix_tree.tag_log_probabilities(t.token), t.token,
-                                         self.model.tag_vocabulary)
-
-        guessed = len(stems) == 0
-        if guessed:
-            stems = lemma_suff_probs.keys()
-
-        possible_stems = [ct for ct in stems if t.tag == ct.tag]
-
-        if len(possible_stems) == 0:
-            best = Token(t.token, t.token, t.tag)  # lemma = token
-        elif len(possible_stems) == 1 and t.token == t.token.lower():  # If upper then it could be at sentence start...
-            best = possible_stems[0]
-        else:
-            comp = []
-            for poss_tok in possible_stems:
-                pair = lemma_suff_probs.get(poss_tok)  # (lemmatrans, prob)
-                if pair is not None:
-                    traf = pair[0]
-                else:
-                    traf = LemmaTransformation(poss_tok.token, poss_tok.stem,
-                                               self.model.tag_vocabulary.index(poss_tok.tag))  # Get
-                comp.append((poss_tok, traf))
-                if guessed:  # Append lowercased stems...
-                    lower_tok = Token(poss_tok.token, poss_tok.stem.lower(), poss_tok.tag)
-                    comp.append((lower_tok, traf))
-            best = (max(comp, key=lambda p: self.model.combiner.combine(p[0], p[1], self.model)))[0]
-
-        if best.original_stem is not None:
-            best.stem = best.original_stem
-
-        lemma = best.stem.replace(' ', '_')
-        if guessed and self.conf is not None:
-            lemma = self.conf.guessed_lemma_marker + lemma
-
-        return Token(best.token, lemma, best.tag)

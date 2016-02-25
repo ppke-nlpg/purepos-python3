@@ -82,8 +82,8 @@ class HashSuffixTree:
         freq_table = self.freq_table
         theta = self.theta
         theta_plus_one = theta + 1
-        # Bug in PurePOS: If a word case differs from its lemmas cas (start of a sentence)
-        # it won't be included in the freq_table! (Not yet fixed!)
+        # Bug in PurePOS: If a word case differs from its lemmas case (start of a sentence)
+        # it won't be included in the freq_table! (Fixed!)
         for i in range(len(word), -1, -1):
             # Brants (2000) formula 7
             suffix, prob = freq_table.get(word[i:], [dict(), 0])

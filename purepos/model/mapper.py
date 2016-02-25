@@ -25,42 +25,33 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
+import re
 from purepos.model.vocabulary import IntVocabulary
-
-"""
-# StringMapping:
-# (tagPattern, replacement)
-def stringmapping(pattern: str, replacement: str):
-    return re.compile(pattern), replacement
-"""
-
-# Ez a fájl sok halott kódot és még több szügségtelen class-t tartalmaz.
 
 
 class StringMapper:
     def __init__(self, mappings: list):
-        self.mappings = mappings
+        self.mappings = [(re.compile(patt), repl) for patt, repl in mappings]
 
-    # ok.
     def map(self, element: str):
-        return {pattern.sub(replacement, element) for pattern, replacement in self.mappings}
+        return next((pattern.sub(replacement, element) for pattern, replacement in self.mappings), element)
 
     def map_list(self, elements: list):
-        # dead code? But useful. :)
         return [self.map(e) for e in elements]
 
 
 class TagMapper:
     def __init__(self, tag_vocabulary: IntVocabulary, tag_mappings: list):
         self.vocabulary = tag_vocabulary
-        self.tag_mappings = tag_mappings
+        self.tag_mappings = [(re.compile(patt), repl) for patt, repl in tag_mappings]
 
     def map(self, tag: int) -> int:
         if self.vocabulary.max_index() < tag:
             tag_str = self.vocabulary.word(tag)
             for patt, repl in self.tag_mappings:
-                if patt.fullmatch(tag_str):
-                    ret_tag = self.vocabulary.index(patt.sub(repl, tag_str))  # Get
+                ret = patt.sub(repl, tag_str)
+                if ret is not None:
+                    ret_tag = self.vocabulary.index(ret)  # Get
                     if ret_tag is not None:
                         return ret_tag
         return tag
@@ -68,6 +59,6 @@ class TagMapper:
     def map_list(self, elements: list):
         return [self.map(e) for e in elements]
 
-    def filter(self, morph_anals: list or set, possible_tags: list or set) -> list:
+    def filter(self, morph_anals: list, possible_tags: list) -> list:
         # morph_anals megszűrése
         return [anal for anal in morph_anals if self.map(anal) in possible_tags]

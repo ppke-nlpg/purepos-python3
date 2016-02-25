@@ -37,31 +37,6 @@ from purepos.model.ngrammodel import NGramModel
 from purepos.model.vocabulary import Lexicon, IntVocabulary, LemmaUnigramModel
 
 
-class Trainer:
-    """Trainer class. Its role is to build a Model from the analysed input."""
-    def __init__(self, source: io.TextIOWrapper, field_separator, sentence_separator):
-        """Instantiates a Trainer object.
-        (In this version) it reads the whole input with the CorpusReader.
-        :param source: TextIOWrapper input
-        :param field_separator: Separator for fields
-        :param sentence_separator: Separator for sentences
-        """
-        self.stat = Statistics()
-        reader = CorpusReader(field_sep=field_separator, sentence_sep=sentence_separator)
-        self.document = reader.read_from_io(source)  # todo egybe beolvassa a memóriába.
-
-    def train(self, tag_order: int,
-              emission_order: int,
-              max_suffix_length: int,
-              rare_frequency: int, spec_token_matcher: SpecTokenMatcher) -> Model:
-        return self.train_model(Model(tag_order, emission_order, max_suffix_length, rare_frequency, spec_token_matcher))
-
-    def train_model(self, model: Model) -> Model:
-        model.train(self.document)
-        self.stat = model.last_stat()
-        return model
-
-
 class Model:
     """Raw model from parsed analysed corpora or loaded saved model.
     """
@@ -195,3 +170,28 @@ class Model:
 
         self.tag_transition_model.apriori_word_mapper = mapper
         self.combiner.conf = conf
+
+
+class Trainer:
+    """Trainer class. Its role is to build a Model from the analysed input."""
+    def __init__(self, source: io.TextIOWrapper, field_separator, sentence_separator):
+        """Instantiates a Trainer object.
+        (In this version) it reads the whole input with the CorpusReader.
+        :param source: TextIOWrapper input
+        :param field_separator: Separator for fields
+        :param sentence_separator: Separator for sentences
+        """
+        self.stat = Statistics()
+        reader = CorpusReader(field_sep=field_separator, sentence_sep=sentence_separator)
+        self.document = reader.read_from_io(source)  # todo egybe beolvassa a memóriába.
+
+    def train(self, tag_order: int,
+              emission_order: int,
+              max_suffix_length: int,
+              rare_frequency: int, spec_token_matcher: SpecTokenMatcher) -> Model:
+        return self.train_model(Model(tag_order, emission_order, max_suffix_length, rare_frequency, spec_token_matcher))
+
+    def train_model(self, model: Model) -> Model:
+        model.train(self.document)
+        self.stat = model.last_stat()
+        return model

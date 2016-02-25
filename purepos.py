@@ -42,88 +42,88 @@ from purepos.trainer import Trainer
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser("purepos", description="PurePos is an open source hybrid "
-                                                            "morphological tagger.")
-    # parser.add_argument("-h", "--help", help="Print this message.")
-    parser.add_argument("command", help="Mode selection: train for training the "
-                                        "tagger, tag for tagging a text with the given model.",
-                        metavar="tag|train", type=str, choices=["tag", "train"])
-    parser.add_argument("-m", "--model",
-                        help="Specifies a path to a model file. If an exisiting model is given for "
-                             "training, the tool performs incremental training.",
-                        metavar="<modelfile>", required=True, type=str)
-    parser.add_argument("-t", "--tag-order",
-                        help="Order of tag transition. Second order means "
-                             "trigram tagging. The default is 2. Training only option.",
-                        metavar="<number>", type=int, default=2)
-    parser.add_argument("-e", "--emission-order",
-                        help="Order of emission. First order means that the given word depends "
-                             "only on its tag. The default is 2.  Training only option.",
-                        metavar="<number>", type=int, default=2)
-    parser.add_argument("-s", "--suffix-length",
-                        help="Use a suffix trie for guessing unknown words tags with the given "
-                             "maximum suffix length. The default is 10.  Training only option.",
-                        metavar="<length>", type=int, default=10)
-    parser.add_argument("-r", "--rare-frequency",
-                        help="Add only words to the suffix trie with frequency less than the given"
-                             " treshold. The default is 10.  Training only option.",
-                        metavar="<treshold>", type=int, default=10)
-    parser.add_argument("-a", "--analyzer",
-                        help="Set the morphological analyzer. <analyzer> can be "
-                             "'none', 'integrated' or a file : <morphologicalTableFile>. The "
-                             "default is to use the integrated one. Tagging only option. ",
-                        metavar="<analyzer>", type=str, default="integrated", dest="morphology")
-    parser.add_argument("-H", "--pyhumor-path",
-                        help="Set the path of the PyHumor module where the Humor class is defined.",
-                        metavar="<path>", type=str, default="pyhumor/")
-    parser.add_argument("-L", "--lex-path",
-                        help="Set the path of the lex file used by the Humor analyser. The "
-                             "pyhumor module delivered lex is used.",
-                        metavar="<path>", type=str, default="lex/")
-    parser.add_argument("--only-pos-tags",
-                        help="Do not perform stemming, output only POS tags. Tagging only option.",
-                        action="store_true", dest="no_stemming")
-    parser.add_argument("-g", "--max-guessed",
-                        help="Limit the max guessed tags for each token. The default is 10. "
-                             "Tagging only option.",
-                        metavar="<number>", type=int, default=10)
-    parser.add_argument("-n", "--max-results",
-                        help="Set the expected maximum number of tag sequences (with its score). "
-                             "The default is 1. Tagging only option.",
-                        metavar="<number>", type=int, default=1)
-    parser.add_argument("-b", "--beam-theta",
-                        help="Set the beam-search limit. "
-                             "The default is 1000. Tagging only option.",
-                        metavar="<theta>", type=int, default=1000)
-    parser.add_argument("-o", "--output-file",
-                        help="File where the tagging output is redirected. Tagging only option.",
-                        metavar="<file>", type=str, default=None)
-    parser.add_argument("--color-stdout",
-                        help="Use colored console if the stdout is the choosen output.",
-                        action="store_true")
-    parser.add_argument("-c", "--encoding",
-                        help="Encoding used to read the training set, or write the results. "
-                             "The default is your OS default.",
-                        metavar="<encoding>", type=str, default=sys.getdefaultencoding())
-    parser.add_argument("--input-separator",
-                        help="Separator characters and tag starting character for annotated input "
-                             "(divided by the first character cf. sed). Eg.: \"#{{#||#}}#[\"",
-                        metavar="<separators>", type=str, default=" {{ || }} [")
-    parser.add_argument("-S", "--separator",
-                        help="Separator character between word, lemma and tags. Default: '#'",
-                        metavar="<separator>", type=str, default="#")
-    parser.add_argument("-i", "--input-file",
-                        help="File containg the training set (for tagging) or the text to be tagged"
-                             " (for tagging). The default is the standard input.",
-                        metavar="<file>", type=str, default=None)
-    parser.add_argument("-d", "--beam-decoder",
-                        help="Use Beam Search decoder. The default is to employ the Viterbi "
-                             "algorithm. Tagging only option.", action="store_true")
+    parser = argparse.ArgumentParser('purepos', description='PurePos is an open source hybrid '
+                                                            'morphological tagger.')
+    # parser.add_argument('-h', '--help', help='Print this message.')
+    parser.add_argument('command', help='Mode selection: train for training the '
+                                        'tagger, tag for tagging a text with the given model.',
+                        metavar='tag|train', type=str, choices=['tag', 'train'])
+    parser.add_argument('-m', '--model',
+                        help='Specifies a path to a model file. If an exisiting model is given for '
+                             'training, the tool performs incremental training.',
+                        metavar='<modelfile>', required=True, type=str)
+    parser.add_argument('-t', '--tag-order',
+                        help='Order of tag transition. Second order means '
+                             'trigram tagging. The default is 2. Training only option.',
+                        metavar='<number>', type=int, default=2)
+    parser.add_argument('-e', '--emission-order',
+                        help='Order of emission. First order means that the given word depends '
+                             'only on its tag. The default is 2.  Training only option.',
+                        metavar='<number>', type=int, default=2)
+    parser.add_argument('-s', '--suffix-length',
+                        help='Use a suffix trie for guessing unknown words tags with the given '
+                             'maximum suffix length. The default is 10.  Training only option.',
+                        metavar='<length>', type=int, default=10)
+    parser.add_argument('-r', '--rare-frequency',
+                        help='Add only words to the suffix trie with frequency less than the given'
+                             ' treshold. The default is 10.  Training only option.',
+                        metavar='<treshold>', type=int, default=10)
+    parser.add_argument('-a', '--analyzer',
+                        help='Set the morphological analyzer. <analyzer> can be \'none\', \'integrated\' or'
+                             ' a file : <morphologicalTableFile>. The '
+                             'default is to use the integrated one. Tagging only option. ',
+                        metavar='<analyzer>', type=str, default='integrated', dest='morphology')
+    parser.add_argument('-H', '--pyhumor-path',
+                        help='Set the path of the PyHumor module where the Humor class is defined.',
+                        metavar='<path>', type=str, default='pyhumor/')
+    parser.add_argument('-L', '--lex-path',
+                        help='Set the path of the lex file used by the Humor analyser. The '
+                             'pyhumor module delivered lex is used.',
+                        metavar='<path>', type=str, default='lex/')
+    parser.add_argument('--only-pos-tags',
+                        help='Do not perform stemming, output only POS tags. Tagging only option.',
+                        action='store_true', dest='no_stemming')
+    parser.add_argument('-g', '--max-guessed',
+                        help='Limit the max guessed tags for each token. The default is 10. '
+                             'Tagging only option.',
+                        metavar='<number>', type=int, default=10)
+    parser.add_argument('-n', '--max-results',
+                        help='Set the expected maximum number of tag sequences (with its score). '
+                             'The default is 1. Tagging only option.',
+                        metavar='<number>', type=int, default=1)
+    parser.add_argument('-b', '--beam-theta',
+                        help='Set the beam-search limit. '
+                             'The default is 1000. Tagging only option.',
+                        metavar='<theta>', type=int, default=1000)
+    parser.add_argument('-o', '--output-file',
+                        help='File where the tagging output is redirected. Tagging only option.',
+                        metavar='<file>', type=str, default=None)
+    parser.add_argument('--color-stdout',
+                        help='Use colored console if the stdout is the choosen output.',
+                        action='store_true')
+    parser.add_argument('-c', '--encoding',
+                        help='Encoding used to read the training set, or write the results. '
+                             'The default is your OS default.',
+                        metavar='<encoding>', type=str, default=sys.getdefaultencoding())
+    parser.add_argument('--input-separator',
+                        help='Separator characters and tag starting character for annotated input '
+                             '(divided by the first character cf. sed). Eg.: \'#{{#||#}}#[#]\'',
+                        metavar='<separators>', type=str, default=' {{ || }} [ ]')
+    parser.add_argument('-S', '--separator',
+                        help='Separator character between word, lemma and tags. Default: \'#\'',
+                        metavar='<separator>', type=str, default='#')
+    parser.add_argument('-i', '--input-file',
+                        help='File containg the training set (for tagging) or the text to be tagged'
+                             ' (for tagging). The default is the standard input.',
+                        metavar='<file>', type=str, default=None)
+    parser.add_argument('-d', '--beam-decoder',
+                        help='Use Beam Search decoder. The default is to employ the Viterbi '
+                             'algorithm. Tagging only option.', action='store_true')
     # todo beam_size
-    parser.add_argument("-f", "--config-file",
-                        help="Configuratoin file containg tag mappings. "
-                             "Defaults to do not map any tag.",
-                        metavar="<file>", type=str, default=None)
+    parser.add_argument('-f', '--config-file',
+                        help='Configuratoin file containg tag mappings. '
+                             'Defaults to do not map any tag.',
+                        metavar='<file>', type=str, default=None)
     return parser.parse_args()
 
 
@@ -136,11 +136,11 @@ class PurePos:
         PurePos.train()
         PurePos.tag()
     """
-    TAG_OPT = "tag"
-    TRAIN_OPT = "train"
-    PRE_MA = "pre"
-    NONE_MA = "none"
-    INTEGRATED_MA = "integrated"
+    TAG_OPT = 'tag'
+    TRAIN_OPT = 'train'
+    PRE_MA = 'pre'
+    NONE_MA = 'none'
+    INTEGRATED_MA = 'integrated'
 
     @staticmethod
     def train(encoding: str,
@@ -174,17 +174,17 @@ class PurePos:
         trainer = Trainer(source, separator, linesep)
 
         if os.path.isfile(model_path):
-            print("Reading model... ", file=sys.stderr)
+            print('Reading model... ', file=sys.stderr)
             ret_model = StandardSerializer.read_model(model_path)
-            print("Training model... ", file=sys.stderr)
+            print('Training model... ', file=sys.stderr)
             ret_model = trainer.train_model(ret_model)
         else:
-            print("Training model... ", file=sys.stderr)
+            print('Training model... ', file=sys.stderr)
             ret_model = trainer.train(tag_order, emission_order, suff_length, rare_freq, spec_token_matcher)
         print(trainer.stat.stat(ret_model), file=sys.stderr)
-        print("Writing model... ", file=sys.stderr)
+        print('Writing model... ', file=sys.stderr)
         StandardSerializer.write_model(ret_model, model_path)
-        print("Done!", file=sys.stderr)
+        print('Done!', file=sys.stderr)
 
     @staticmethod
     def tag(encoding: str,
@@ -210,7 +210,7 @@ class PurePos:
         :param encoding: The encoding of the input. If None, Python3 default will be used.
         :param model_path: Path of the model file. It must be existing.
         :param input_path: Path of the source file. If None, stdin will be used.
-        :param analyser: "integrated" or "none" if HUMOR analyser will be used or not.
+        :param analyser: 'integrated' or 'none' if HUMOR analyser will be used or not.
             Other case it can be the path of any morphological table.
         :param no_stemming: Analyse without lemmatization.
         :param max_guessed:  # todo
@@ -251,8 +251,8 @@ class PurePos:
         if not out_path:
             output = sys.stdout
         else:
-            output = open(out_path, mode="w", encoding=encoding)
-        print("Tagging:", file=sys.stderr)
+            output = open(out_path, mode='w', encoding=encoding)
+        print('Tagging:', file=sys.stderr)
         tagger.tag(source, output, max_resnum)
 
     @staticmethod
@@ -264,7 +264,7 @@ class PurePos:
         :param lex_path: The path of the lex directory for humor.
         :return: A HumorAnalyser object.
         """
-        humor_module = importlib.machinery.SourceFileLoader("humor", humor_path).load_module()
+        humor_module = importlib.machinery.SourceFileLoader('humor', humor_path).load_module()
         return humor_module.Humor(_lex_path=lex_path)
 
     @staticmethod
@@ -298,18 +298,18 @@ class PurePos:
         """
         if analyser == PurePos.INTEGRATED_MA:
             try:
-                ma = PurePos.load_humor(humor_path + "/bin/pyhumor/__init__.py", lex_path)
+                ma = PurePos.load_humor(humor_path + '/bin/pyhumor/__init__.py', lex_path)
             except FileNotFoundError:
-                print("Humor module not found. Not using any morphological analyzer.", file=sys.stderr)
+                print('Humor module not found. Not using any morphological analyzer.', file=sys.stderr)
                 ma = Morphology(None)
         elif analyser == PurePos.NONE_MA:
             ma = Morphology(None)
         else:
-            print("Using morphological table at: {}.".format(analyser), file=sys.stderr)
+            print('Using morphological table at: {}.'.format(analyser), file=sys.stderr)
             ma = Morphology(analyser)
-        print("Reading model... ", file=sys.stderr)
+        print('Reading model... ', file=sys.stderr)
         model = StandardSerializer.read_model(model_path)
-        print("Compiling model... ", file=sys.stderr)
+        print('Compiling model... ', file=sys.stderr)
         model.compile(conf)
         suff_log_theta = math.log(10)
         return MorphTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, beam_size, no_stemming, toksep,
@@ -318,54 +318,48 @@ class PurePos:
 
     def __init__(self, options: dict):
         self.options = options
-        # todo: ezt értelmesebben kivezetni
-        #seps = options["input_separator"][1:].split(options["input_separator"][0])
-        #analysisQueue_seps = {'ANAL_OPEN': seps[0], 'ANAL_SEP': seps[1], 'ANAL_CLOSE': seps[2],
-        #                              'ANAL_TAG_OPEN': seps[3], 'ANAL_TAG_CLOSE': seps[4], 'PROB_SEP': seps[5]}
-
-    def run(self):
-        if self.options.get("config_file") is None:
-            configuration = Configuration()
-        else:
-            configuration = Configuration.read(self.options["config_file"])
-        analysis_queue = AnalysisQueue()
+        configuration = Configuration()
+        if self.options.get('config_file') is not None:
+            configuration = Configuration.read(self.options['config_file'])
+        analysis_queue = AnalysisQueue(*options['input_separator'][1:].split(options['input_separator'][0]))
         spec_token_matcher = SpecTokenMatcher
-        Token.SEP = self.options["separator"]
-        if self.options["command"] == self.TRAIN_OPT:
-            self.train(self.options["encoding"],
-                       self.options["model"],
-                       self.options["input_file"],
-                       self.options["tag_order"],
-                       self.options["emission_order"],
-                       self.options["suffix_length"],
-                       self.options["rare_frequency"],
-                       self.options["separator"],
-                       "\n", spec_token_matcher)  # todo sor elválasztó?
-        elif self.options["command"] == self.TAG_OPT:
-            self.tag(self.options["encoding"],
-                     self.options["model"],
-                     self.options["input_file"],
-                     self.options["morphology"],
-                     self.options.get("no_stemming", False),
-                     self.options["max_guessed"],
-                     self.options["max_results"],
-                     self.options["beam_theta"],
-                     self.options.get("beam_decoder", 0),
-                     self.options["output_file"],
-                     self.options.get("color_stdout", False),
-                     self.options["pyhumor_path"],
-                     self.options["lex_path"],
+        Token.SEP = self.options['separator']
+
+        if self.options['command'] == self.TRAIN_OPT:
+            self.train(self.options['encoding'],
+                       self.options['model'],
+                       self.options['input_file'],
+                       self.options['tag_order'],
+                       self.options['emission_order'],
+                       self.options['suffix_length'],
+                       self.options['rare_frequency'],
+                       self.options['separator'],
+                       '\n', spec_token_matcher)  # todo sor elválasztó?
+        elif self.options['command'] == self.TAG_OPT:
+            self.tag(self.options['encoding'],
+                     self.options['model'],
+                     self.options['input_file'],
+                     self.options['morphology'],
+                     self.options.get('no_stemming', False),
+                     self.options['max_guessed'],
+                     self.options['max_results'],
+                     self.options['beam_theta'],
+                     self.options.get('beam_decoder', 0),
+                     self.options['output_file'],
+                     self.options.get('color_stdout', False),
+                     self.options['pyhumor_path'],
+                     self.options['lex_path'],
                      ' ', configuration,
                      analysis_queue,
-                     spec_token_matcher)  # self.options["separator"]
+                     spec_token_matcher)  # self.options['separator']
 
 
 def main():
     try:
         options = parse_arguments()
-        PurePos(vars(options)).run()
+        PurePos(vars(options))
     except KeyboardInterrupt:
-        print("\nBye!", file=sys.stderr)
+        print('\nBye!', file=sys.stderr)
 
 
 if __name__ == '__main__':
