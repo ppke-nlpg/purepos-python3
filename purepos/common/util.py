@@ -25,9 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-import os
 
-STEM_FILTER_FILE = "purepos_stems.txt"
 UNKNOWN_VALUE = -99.0
 LEMMA_MAPPER = None  # StringMapper
 CONFIGURATION = None  # Nem teszteltük.
@@ -37,25 +35,3 @@ class Constants:  # todo: ötlet minden konstans egy objektumba -> egy időben t
     # todo: https://github.com/ppke-nlpg/purepos-python3/issues/7
     def __init__(self):
         pass
-
-
-class StemFilter:
-    def __init__(self, filename: str):
-        self.stems = set()
-        with open(filename) as file:
-            self.stems = set(file.readlines())
-
-    def filter_stem(self, candidates) -> list:
-        if len(self.stems) == 0:
-            return candidates
-        ret = [t for t in candidates if t.stem in self.stems]
-        if len(ret) == 0:
-            return candidates
-        return ret
-
-    @staticmethod
-    def create_stem_filter():
-        # Régi örökség, de jó ha van. Lásd: Obamának -> Obama, Obamá, Obam
-        # Ezt "váltotta fel" az AnalysisQueue kell még?
-        if os.path.isfile(STEM_FILTER_FILE):
-            return StemFilter(STEM_FILTER_FILE)

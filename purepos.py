@@ -304,11 +304,10 @@ class PurePos:
 
     def __init__(self, options: dict):
         self.options = options
-        seps = options["input_separator"][1:].split(options["input_separator"][0])
-        AnalysisQueue.ANAL_OPEN = seps[0]
-        AnalysisQueue.ANAL_SEP = seps[1]
-        AnalysisQueue.ANAL_CLOSE = seps[2]
-        AnalysisQueue.ANAL_TAG_OPEN = seps[3]
+        # todo: ezt értelmesebben kivezetni
+        #seps = options["input_separator"][1:].split(options["input_separator"][0])
+        #self.options.analysisQueue = {'ANAL_OPEN': seps[0], 'ANAL_SEP': seps[1], 'ANAL_CLOSE': seps[2],
+        #                              'ANAL_TAG_OPEN': seps[3], 'ANAL_TAG_CLOSE': seps[4], 'PROB_SEP': seps[5]}
 
     def run(self):
         if self.options.get("config_file") is None:

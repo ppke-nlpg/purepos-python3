@@ -27,7 +27,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 from corpusreader.containers import Token
 from purepos.cli.configuration import Configuration
-from purepos.common.lemmatransformation import def_lemma_representation
+from purepos.common.lemmatransformation import LemmaTransformation
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.common.statistics import Statistics
 from purepos.model.hashsuffixtree import HashSuffixTree
@@ -85,8 +85,8 @@ class Model:
         self.upper_suffix_tree = HashSuffixTree(self.suffix_length)
 
         # LogLinearBiCombiner: combine data form the guesser and the unigram model
-        from purepos.model.combiner import default_combiner
-        self.combiner = default_combiner()
+        from purepos.model.combiner import LogLinearBiCombiner
+        self.combiner = LogLinearBiCombiner()
 
     def train(self, document: list):
         # todo read lines by lines. See the issue:
@@ -103,20 +103,20 @@ class Model:
             tags.reverse()
 
             self.tag_transition_model.add_word(tags, self.eos_index)
-            for i in range(len(sentence)-1, -1, -1):
-                token = sentence[i]
+            for pos in range(len(sentence)-1, -1, -1):
+                token = sentence[pos]
                 if token.token != Model.BOS_TOKEN:
                     token.simplify_lemma()
                 word = token.token
                 lemma = token.stem
-                tag = tags[i]
-                context = tags[0:i+1]
+                tag = tags[pos]
+                context = tags[0:pos+1]
                 prev_tags = context[:-1]
 
                 if word != Model.BOS_TOKEN and word != Model.EOS_TOKEN:
                     self.stat.increment_token_count()
                     self.lemma_unigram_model[lemma] += 1  # Store lemma
-                    lemmatrans = def_lemma_representation(word, lemma, tag)
+                    lemmatrans = LemmaTransformation(word, lemma, tag)
                     self.lemma_suffix_tree.add_word(word, lemmatrans, 1, lemmatrans.min_cut_length())
 
                     self.tag_transition_model.add_word(prev_tags, tag)
@@ -126,8 +126,9 @@ class Model:
                     if spec_name is not None:
                         self.spec_tokens_emission_model.add_word(context, spec_name)
                         self.spec_tokens_lexicon.add_token(spec_name, tag)
-
-        for word, m in self.standard_tokens_lexicon.items():  # Training: build suffix trees after the input is read
+        # Training: build suffix trees after the input is read
+        for word, tag_count in self.standard_tokens_lexicon.items():
+            # todo: should be cheked against stem rareness!
             if self.standard_tokens_lexicon.word_count(word) <= self.rare_frequency:  # Is rare?
                 lower_word = word.lower()
                 if lower_word == word:  # Lower or upper case?
@@ -136,7 +137,7 @@ class Model:
                 else:
                     suffix_tree_add_word = self.upper_suffix_tree.add_word
                     stat_increment_guesser_items = self.stat.increment_upper_guesser_items
-                for tag in m.keys():  # Add to the appropriate guesser
+                for tag in tag_count.keys():  # Add to the appropriate guesser
                     word_tag_freq = self.standard_tokens_lexicon.wordcount_for_tag(word, tag)
                     suffix_tree_add_word(lower_word, tag, word_tag_freq)
                     stat_increment_guesser_items(word_tag_freq)

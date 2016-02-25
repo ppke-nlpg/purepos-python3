@@ -32,29 +32,13 @@ from purepos.model.model import Model
 # from purepos.model.suffixguesser import HashSuffixTree
 
 
-def default_combiner():
-    return LogLinearBiCombiner()
-
-
-# todo: Do we need base class or just LogLinearBiCombiner?
-class BaseCombiner:
-    def __init__(self):
-        self.lambdas = []
-
-    def parameters(self):  # Unused...
-        return self.lambdas
-
-    def calculate_params(self, doc: list, modeldata: Model):
-        pass
-
-    def combine(self, token: Token, lem_transf: LemmaTransformation, modeldata: Model) -> float:
-        pass
-
-
-class LogLinearBiCombiner(BaseCombiner):
+class LogLinearBiCombiner:
     def __init__(self):
         super().__init__()
         self.lambdas = [1.0, 1.0]
+
+    def parameters(self):  # Unused...
+        return self.lambdas
 
     def calculate_params(self, doc: list, modeldata: Model):
         lambda_u = self.lambdas[0]
@@ -68,6 +52,7 @@ class LogLinearBiCombiner(BaseCombiner):
                 # Same with sufixes
                 suffix_max_prob = max(prob for _, prob in suffix_probs.values())
                 act_uni_prob = modeldata.lemma_unigram_model.log_prob(tok.stem)
+                # todo: Itt lehegy egyáltalán UNKNOWN? Nem mert ezt tanulja meg...
                 act_suff_prob = suffix_probs.get(tok, (None, UNKNOWN_VALUE))[1]
 
                 uni_prop = act_uni_prob - uni_max_prob

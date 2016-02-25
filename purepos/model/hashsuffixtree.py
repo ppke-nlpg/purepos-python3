@@ -69,7 +69,7 @@ class HashSuffixTree:
         start = max(0, end-self.max_suffix_length)
         for p in range(start, end + 1):
             suffix = word[p:]
-            tags_counts = self.freq_table.setdefault(suffix, [Counter(), 0])[0]
+            tags_counts = self.freq_table.setdefault(suffix, [Counter(), 0])[0]  # Counter
             tags_counts[tag] += count
             self.freq_table[suffix][1] += count
         self.total_tag_count += count
@@ -87,8 +87,8 @@ class HashSuffixTree:
         for i in range(len(word), -1, -1):
             # Brants (2000) formula 7
             suffix, prob = freq_table.get(word[i:], [dict(), 0])
-            mret.update({tag: (mret.get(tag, 0.0) + (val / prob * theta)) / theta_plus_one
-                         for tag, val in suffix.items()})
+            mret.update({tag: (mret.get(tag, 0.0) + (sprob / prob * theta)) / theta_plus_one
+                         for tag, sprob in suffix.items()})
         return {k: log(v) for k, v in mret.items()}
 
     def tag_log_probability(self, word, tag, unk_value=UNKNOWN_VALUE) -> float:

@@ -30,23 +30,18 @@ from corpusreader.containers import Token
 from purepos.model.vocabulary import IntVocabulary
 
 
-def def_lemma_representation(word, stem, tag):
-    return LemmaTransformation(word, stem, tag)
-
-
 # XXX Ettől lassú az egész, mert ez sokszor hívódik meg!
 def batch_convert(prob_map: dict, word: str, vocab: IntVocabulary) -> dict:
     ret = dict()  # {token: (lemmatransf_tuple, float)}
     inf = float('-inf')
-    get = ret.get
-    for k, v in prob_map.items():  # (str, int), float
+    for lemmatrans, prob in prob_map.items():  # (str, int), float
         # Ami ebben a convertben van, át kéne gondolni. Amit lehet, azt ide kihozni.
-        lemma = k.encode(word, vocab)  # token
+        lemma = lemmatrans.encode(word, vocab)  # token
         # Nem egyértelmű kulcs (__postprocess). Jó lenne, ha a jobb valségű győzne, vagy legyen
         # egyértelmű kulcs
         # De azért ne nyerjen a kötőjeles lemma.
-        ret[lemma] = max((k, v), get(lemma, (k, inf)), key=itemgetter(1))
-    return ret
+        ret[lemma] = max((lemmatrans, prob), ret.get(lemma, (lemmatrans, inf)), key=itemgetter(1))
+    return ret  # Legyártja az adott tokenhez tartozó lemmához a transzformációt és a valséget...
 
 # Ezek már csak fájlon belül hívódnak meg, ha meghívódnak egyáltalán...
 

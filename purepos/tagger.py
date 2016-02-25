@@ -29,7 +29,7 @@ import io
 from corpusreader.containers import Token
 from purepos.common import util
 from purepos.common.analysisqueue import AnalysisQueue
-from purepos.common.lemmatransformation import def_lemma_representation, batch_convert
+from purepos.common.lemmatransformation import LemmaTransformation, batch_convert
 from purepos.model.model import Model
 from purepos.morphology import Morphology
 from purepos.decoder.beamedviterbi import BeamedViterbi
@@ -47,26 +47,22 @@ class MorphTagger:
         self.analysis_queue = []
         self.analysis_queue_parser = anal_queue
         if not self.no_stemming:
-            self.stem_filter = util.StemFilter.create_stem_filter()
-            self.is_last_guessed = False
             self.find_best_lemma = lambda x, _: x
 
+    # todo: Ebben a függvényben és a sent_to_string() függvényben kéne a bemeneti formátumot egységesíteni...
     def tag(self, source: io.TextIOWrapper, dest: io.TextIOWrapper, max_results_number: int=1):
         for line in source:
-            print(self.tag_and_format(line, max_results_number), file=dest)
-
-    def tag_and_format(self, line: str, max_res_num: int) -> str:
-        return '\t'.join(self.sent_to_string(s, (max_res_num > 1)) for s in self.tag_sentence(line.strip().split(),
-                                                                                              max_res_num))
+            print('\t'.join(self.sent_to_string(s, (max_results_number > 1))
+                            for s in self.tag_sentence(line.strip().split(), max_results_number)), file=dest)
 
     def sent_to_string(self, sentence: tuple, show_prob: bool) -> str:
         ret = self.toksep.join(str(i) for i in sentence[0])
         if show_prob:
-            ret += "$${}$$".format(sentence[1])  # todo: kivezetni konfigba a formátumot
+            ret += '$${}$$'.format(sentence[1])  # todo: kivezetni konfigba a formátumot
         return ret
 
-    # list of strings
-    def tag_sentence(self, sentence: list, max_res: int) -> tuple:  # todo: formátumválasztást alkalmazni...
+    def tag_sentence(self, sentence: list, max_res: int) -> tuple:
+        # Here 'Sentence' type is the input and '[Sentence]' is the output (has nothing to do with input formatting)
         self.analysis_queue = [None for _ in range(len(sentence))]  # Allocate memory for faster filling...
         preped_sent = []
         for i, word in enumerate(sentence):
@@ -85,9 +81,8 @@ class MorphTagger:
 
         return ret
 
-    # todo: ezen van még mit optimalizálni (tényleg mindenhol új tokent kell gyártani?)
+    # todo: Ezt végig kéne gondolni, hogy tényleg így a legjobb-e...
     def _find_best_lemma(self, t: Token, position: int) -> Token:
-        self.is_last_guessed = False
         if self.analysis_queue[position] is not None:
             stems = self.analysis_queue[position].word_anals()
             for t in stems:
@@ -95,34 +90,31 @@ class MorphTagger:
         else:
             stems = self.analyser.analyse(t.token)
 
+        # dict: lemma -> (lemmatrans, prob)
         lemma_suff_probs = batch_convert(self.model.lemma_suffix_tree.tag_log_probabilities(t.token), t.token,
                                          self.model.tag_vocabulary)
 
-        use_morph = True
-        if len(stems) == 0:
-            self.is_last_guessed = True
-            use_morph = False
+        guessed = len(stems) == 0
+        if guessed:
             stems = lemma_suff_probs.keys()
 
         possible_stems = [ct for ct in stems if t.tag == ct.tag]
 
         if len(possible_stems) == 0:
-            best = Token(t.token, t.token, t.tag)  # todo: Muszáj lemásolni?
-        elif len(possible_stems) == 1 and t.token == t.token.lower():
+            best = Token(t.token, t.token, t.tag)  # lemma = token
+        elif len(possible_stems) == 1 and t.token == t.token.lower():  # If upper then it could be at sentence start...
             best = possible_stems[0]
         else:
-            if self.stem_filter is not None:
-                possible_stems = self.stem_filter.filter_stem(possible_stems)
             comp = []
             for poss_tok in possible_stems:
-                pair = lemma_suff_probs.get(poss_tok)
+                pair = lemma_suff_probs.get(poss_tok)  # (lemmatrans, prob)
                 if pair is not None:
                     traf = pair[0]
                 else:
-                    traf = def_lemma_representation(poss_tok.token, poss_tok.stem,
-                                                    self.model.tag_vocabulary.index(poss_tok.tag))  # Get
+                    traf = LemmaTransformation(poss_tok.token, poss_tok.stem,
+                                               self.model.tag_vocabulary.index(poss_tok.tag))  # Get
                 comp.append((poss_tok, traf))
-                if not use_morph:
+                if guessed:  # Append lowercased stems...
                     lower_tok = Token(poss_tok.token, poss_tok.stem.lower(), poss_tok.tag)
                     comp.append((lower_tok, traf))
             best = (max(comp, key=lambda p: self.model.combiner.combine(p[0], p[1], self.model)))[0]
@@ -130,8 +122,8 @@ class MorphTagger:
         if best.original_stem is not None:
             best.stem = best.original_stem
 
-        lemma = best.stem.replace(" ", "_")
-        if self.is_last_guessed and util.CONFIGURATION is not None:
+        lemma = best.stem.replace(' ', '_')
+        if guessed and util.CONFIGURATION is not None:
             lemma = util.CONFIGURATION.guessed_lemma_marker + lemma
 
         return Token(best.token, lemma, best.tag)

@@ -25,13 +25,17 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
+from math import log
 from corpusreader.containers import Token
 from purepos.common.util import UNKNOWN_VALUE
 from purepos.model.vocabulary import IntVocabulary
 
 
-class OneWordLexicalModel:
-    # Ez biztosítja az AnalysisQueue-t...
+class UserProbSumNotOneError(Exception):
+    pass
+
+
+class OneWordLexicalModel:  # AnalysisQueue by element...
     def __init__(self, probs: dict, word: str, anals: set, use_probs):
         self.element_mapper = None
         self.context_mapper = None
@@ -51,18 +55,15 @@ class OneWordLexicalModel:
         return UNKNOWN_VALUE
 
     def word_tags(self) -> list:
-        return list(self.probs)
+        return list(self.probs.keys())
 
     def word_anals(self) -> list:
         return [Token(self.word, anal, prob) for anal, prob in self.probs.items()]
 
 
-class AnalysisQueue:
-    # Ezzel az osztállyal a felhasználó tud saját analíziseket adni simán vagy valószínűséggel
-    # Ez csak a parser...
+class AnalysisQueue:  # The user can add his or her own anals optionally with probs (This is just a parser!)
     # todo: ezt is ki kell vezetni a parancssorig
     # todo ki kéne tesztelni ilyen szintaktikájú korpuszon!!!
-
     def ispreanalysed(self, word: str) -> bool:
         return word.find(self.ANAL_OPEN) > 0 and word.rfind(self.ANAL_CLOSE) > 0
 
@@ -87,18 +88,26 @@ class AnalysisQueue:
 
         tags = {}
         anals = set()
+        sum_probs = 0.0
         use_prob = False
         for anal in anals_list:
-            val_sep_index = anal.find(self.PROB_SEP)
-            prob = 1.0
+            prob = 0.0  # LOGPROB! == 1.0 in normal prob...
+            val_sep_index = anal.find(self.PROB_SEP)  # Separate prob if exists
             if val_sep_index > -1:
                 use_prob = True
                 prob = float(anal[val_sep_index + len(self.PROB_SEP):])
+                sum_probs += prob
+                if prob > 0.0:
+                    prob = log(prob)
+                else:
+                    prob = UNKNOWN_VALUE
                 anal = anal[:val_sep_index]
-            tag_rb = anal.find(self.ANAL_TAG_OPEN)
+            tag_rb = anal.find(self.ANAL_TAG_OPEN)  # Separate lemma from tag if exists
             tag_lb = anal.find(self.ANAL_TAG_CLOSE)
             lemma = anal[:tag_rb]
             tag = tag_voc.add_element(anal[tag_rb + len(self.ANAL_TAG_OPEN):tag_lb])  # Tag transformed to ID...
             tags[tag] = prob  # tag -> prob
             anals.add(Token(word, lemma, tag))
+        if 0.0 < sum_probs < 1.0:
+            raise UserProbSumNotOneError  # todo: Ezt valahogy segítőkészebbé tenni...
         return OneWordLexicalModel(tags, word, anals, use_prob)
