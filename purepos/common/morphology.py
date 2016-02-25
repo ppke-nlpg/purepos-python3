@@ -25,7 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from corpusreader.containers import Token
+from purepos.common.corpusrepresentation import Token
 
 
 class Morphology:

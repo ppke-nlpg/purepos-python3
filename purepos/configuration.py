@@ -29,7 +29,15 @@ LEMMA_MAPPER = None  # StringMapper  # todo: Ezeket a globálokat be kéne zavar
 EOS_EMISSION_PROB = 1.0
 UNKNOWN_TAG_WEIGHT = -99.0
 UNKOWN_TAG_TRANSITION = -99.0
-UNKNOWN_VALUE = -99.0
+UNKNOWN_VALUE = -99.0  # todo: Ezt paraméterehhetővé kéne tenni a legtöbb adat osztályban, mert most beégetett konstans.
+
+
+class Colors:
+    SEPARATOR = ""
+    WORD = ""
+    LEMMA = ""
+    TAGS = ""
+    ENDC = ""
 
 
 class Configuration:

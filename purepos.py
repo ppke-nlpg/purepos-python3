@@ -31,14 +31,14 @@ import math
 import os
 import sys
 
-from corpusreader.containers import Colors, Token
 from purepos.common.analysisqueue import AnalysisQueue
+from purepos.common.morphology import Morphology
+from purepos.common.spectokenmatcher import SpecTokenMatcher
+from purepos.common.corpusrepresentation import Token
 from purepos.common.util import StandardSerializer
-from purepos.configuration import Configuration
-from purepos.morphology import Morphology
+from purepos.configuration import Configuration, Colors
 from purepos.tagger import MorphTagger
 from purepos.trainer import Trainer
-from purepos.common.spectokenmatcher import SpecTokenMatcher
 
 
 def parse_arguments():

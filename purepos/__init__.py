@@ -25,4 +25,4 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-__all__ = ["morphology", "tagger", "trainer"]
+__all__ = ["common.morphology", "tagger", "trainer"]

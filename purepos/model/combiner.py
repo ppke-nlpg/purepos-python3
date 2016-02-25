@@ -25,11 +25,10 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from corpusreader.containers import Token
 from purepos.common.lemmatransformation import LemmaTransformation, batch_convert
+from purepos.common.corpusrepresentation import Token
 from purepos.configuration import UNKNOWN_VALUE
-from purepos.model.model import Model
-# from purepos.model.suffixguesser import HashSuffixTree
+from purepos.trainer import Model
 
 
 class LogLinearBiCombiner:

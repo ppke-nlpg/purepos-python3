@@ -25,11 +25,11 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
+from purepos.common.morphology import Morphology
 from purepos.common.spectokenmatcher import SpecTokenMatcher
-from purepos.decoder.ngram import NGram, Node
-from purepos.model.model import Model
-from purepos.morphology import Morphology
 from purepos.configuration import EOS_EMISSION_PROB, UNKNOWN_TAG_WEIGHT, UNKOWN_TAG_TRANSITION
+from purepos.decoder.ngram import NGram, Node
+from purepos.trainer import Model
 
 
 class BeamedViterbi:

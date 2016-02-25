@@ -26,7 +26,7 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from math import log
-from corpusreader.containers import Token
+from purepos.common.corpusrepresentation import Token
 from purepos.configuration import UNKNOWN_VALUE
 from purepos.model.vocabulary import IntVocabulary
 

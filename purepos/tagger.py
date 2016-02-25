@@ -26,14 +26,14 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
-from corpusreader.containers import Token
 from purepos.common.analysisqueue import AnalysisQueue
 from purepos.common.lemmatransformation import LemmaTransformation, batch_convert
+from purepos.common.morphology import Morphology
+from purepos.common.spectokenmatcher import SpecTokenMatcher
+from purepos.common.corpusrepresentation import Token
 from purepos.configuration import Configuration
 from purepos.decoder.beamedviterbi import BeamedViterbi
-from purepos.model.model import Model
-from purepos.morphology import Morphology
-from purepos.common.spectokenmatcher import SpecTokenMatcher
+from purepos.trainer import Model
 
 
 class MorphTagger:
