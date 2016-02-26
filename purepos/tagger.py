@@ -72,7 +72,7 @@ class MorphTagger:
         preped_sent = []
         for i, word in enumerate(sentence):
             if self.analysis_queue_parser.ispreanalysed(word):
-                self.analysis_queue[i] = self.analysis_queue_parser.add_word(word, self.model.tag_vocabulary)
+                self.analysis_queue[i] = self.analysis_queue_parser.parse(word, self.model.tag_vocabulary)
                 preped_sent.append(self.analysis_queue_parser.clean(word))
             else:
                 preped_sent.append(word)

@@ -153,7 +153,8 @@ class PurePos:
               separator: str,
               linesep: str,
               spec_token_matcher: SpecTokenMatcher,
-              conf: Configuration):  # todo verbose mode
+              conf: Configuration,
+              suff_tree_from_rare_lemmas: bool):  # todo verbose mode
         """Create a language model from an analysed corpora (and optionally from an existing model).
         It performs on the given input which can be also the stdin.
 
@@ -168,6 +169,7 @@ class PurePos:
         :param linesep: The sepatator character(s) between the sentences. Default: newline.
         :param spec_token_matcher:
         :param conf:
+        :param suff_tree_from_rare_lemmas:
         """
         if input_path is not None:
             source = open(input_path, encoding=encoding)  # todo default encoding? (a Python3 okos)
@@ -182,7 +184,8 @@ class PurePos:
             ret_model = trainer.train_model(ret_model)
         else:
             print('Training model... ', file=sys.stderr)
-            ret_model = trainer.train(tag_order, emission_order, suff_length, rare_freq, spec_token_matcher, conf)
+            ret_model = trainer.train(tag_order, emission_order, suff_length, rare_freq, spec_token_matcher, conf,
+                                      suff_tree_from_rare_lemmas)
         print(trainer.stat.stat(ret_model), file=sys.stderr)
         print('Writing model... ', file=sys.stderr)
         StandardSerializer.write_model(ret_model, model_path)
@@ -326,6 +329,8 @@ class PurePos:
         analysis_queue = AnalysisQueue(*sepopts)
         spec_token_matcher = SpecTokenMatcher
         Configuration.SEP = self.options['separator']
+        suff_tree_from_rare_lemmas = True  # todo: Kivezetni a parancssorig...
+                                           # (lemmák ritkaságát nézi vagy szavakét a guessehez?)
 
         if self.options['command'] == self.TRAIN_OPT:
             self.train(self.options['encoding'],
@@ -337,7 +342,8 @@ class PurePos:
                        self.options['rare_frequency'],
                        self.options['separator'],
                        '\n', spec_token_matcher,
-                       configuration)  # todo sor elválasztó?
+                       configuration,
+                       suff_tree_from_rare_lemmas)  # todo sor elválasztó?
         elif self.options['command'] == self.TAG_OPT:
             self.tag(self.options['encoding'],
                      self.options['model'],

@@ -65,7 +65,9 @@ class HashSuffixTree:
         :return: None
         """
         wlen = len(word)
-        for suffix in (word[wlen-i:] for i in range(min_len, min(wlen, self.max_suffix_length)+1)):
+        # todo: Ez most kezeli a batch_convert-ben a többértelműséget? (Elvileg kéne neki.)
+        for suffix in (word[wlen-i:] for i in range(min_len, min(wlen, self.max_suffix_length)+1)
+                       if not word[wlen-i:].endswith('-')):
             tags_counts = self.freq_table.setdefault(suffix, [Counter(), 0])[0]  # Return or return default...
             tags_counts[tag] += count            # Increment (suffix, tag) count
             self.freq_table[suffix][1] += count  # Increment suffix count
@@ -79,9 +81,12 @@ class HashSuffixTree:
         freq_table = self.freq_table
         theta = self.theta
         theta_plus_one = theta + 1
+        wlen = len(word)
         # Bug in PurePOS: If a word case differs from its lemmas case (start of a sentence)
         # it won't be included in the freq_table! (Fixed!)
-        for suffix in (word[len(word)-i:] for i in range(min(len(word), self.max_suffix_length)+1)):
+        # todo: Ez most kezeli a batch_convert-ben a többértelműséget? (Elvileg kéne neki.)
+        for suffix in (word[wlen-i:] for i in range(min(wlen, self.max_suffix_length)+1)
+                       if not word[wlen-i:].endswith('-')):
             # Brants (2000) formula 7
             suffix, suffix_count = freq_table.get(suffix, [dict(), 0])
             for tag, tcount in suffix.items():

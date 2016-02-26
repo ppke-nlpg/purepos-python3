@@ -62,7 +62,6 @@ class OneWordLexicalModel:  # AnalysisQueue by element...
 
 
 class AnalysisQueue:  # The user can add his or her own anals optionally with probs (This is just a parser!)
-    # todo: ezt is ki kell vezetni a parancssorig
     # todo ki kéne tesztelni ilyen szintaktikájú korpuszon!!!
     def ispreanalysed(self, word: str) -> bool:
         return word.find(self.ANAL_OPEN) > 0 and word.rfind(self.ANAL_CLOSE) > 0
@@ -80,11 +79,11 @@ class AnalysisQueue:  # The user can add his or her own anals optionally with pr
         self.PROB_SEP = PROB_SEP
         self.conf = conf
 
-    def add_word(self, token: str, tag_voc: IntVocabulary):
+    def parse(self, token: str, tag_voc: IntVocabulary):
         word_rb = token.find(self.ANAL_OPEN)
         anal_rb = token.find(self.ANAL_CLOSE)
         word = token[:word_rb]
-        anals_strs = token[word_rb+len(self.ANAL_OPEN):anal_rb]
+        anals_strs = token[word_rb + len(self.ANAL_OPEN):anal_rb]
         anals_list = anals_strs.split(self.ANAL_SEP)
 
         tags = {}
@@ -107,8 +106,8 @@ class AnalysisQueue:  # The user can add his or her own anals optionally with pr
             tag_lb = anal.find(self.ANAL_TAG_CLOSE)
             lemma = anal[:tag_rb]
             tag = tag_voc.add_element(anal[tag_rb + len(self.ANAL_TAG_OPEN):tag_lb])  # Tag transformed to ID...
-            tags[tag] = prob  # tag -> prob
+            tags[tag] = prob
             anals.add(Token(word, lemma, tag))
         if 0.0 < sum_probs < 1.0:
-            raise UserProbSumNotOneError  # todo: Ezt valahogy segítőkészebbé tenni...
+            raise UserProbSumNotOneError('The sum of probs is ({}) not 1.0 at token: \'{}\' !'.format(sum_probs, token))
         return OneWordLexicalModel(tags, word, anals, use_prob)

@@ -79,6 +79,12 @@ class Lexicon:
     def wordcount_for_tag(self, word, tag):
         return self.representation[word][tag]
 
+    def keys(self):
+        return self.representation.keys()
+
+    def get_all(self, word):
+        return self.representation[word]
+
 
 class IntVocabulary(BiDict):
     def __init__(self, *args, **kwargs):

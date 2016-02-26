@@ -132,6 +132,6 @@ class LemmaTransformation:
         # Gyuri hack a kötőjeles lemmák elkerüléséért.
         # Lemma végi „-” leszedése.
         # pl.: Delacroix-é -> Delacroix-[FN][POS][NOM] -> Delacroix
-        if len(lemma) > 1 and lemma[-1] == '-':
+        if lemma.endswith('-', 1):
             lemma = lemma[:-1]
         return Token(word, lemma, vocab.word(self.tag))

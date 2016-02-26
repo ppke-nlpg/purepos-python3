@@ -29,11 +29,11 @@ LEMMA_MAPPER = None  # StringMapper  # todo: Ezeket a globálokat be kéne zavar
 
 
 class Colors:
-    SEPARATOR = ""
-    WORD = ""
-    LEMMA = ""
-    TAGS = ""
-    ENDC = ""
+    SEPARATOR = ''
+    WORD = ''
+    LEMMA = ''
+    TAGS = ''
+    ENDC = ''
 
 
 class Configuration:

@@ -44,13 +44,14 @@ class Model:
         return self.stat
 
     def __init__(self, tagging_order: int, emission_order: int, suffix_length: int, rare_frequency: int,
-                 spec_token_matcher: SpecTokenMatcher, conf: Configuration):
+                 spec_token_matcher: SpecTokenMatcher, conf: Configuration, suffix_tree_from_rare_lemmas: bool):
         self.spec_token_matcher = spec_token_matcher
         self.tagging_order = tagging_order
         self.emission_order = emission_order
         self.suffix_length = suffix_length
         self.rare_frequency = rare_frequency
         self.conf = conf
+        self.suffix_tree_from_rare_lemmas = suffix_tree_from_rare_lemmas
 
         self.stat = Statistics()  # Statistics about trainig
 
@@ -64,6 +65,7 @@ class Model:
         self.spec_tokens_emission_model = NGramModel(2)  # P(t_i|wspec_i)
 
         self.standard_tokens_lexicon = Lexicon()
+        self.standard_tokens_stem_lexicon = Lexicon()
         self.spec_tokens_lexicon = Lexicon()
 
         self.tag_vocabulary = IntVocabulary()
@@ -119,26 +121,24 @@ class Model:
 
                     self.tag_transition_model.add_word(prev_tags, tag)
                     self.standard_tokens_lexicon.add_token(word, tag)
+                    self.standard_tokens_stem_lexicon.add_token(lemma, (word, tag))
                     self.standard_emission_model.add_word(context, word)
                     spec_name = self.spec_token_matcher.match_lexical_element(word)
                     if spec_name is not None:
                         self.spec_tokens_emission_model.add_word(context, spec_name)
                         self.spec_tokens_lexicon.add_token(spec_name, tag)
         # Training: build suffix trees after the input is read
-        for word, tag_count in self.standard_tokens_lexicon.items():
-            # todo: should be cheked against stem rareness!
-            if self.standard_tokens_lexicon.word_count(word) <= self.rare_frequency:  # Is rare?
-                lower_word = word.lower()
-                if lower_word == word:  # Lower or upper case?
-                    suffix_tree_add_word = self.lower_suffix_tree.add_word
-                    stat_increment_guesser_items = self.stat.increment_lower_guesser_items
-                else:
-                    suffix_tree_add_word = self.upper_suffix_tree.add_word
-                    stat_increment_guesser_items = self.stat.increment_upper_guesser_items
-                for tag in tag_count.keys():  # Add to the appropriate guesser
-                    word_tag_freq = self.standard_tokens_lexicon.wordcount_for_tag(word, tag)
-                    suffix_tree_add_word(lower_word, tag, word_tag_freq)
-                    stat_increment_guesser_items(word_tag_freq)
+        if self.suffix_tree_from_rare_lemmas:
+            for stem in self.standard_tokens_stem_lexicon.keys():
+                # Checking for lemma rareness instead of word rareness...
+                if self.standard_tokens_stem_lexicon.word_count(stem) <= self.rare_frequency:  # Is rare?
+                    for word_tag in self.standard_tokens_stem_lexicon.get_all(stem).keys():
+                        word = word_tag[0]  # Just the word, tag not needed...
+                        self.add_rare_to_suffixtree(word)
+        else:
+            for word, tag_count in self.standard_tokens_lexicon.items():
+                if self.standard_tokens_lexicon.word_count(word) <= self.rare_frequency:  # Is rare?
+                    self.add_rare_to_suffixtree(word)
 
         # Compile model (almost)...
         self.tag_transition_model.count_word_apriori_probs()
@@ -150,6 +150,19 @@ class Model:
 
         # Because combiner needs the document to compute lambdas!
         self.combiner.calculate_params(document, self)
+
+    def add_rare_to_suffixtree(self, word):
+        lower_word = word.lower()
+        if lower_word == word:  # Lower or upper case?
+            suffix_tree_add_word = self.lower_suffix_tree.add_word
+            stat_increment_guesser_items = self.stat.increment_lower_guesser_items
+        else:
+            suffix_tree_add_word = self.upper_suffix_tree.add_word
+            stat_increment_guesser_items = self.stat.increment_upper_guesser_items
+        for tag in self.standard_tokens_lexicon.get_all(word).keys():  # Add tag to the appropriate guesser
+            word_tag_freq = self.standard_tokens_lexicon.wordcount_for_tag(word, tag)
+            suffix_tree_add_word(lower_word, tag, word_tag_freq)
+            stat_increment_guesser_items(word_tag_freq)
 
     def compile(self, conf: Configuration):  # Create a CompiledModel from this Model
         self.tag_vocabulary.store_max_element()
@@ -184,9 +197,10 @@ class Trainer:
               emission_order: int,
               max_suffix_length: int,
               rare_frequency: int, spec_token_matcher: SpecTokenMatcher,
-              conf: Configuration) -> Model:
+              conf: Configuration,
+              suff_tree_from_rare_lemmas: bool) -> Model:
         return self.train_model(Model(tag_order, emission_order, max_suffix_length, rare_frequency, spec_token_matcher,
-                                      conf))
+                                      conf, suff_tree_from_rare_lemmas))
 
     def train_model(self, model: Model) -> Model:
         model.train(self.document)

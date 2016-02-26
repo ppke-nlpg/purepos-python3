@@ -98,7 +98,6 @@ class BeamedViterbi:
 
         # User's own stuff... May overdefine (almost) everything... (left as is: isupper, lword, wordform)
         if user_anals[position] is not None:
-            # todo: biztos nem változik meg eddig itt vagy ezután a tag_vocabulary?
             tags = user_anals[position].word_tags()
             if user_anals[position].use_probabilities:  # todo: És mi van ha nem?
                 word_prob_model = user_anals[position]
