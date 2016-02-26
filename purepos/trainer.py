@@ -40,22 +40,17 @@ from purepos.model.vocabulary import Lexicon, IntVocabulary, LemmaUnigramModel
 class Model:
     """Raw model from parsed analysed corpora or loaded saved model.
     """
-    # todo paraméterezhető legyen MAJD!
-    EOS_TAG = "</S>"
-    BOS_TAG = "<S>"
-    BOS_TOKEN = "<SB>"
-    EOS_TOKEN = "<SE>"
-
     def last_stat(self) -> Statistics:
         return self.stat
 
     def __init__(self, tagging_order: int, emission_order: int, suffix_length: int, rare_frequency: int,
-                 spec_token_matcher: SpecTokenMatcher):
+                 spec_token_matcher: SpecTokenMatcher, conf: Configuration):
         self.spec_token_matcher = spec_token_matcher
         self.tagging_order = tagging_order
         self.emission_order = emission_order
         self.suffix_length = suffix_length
         self.rare_frequency = rare_frequency
+        self.conf = conf
 
         self.stat = Statistics()  # Statistics about trainig
 
@@ -72,8 +67,8 @@ class Model:
         self.spec_tokens_lexicon = Lexicon()
 
         self.tag_vocabulary = IntVocabulary()
-        self.bos_index = self.tag_vocabulary.add_element(Model.BOS_TAG)
-        self.eos_index = self.tag_vocabulary.add_element(Model.EOS_TAG)
+        self.bos_index = self.tag_vocabulary.add_element(self.conf.BOS_TAG)
+        self.eos_index = self.tag_vocabulary.add_element(self.conf.EOS_TAG)
 
         # Lemma suffix frequency table (ex HashLemmaTree class) 100 is enough for max lemma length...
         self.lemma_suffix_tree = HashSuffixTree(100)
@@ -89,7 +84,7 @@ class Model:
 
         # LogLinearBiCombiner: combine data form the guesser and the unigram model
         from purepos.model.combiner import LogLinearBiCombiner
-        self.combiner = LogLinearBiCombiner()
+        self.combiner = LogLinearBiCombiner(self.conf)
 
     def train(self, document: list):
         # todo read lines by lines. See the issue:
@@ -97,7 +92,7 @@ class Model:
         for sentence in (sent for para in document for sent in para):
             # add sentence markers
             sentence = list(sentence)  # XXX REMÉLEM ÍGY JÓ! Le kell másolni különben megváltoztatja a doc-ot...
-            sentence.insert(0, Token(Model.BOS_TOKEN, None, Model.BOS_TAG))
+            sentence.insert(0, Token(self.conf.BOS_TOKEN, None, self.conf.BOS_TAG))
             self.stat.increment_sentence_count()  # Add sentence
             # Visszafelé kell haladni a tag szótár felépítésekor
             # todo: változtat az eredményen, ha előre haladunk és nem fodítjuk meg a tags-et?
@@ -108,7 +103,7 @@ class Model:
             self.tag_transition_model.add_word(tags, self.eos_index)
             for pos in range(len(sentence)-1, -1, -1):
                 token = sentence[pos]
-                if token.token != Model.BOS_TOKEN:
+                if token.token != self.conf.BOS_TOKEN:
                     token.simplify_lemma()
                 word = token.token
                 lemma = token.stem
@@ -116,7 +111,7 @@ class Model:
                 context = tags[0:pos+1]
                 prev_tags = context[:-1]
 
-                if word != Model.BOS_TOKEN and word != Model.EOS_TOKEN:
+                if word != self.conf.BOS_TOKEN and word != self.conf.EOS_TOKEN:
                     self.stat.increment_token_count()
                     self.lemma_unigram_model[lemma] += 1  # Store lemma
                     lemmatrans = LemmaTransformation(word, lemma, tag)
@@ -188,8 +183,10 @@ class Trainer:
     def train(self, tag_order: int,
               emission_order: int,
               max_suffix_length: int,
-              rare_frequency: int, spec_token_matcher: SpecTokenMatcher) -> Model:
-        return self.train_model(Model(tag_order, emission_order, max_suffix_length, rare_frequency, spec_token_matcher))
+              rare_frequency: int, spec_token_matcher: SpecTokenMatcher,
+              conf: Configuration) -> Model:
+        return self.train_model(Model(tag_order, emission_order, max_suffix_length, rare_frequency, spec_token_matcher,
+                                      conf))
 
     def train_model(self, model: Model) -> Model:
         model.train(self.document)

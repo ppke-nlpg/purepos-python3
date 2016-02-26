@@ -152,7 +152,8 @@ class PurePos:
               rare_freq: int,
               separator: str,
               linesep: str,
-              spec_token_matcher: SpecTokenMatcher):  # todo verbose mode
+              spec_token_matcher: SpecTokenMatcher,
+              conf: Configuration):  # todo verbose mode
         """Create a language model from an analysed corpora (and optionally from an existing model).
         It performs on the given input which can be also the stdin.
 
@@ -165,7 +166,8 @@ class PurePos:
         :param rare_freq:  # todo
         :param separator: The sepatator character(s) inside the token. Default/traditionally: '#'.
         :param linesep: The sepatator character(s) between the sentences. Default: newline.
-        :param spec_token_matcher
+        :param spec_token_matcher:
+        :param conf:
         """
         if input_path is not None:
             source = open(input_path, encoding=encoding)  # todo default encoding? (a Python3 okos)
@@ -180,7 +182,7 @@ class PurePos:
             ret_model = trainer.train_model(ret_model)
         else:
             print('Training model... ', file=sys.stderr)
-            ret_model = trainer.train(tag_order, emission_order, suff_length, rare_freq, spec_token_matcher)
+            ret_model = trainer.train(tag_order, emission_order, suff_length, rare_freq, spec_token_matcher, conf)
         print(trainer.stat.stat(ret_model), file=sys.stderr)
         print('Writing model... ', file=sys.stderr)
         StandardSerializer.write_model(ret_model, model_path)
@@ -296,17 +298,16 @@ class PurePos:
         :param spec_token_matcher:
         :return: a tagger object.
         """
+        morph_anal_source = None
         if analyser == PurePos.INTEGRATED_MA:
             try:
-                ma = PurePos.load_humor(humor_path + '/bin/pyhumor/__init__.py', lex_path)
+                morph_anal_source = PurePos.load_humor(humor_path + '/bin/pyhumor/__init__.py', lex_path)
             except FileNotFoundError:
                 print('Humor module not found. Not using any morphological analyzer.', file=sys.stderr)
-                ma = Morphology(None)
-        elif analyser == PurePos.NONE_MA:
-            ma = Morphology(None)
-        else:
+        elif analyser == PurePos.PRE_MA:
             print('Using morphological table at: {}.'.format(analyser), file=sys.stderr)
-            ma = Morphology(analyser)
+            morph_anal_source = analyser
+        ma = Morphology(conf, morph_anal_source)
         print('Reading model... ', file=sys.stderr)
         model = StandardSerializer.read_model(model_path)
         print('Compiling model... ', file=sys.stderr)
@@ -314,16 +315,17 @@ class PurePos:
         suff_log_theta = math.log(10)
         return MorphTagger(model, ma, beam_log_theta, suff_log_theta, max_guessed, beam_size, no_stemming, toksep,
                            analysis_queue, conf, spec_token_matcher)
-        # todo: itt vezethetők ki az AnalysisQueue paraméterei...
 
     def __init__(self, options: dict):
         self.options = options
         configuration = Configuration()
         if self.options.get('config_file') is not None:
             configuration = Configuration.read(self.options['config_file'])
-        analysis_queue = AnalysisQueue(*options['input_separator'][1:].split(options['input_separator'][0]))
+        sepopts = options['input_separator'][1:].split(options['input_separator'][0])
+        sepopts.insert(0, configuration)
+        analysis_queue = AnalysisQueue(*sepopts)
         spec_token_matcher = SpecTokenMatcher
-        Token.SEP = self.options['separator']
+        Configuration.SEP = self.options['separator']
 
         if self.options['command'] == self.TRAIN_OPT:
             self.train(self.options['encoding'],
@@ -334,7 +336,8 @@ class PurePos:
                        self.options['suffix_length'],
                        self.options['rare_frequency'],
                        self.options['separator'],
-                       '\n', spec_token_matcher)  # todo sor elválasztó?
+                       '\n', spec_token_matcher,
+                       configuration)  # todo sor elválasztó?
         elif self.options['command'] == self.TAG_OPT:
             self.tag(self.options['encoding'],
                      self.options['model'],

@@ -42,7 +42,7 @@ class MorphTagger:
                  conf: Configuration, spec_token_matcher: SpecTokenMatcher):
         self.model = model
         self.analyser = analyser
-        self.decoder = BeamedViterbi(model, analyser, log_theta, suf_theta, max_guessed_tags, spec_token_matcher,
+        self.decoder = BeamedViterbi(model, analyser, log_theta, suf_theta, max_guessed_tags, spec_token_matcher, conf,
                                      beam_size)
         self.no_stemming = no_stemming
         self.toksep = toksep

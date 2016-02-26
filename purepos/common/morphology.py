@@ -26,38 +26,31 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from purepos.common.corpusrepresentation import Token
+from purepos.configuration import Configuration
 
 
 class Morphology:
-    def __init__(self, source=None):
-        self.tags = self.morph_table_tags
-        self.analyse = self.morph_table_analyse
+    def __init__(self, conf: Configuration, source=None):
+        self.conf = conf
         if source is None:
             self.anal_source = dict()  # None
-        elif isinstance(str, source):
+        elif isinstance(source, str):
             self.create(source)  # Table
         else:
             self.anal_source = source  # Integrated morphology (any inicialised class with analyse method)
-            self.integrated_ma_tags = self.integrated_ma_tags
-            self.analyse = self.integrated_ma_analyse
+            self.anal_source.get = lambda x, _: self.anal_source.stem(x)
 
     def create(self, file: str or None):
         if file is not None:
             with open(file, encoding='UTF-8') as f:
                 for line in f:
                     cells = line.strip().split('\t')
-                    if not line.startswith('#') and len(cells) > 1:  # todo: kivezetni a forátumot...
-                        token, anals = cells[0], cells[1:]
-                        self.anal_source[token] = anals
+                    if not line.startswith(self.conf.COMMENT) and len(cells) > 1:
+                        token, anals = cells[0], cells[1:]           # todo: Csak taggelés esetén is működjön!
+                        self.anal_source[token] = [anal.split() for anal in anals]
 
-    def morph_table_tags(self, word: str):
-        return self.anal_source.get(word, [])
+    def tags(self, word: str):
+        return [anal[1] for anal in self.anal_source.get(word, [])]
 
-    def morph_table_analyse(self, word: str):
-        return self.anal_source.get(word, [])
-
-    def integrated_ma_tags(self, word: str) -> list:
-        return [anal[1] for anal in self.anal_source.analyze(word)]
-
-    def integrated_ma_analyse(self, word: str) -> list:
-        return [Token(word, anal[0], anal[1]) for anal in self.anal_source.analyze(word)]
+    def analyse(self, word: str):
+        return [Token(word, anal[0], anal[1]) for anal in self.anal_source.get(word, [])]

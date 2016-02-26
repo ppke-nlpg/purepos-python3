@@ -27,7 +27,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 from purepos.common.lemmatransformation import LemmaTransformation, batch_convert
 from purepos.common.corpusrepresentation import Token
-from purepos.configuration import UNKNOWN_VALUE
+from purepos.configuration import Configuration
 from purepos.trainer import Model
 
 
@@ -80,12 +80,9 @@ def find_best_lemma(t: Token, position: int, analysis_queue, analyser, model, co
 
 
 class LogLinearBiCombiner:
-    def __init__(self):
-        self.conf = None
+    def __init__(self, conf: Configuration):
+        self.conf = conf
         self.lambdas = [1.0, 1.0]
-
-    def parameters(self):  # Unused...
-        return self.lambdas
 
     def calculate_params(self, doc: list, modeldata: Model):
         lambda_u = self.lambdas[0]
@@ -95,12 +92,13 @@ class LogLinearBiCombiner:
                 suffix_probs = batch_convert(modeldata.lemma_suffix_tree.tag_log_probabilities(tok.token), tok.token,
                                              modeldata.tag_vocabulary)
                 # Tokens mapped to unigram score and the maximal score is selected
-                uni_max_prob = max(modeldata.lemma_unigram_model.log_prob(t.stem) for t in suffix_probs.keys())
+                uni_max_prob = max(modeldata.lemma_unigram_model.log_prob(t.stem, self.conf.UNKNOWN_VALUE)
+                                   for t in suffix_probs.keys())
                 # Same with sufixes
                 suffix_max_prob = max(prob for _, prob in suffix_probs.values())
-                act_uni_prob = modeldata.lemma_unigram_model.log_prob(tok.stem)
+                act_uni_prob = modeldata.lemma_unigram_model.log_prob(tok.stem, self.conf.UNKNOWN_VALUE)
                 # todo: Itt lehegy egyáltalán UNKNOWN? Nem mert ezt tanulja meg...
-                act_suff_prob = suffix_probs.get(tok, (None, UNKNOWN_VALUE))[1]
+                act_suff_prob = suffix_probs.get(tok, (None, self.conf.UNKNOWN_VALUE))[1]
 
                 uni_prop = act_uni_prob - uni_max_prob
                 suff_prop = act_suff_prob - suffix_max_prob
@@ -121,8 +119,9 @@ class LogLinearBiCombiner:
             self.lambdas[0] = self.conf.weight
             self.lambdas[1] = 1 - self.conf.weight
 
-        return (self.lambdas[0] * modeldata.lemma_unigram_model.log_prob(token.stem) +
-                self.lambdas[1] * modeldata.lemma_suffix_tree.tag_log_probability(token.token, lem_transf))
+        return (self.lambdas[0] * modeldata.lemma_unigram_model.log_prob(token.stem, self.conf.UNKNOWN_VALUE) +
+                self.lambdas[1] * modeldata.lemma_suffix_tree.tag_log_probability(token.token, lem_transf,
+                                                                                  self.conf.UNKNOWN_VALUE))
 
 
 # Csak a BiCombinert használjuk, ami innen jön, dead code.

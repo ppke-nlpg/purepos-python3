@@ -27,7 +27,6 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
 from collections import Counter, defaultdict
-from purepos.configuration import UNKNOWN_VALUE
 
 
 class BiDict(dict):
@@ -90,7 +89,7 @@ class IntVocabulary(BiDict):
     def index(self, word):
         return self.__getitem__(word)
 
-    # Should not give None, but not works then...
+    # todo: Should not give None, but not works then...
     def word(self, index):
         # Better: return self.inverse[index]
         return self.inverse.get(index)
@@ -123,9 +122,9 @@ class LemmaUnigramModel(Counter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def log_prob(self, key):
+    def log_prob(self, key, unk_value):
         prob = self.__getitem__(key) / self.__len__()
-        return math.log(prob) if prob > 0 else UNKNOWN_VALUE
+        return math.log(prob) if prob > 0 else unk_value
 
 
 class TrieNode:
@@ -169,4 +168,4 @@ class TrieNode:
             return 0.0
 
     def __str__(self):
-        return "(id: {}, words: {})".format(self.id_, str(self.words))
+        return '(id: {}, words: {})'.format(self.id_, str(self.words))

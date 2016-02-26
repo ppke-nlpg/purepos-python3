@@ -26,7 +26,6 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import math
-from purepos.configuration import UNKNOWN_VALUE
 from purepos.model.vocabulary import IntVocabulary, TrieNode
 
 
@@ -59,7 +58,7 @@ class NGramModel:
             self.lambdas = [l / s for l in self.lambdas]
         self._create_root(self.root, self.lambdas)
 
-    def log_prob(self, context: list, word, unk_value=UNKNOWN_VALUE) -> float:
+    def log_prob(self, context: list, word, unk_value) -> float:
         # todo: Somehow indicate if the mapper maps to something that were never seen (new in vocabulary)
         # Beacause then we can skip climbing the suffix trie and return unk_value...
         if self.element_mapper is not None:
@@ -75,7 +74,7 @@ class NGramModel:
         prob = node.words.get(word, 0.0)
         return math.log(prob) if prob > 0 else unk_value
 
-    def apriori_log_prob(self, tag, unk_value=UNKNOWN_VALUE):
+    def apriori_log_prob(self, tag, unk_value):
         if self.apriori_word_mapper is not None:
             tag = self.apriori_word_mapper.map(tag)
         elem = self.word_apriori_probs.get(tag)

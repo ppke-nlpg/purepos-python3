@@ -27,7 +27,6 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 from collections import Counter
 from math import sqrt, log
-from purepos.configuration import UNKNOWN_VALUE
 
 
 class HashSuffixTree:
@@ -65,14 +64,12 @@ class HashSuffixTree:
         :param min_len: minimal suffix length
         :return: None
         """
-        end = len(word) - min_len
-        start = max(0, end-self.max_suffix_length)
-        for p in range(start, end + 1):
-            suffix = word[p:]
-            tags_counts = self.freq_table.setdefault(suffix, [Counter(), 0])[0]  # Counter
-            tags_counts[tag] += count
-            self.freq_table[suffix][1] += count
-        self.total_tag_count += count
+        wlen = len(word)
+        for suffix in (word[wlen-i:] for i in range(min_len, min(wlen, self.max_suffix_length)+1)):
+            tags_counts = self.freq_table.setdefault(suffix, [Counter(), 0])[0]  # Return or return default...
+            tags_counts[tag] += count            # Increment (suffix, tag) count
+            self.freq_table[suffix][1] += count  # Increment suffix count
+        self.total_tag_count += count            # Increment tag count for all tags
 
     def create_guesser(self, theta: float):
         self.theta = theta
@@ -84,14 +81,14 @@ class HashSuffixTree:
         theta_plus_one = theta + 1
         # Bug in PurePOS: If a word case differs from its lemmas case (start of a sentence)
         # it won't be included in the freq_table! (Fixed!)
-        for i in range(len(word), -1, -1):
+        for suffix in (word[len(word)-i:] for i in range(min(len(word), self.max_suffix_length)+1)):
             # Brants (2000) formula 7
-            suffix, prob = freq_table.get(word[i:], [dict(), 0])
-            mret.update({tag: (mret.get(tag, 0.0) + (sprob / prob * theta)) / theta_plus_one
-                         for tag, sprob in suffix.items()})
+            suffix, suffix_count = freq_table.get(suffix, [dict(), 0])
+            for tag, tcount in suffix.items():
+                mret[tag] = (mret.get(tag, 0.0) + (tcount / suffix_count * theta)) / theta_plus_one
         return {k: log(v) for k, v in mret.items()}
 
-    def tag_log_probability(self, word, tag, unk_value=UNKNOWN_VALUE) -> float:
+    def tag_log_probability(self, word, tag, unk_value) -> float:
         if self.mapper is not None:
             tag = self.mapper.map(tag)
         return self.tag_log_probabilities(word).get(tag, unk_value)

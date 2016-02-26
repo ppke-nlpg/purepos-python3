@@ -29,6 +29,7 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 import io
 import os
 import sys
+from purepos.configuration import Configuration
 
 
 class ParsingException(Exception):
@@ -53,8 +54,6 @@ def find_all(a_str, sub):
 
 class Token:
     """Class representing a stemmed tagged token in a sentence."""
-    SEP = "#"
-
     def __init__(self, token: str, stem: str=None, tag: str=None):
         self.token = token
         self.stem = stem
@@ -65,11 +64,11 @@ class Token:
 
     def __str__(self):
         if self.tag is not None and self.stem is None:
-            return Colors.WORD + self.token + Colors.SEPARATOR + self.SEP + \
+            return Colors.WORD + self.token + Colors.SEPARATOR + Configuration.SEP + \
                    Colors.TAGS + self.tag + Colors.ENDC
         else:
-            return Colors.WORD + self.token + Colors.SEPARATOR + self.SEP + Colors.LEMMA + \
-                   self.stem + Colors.SEPARATOR + self.SEP + Colors.TAGS + self.tag + Colors.ENDC
+            return Colors.WORD + self.token + Colors.SEPARATOR + Configuration.SEP + Colors.LEMMA + \
+                   self.stem + Colors.SEPARATOR + Configuration.SEP + Colors.TAGS + self.tag + Colors.ENDC
 
     def __hash__(self):
         return self.hash_code
@@ -142,7 +141,7 @@ class CorpusReader:
                         try:
                             word, lemma, pos = tok.split(self.field_sep)
                         except ValueError:
-                            raise ParsingException("Malformed input: '{}'".format(tok))
+                            raise ParsingException('Malformed input: \'{}\''.format(tok))
                         sent_toks.append(Token(word, lemma.replace('_', ' '), pos))
                         tok_start = tok_end
                 except ParsingException as ex:

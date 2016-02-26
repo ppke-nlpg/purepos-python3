@@ -26,10 +26,6 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 LEMMA_MAPPER = None  # StringMapper  # todo: Ezeket a globálokat be kéne zavarni a Configuration osztályba...
-EOS_EMISSION_PROB = 1.0
-UNKNOWN_TAG_WEIGHT = -99.0
-UNKOWN_TAG_TRANSITION = -99.0
-UNKNOWN_VALUE = -99.0  # todo: Ezt paraméterehhetővé kéne tenni a legtöbb adat osztályban, mert most beégetett konstans.
 
 
 class Colors:
@@ -53,12 +49,24 @@ class Configuration:
         self.guessed_lemma_marker = guessed_lemma_marker
         self.weight = weight
 
-    TAG = "to"
-    PATTERN = "pattern"
-    TAG_MAPPING = "tag_mapping"
-    LEMMA_MAPPING = "lemma_mapping"
-    GUESSED_MARKER = "guessed_marker"
-    SUFFIX_MODEL_PARAMETERS = "suffix_model_weight"
+    EOS_EMISSION_PROB = 1.0
+    UNKNOWN_TAG_WEIGHT = -99.0
+    UNKNOWN_TAG_TRANSITION = -99.0
+    UNKNOWN_VALUE = -99.0
+
+    EOS_TAG = '</S>'
+    BOS_TAG = '<S>'
+    BOS_TOKEN = '<SB>'
+    EOS_TOKEN = '<SE>'
+    SEP = '#'
+    COMMENT = '#'
+
+    TAG = 'to'
+    PATTERN = 'pattern'
+    TAG_MAPPING = 'tag_mapping'
+    LEMMA_MAPPING = 'lemma_mapping'
+    GUESSED_MARKER = 'guessed_marker'
+    SUFFIX_MODEL_PARAMETERS = 'suffix_model_weight'
 
     @staticmethod
     def read(filename: str):

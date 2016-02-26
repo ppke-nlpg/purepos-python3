@@ -27,27 +27,29 @@ __author__ = 'morta@digitus.itk.ppke.hu'
 
 from purepos.common.morphology import Morphology
 from purepos.common.spectokenmatcher import SpecTokenMatcher
-from purepos.configuration import EOS_EMISSION_PROB, UNKNOWN_TAG_WEIGHT, UNKOWN_TAG_TRANSITION
+from purepos.configuration import Configuration
 from purepos.decoder.ngram import NGram, Node
 from purepos.trainer import Model
 
 
 class BeamedViterbi:
     def __init__(self, model: Model, morphological_analyzer: Morphology, log_theta: float,
-                 suf_theta: float, max_guessed_tags: int, spectoken_matcher: SpecTokenMatcher, beam_size: int=None):
+                 suf_theta: float, max_guessed_tags: int, spectoken_matcher: SpecTokenMatcher, conf: Configuration,
+                 beam_size: int=None):
         self.model = model
+        self.tags = model.tag_vocabulary.tag_indices()
         self.morphological_analyzer = morphological_analyzer
         self.log_theta = log_theta
         self.suf_theta = suf_theta
         self.max_guessed_tags = max_guessed_tags
-        self.beam_size = beam_size
-        self.tags = model.tag_vocabulary.tag_indices()
         self.spectoken_matcher_match_lexical_element = spectoken_matcher.match_lexical_element
+        self.conf = conf
+        self.beam_size = beam_size
 
     def next_probs(self, prev_tags_set: set, word: str, position: int, user_anals: list) -> dict:
         # A szóhoz tartozó tag-valószínűségeket gyűjti ki.
         # A token tulajdonságai határozzák meg a konkrét fv-t.
-        if word == Model.EOS_TOKEN:
+        if word == self.conf.EOS_TOKEN:
             # Next for eos token by all prev tags
             return {prev_tags: self.next_for_eos_token(self, None, None, None, None, prev_tags, None)
                     for prev_tags in prev_tags_set}
@@ -129,8 +131,9 @@ class BeamedViterbi:
     def next_for_seen_token(self, word_form, _, __, word_prob_model, ___, prev_tags, tags):
         tag_probs = dict()  # Seen...
         for tag in tags:
-            transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag)
-            emission_prob = word_prob_model.log_prob(prev_tags.token_list + [tag], word_form)
+            transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag,
+                                                                     self.conf.UNKNOWN_TAG_TRANSITION)
+            emission_prob = word_prob_model.log_prob(prev_tags.token_list + [tag], word_form, self.conf.UNKNOWN_VALUE)
             tag_probs[tag] = (transion_prob, emission_prob)
         return tag_probs
 
@@ -144,9 +147,9 @@ class BeamedViterbi:
         tag_probs = dict()  # VOC: Not OOV (Morphology or the training set knows better...)
         for tag in tags:  # Mapping is made one level lower...
             transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag,
-                                                                     UNKOWN_TAG_TRANSITION)
+                                                                     self.conf.UNKNOWN_TAG_TRANSITION)
             # Emission prob: tagprob - tag_apriori_prob (If not seen: UNK - 0)
-            emission_prob = guesser.tag_log_probability(lword, tag, UNKNOWN_TAG_WEIGHT) \
+            emission_prob = guesser.tag_log_probability(lword, tag, self.conf.UNKNOWN_VALUE) \
                             - self.model.tag_transition_model.apriori_log_prob(tag, 0.0)
             tag_probs[tag] = (transion_prob, emission_prob)
         return tag_probs
@@ -155,15 +158,17 @@ class BeamedViterbi:
         tag_probs = dict()  # OOV: Guessed OOV (Do not have any clue.)
         for tag, tag_prob in guesser.tag_log_probabilities_w_max(lword, self.max_guessed_tags,
                                                                  self.suf_theta):
-            transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag)
+            transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag,
+                                                                     self.conf.UNKNOWN_TAG_TRANSITION)
             # Emission prob: tag_prob - tag_apriori_prob (If not seen: UNK - 0)
             emission_prob = tag_prob - self.model.tag_transition_model.apriori_log_prob(tag, 0.0)
             tag_probs[tag] = (transion_prob, emission_prob)
         return tag_probs
 
     def next_for_eos_token(self, _, __, ___, ____, _____, prev_tags, ______):
-        transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, self.model.eos_index)
-        emission_prob = EOS_EMISSION_PROB
+        transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, self.model.eos_index,
+                                                                 self.conf.UNKNOWN_VALUE)
+        emission_prob = self.conf.EOS_EMISSION_PROB
         return {self.model.eos_index: (transion_prob, emission_prob)}
 
     def decode(self, observations: list, results_num: int, user_anals: list) -> list:
@@ -173,7 +178,7 @@ class BeamedViterbi:
         observations = list(observations)
         if len(observations) == 0:
             return []
-        observations.append(Model.EOS_TOKEN)
+        observations.append(self.conf.EOS_TOKEN)
 
         start = NGram([self.model.bos_index for _ in range(self.model.tagging_order)], self.model.tagging_order)
         # Maga az algoritmus  # beam {NGram -> Node}

@@ -26,8 +26,8 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from math import log
+from purepos.configuration import Configuration
 from purepos.common.corpusrepresentation import Token
-from purepos.configuration import UNKNOWN_VALUE
 from purepos.model.vocabulary import IntVocabulary
 
 
@@ -44,7 +44,7 @@ class OneWordLexicalModel:  # AnalysisQueue by element...
         self.anals = list(anals)
         self.use_probabilities = use_probs
 
-    def log_prob(self, context: list, word: str) -> float:
+    def log_prob(self, context: list, word: str, unk_value) -> float:
         if self.element_mapper is not None:
             word = self.element_mapper.map(word)
         if self.context_mapper is not None:
@@ -52,7 +52,7 @@ class OneWordLexicalModel:  # AnalysisQueue by element...
         tag = context[-1]
         if word == self.word and tag in self.probs.keys():
             return self.probs[tag]
-        return UNKNOWN_VALUE
+        return unk_value
 
     def word_tags(self) -> list:
         return list(self.probs.keys())
@@ -70,14 +70,15 @@ class AnalysisQueue:  # The user can add his or her own anals optionally with pr
     def clean(self, word: str) -> str:
         return word[:word.find(self.ANAL_OPEN)]
 
-    def __init__(self, ANAL_SEP='||', ANAL_OPEN='{{', ANAL_CLOSE='}}', ANAL_TAG_OPEN='[', ANAL_TAG_CLOSE=']',
-                 PROB_SEP='$$'):
+    def __init__(self, conf: Configuration, ANAL_SEP='||', ANAL_OPEN='{{', ANAL_CLOSE='}}', ANAL_TAG_OPEN='[',
+                 ANAL_TAG_CLOSE=']', PROB_SEP='$$'):
         self.ANAL_SEP = ANAL_SEP
         self.ANAL_OPEN = ANAL_OPEN
         self.ANAL_CLOSE = ANAL_CLOSE
         self.ANAL_TAG_OPEN = ANAL_TAG_OPEN
         self.ANAL_TAG_CLOSE = ANAL_TAG_CLOSE
         self.PROB_SEP = PROB_SEP
+        self.conf = conf
 
     def add_word(self, token: str, tag_voc: IntVocabulary):
         word_rb = token.find(self.ANAL_OPEN)
@@ -100,7 +101,7 @@ class AnalysisQueue:  # The user can add his or her own anals optionally with pr
                 if prob > 0.0:
                     prob = log(prob)
                 else:
-                    prob = UNKNOWN_VALUE
+                    prob = self.conf.UNKNOWN_VALUE
                 anal = anal[:val_sep_index]
             tag_rb = anal.find(self.ANAL_TAG_OPEN)  # Separate lemma from tag if exists
             tag_lb = anal.find(self.ANAL_TAG_CLOSE)
