@@ -25,7 +25,7 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from purepos.common.lemmatransformation import LemmaTransformation, batch_convert
+from purepos.common.lemmatransformation import LemmaTransformation
 from purepos.common.corpusrepresentation import Token
 from purepos.configuration import Configuration
 from purepos.trainer import Model
@@ -40,12 +40,11 @@ def find_best_lemma(t: Token, position: int, analysis_queue, analyser, model, co
     else:
         stems = analyser.analyse(t.token)
 
-    # dict: lemma -> (lemmatrans, prob)
-    lemma_suff_probs = batch_convert(model.lemma_suffix_tree.tag_log_probabilities(t.token), t.token,
-                                     model.tag_vocabulary)
-
     guessed = len(stems) == 0
     if guessed:
+        # dict: lemma -> (lemmatrans, prob)
+        lemma_suff_probs = {lemmatrans.encode(t.token, model.tag_vocabulary): (lemmatrans, prob)
+                            for lemmatrans, prob in model.lemma_suffix_tree.tag_log_probabilities(t.token).items()}
         stems = lemma_suff_probs.keys()
 
     possible_stems = [ct for ct in stems if t.tag == ct.tag]
@@ -56,6 +55,10 @@ def find_best_lemma(t: Token, position: int, analysis_queue, analyser, model, co
         best = possible_stems[0]
     else:
         comp = []
+        if not guessed:
+            # dict: lemma -> (lemmatrans, prob)
+            lemma_suff_probs = {lemmatrans.encode(t.token, model.tag_vocabulary): (lemmatrans, prob)
+                                for lemmatrans, prob in model.lemma_suffix_tree.tag_log_probabilities(t.token).items()}
         for poss_tok in possible_stems:
             pair = lemma_suff_probs.get(poss_tok)  # (lemmatrans, prob)
             if pair is not None:
@@ -84,28 +87,29 @@ class LogLinearBiCombiner:
         self.conf = conf
         self.lambdas = [1.0, 1.0]
 
-    def calculate_params(self, doc: list, modeldata: Model):
+    def calculate_params(self, modeldata: Model):
         lambda_u = self.lambdas[0]
         lambda_s = self.lambdas[1]
-        for sentence in (sent for para in doc for sent in para):
-            for tok in sentence:
-                suffix_probs = batch_convert(modeldata.lemma_suffix_tree.tag_log_probabilities(tok.token), tok.token,
-                                             modeldata.tag_vocabulary)
-                # Tokens mapped to unigram score and the maximal score is selected
-                uni_max_prob = max(modeldata.lemma_unigram_model.log_prob(t.stem, self.conf.UNKNOWN_VALUE)
-                                   for t in suffix_probs.keys())
-                # Same with sufixes
-                suffix_max_prob = max(prob for _, prob in suffix_probs.values())
-                act_uni_prob = modeldata.lemma_unigram_model.log_prob(tok.stem, self.conf.UNKNOWN_VALUE)
-                # todo: Itt lehegy egyáltalán UNKNOWN? Nem mert ezt tanulja meg...
-                act_suff_prob = suffix_probs.get(tok, (None, self.conf.UNKNOWN_VALUE))[1]
+        for i, (tok, count) in enumerate(modeldata.corpus_types_w_count.items()):
+            if i % 1000 == 0:
+                print(i)
+            suffix_probs = {lemmatrans.encode(tok.token, modeldata.tag_vocabulary): (lemmatrans, prob)
+                            for lemmatrans, prob in modeldata.lemma_suffix_tree.tag_log_probabilities(tok.token).items()}
+            # Tokens mapped to unigram score and the maximal score is selected
+            uni_max_prob = max(modeldata.lemma_unigram_model.log_prob(t.stem, self.conf.UNKNOWN_VALUE)
+                               for t in suffix_probs.keys())
+            # Same with sufixes
+            suffix_max_prob = max(prob for _, prob in suffix_probs.values())
+            act_uni_prob = modeldata.lemma_unigram_model.log_prob(tok.stem, self.conf.UNKNOWN_VALUE)
+            # todo: Itt lehegy egyáltalán UNKNOWN? Nem mert ezt tanulja meg...
+            act_suff_prob = suffix_probs.get(tok, (None, self.conf.UNKNOWN_VALUE))[1]
 
-                uni_prop = act_uni_prob - uni_max_prob
-                suff_prop = act_suff_prob - suffix_max_prob
-                if uni_prop > suff_prop:
-                    lambda_u += uni_prop - suff_prop
-                elif suff_prop > uni_prop:
-                    lambda_s += suff_prop - uni_prop
+            uni_prop = act_uni_prob - uni_max_prob
+            suff_prop = act_suff_prob - suffix_max_prob
+            if uni_prop > suff_prop:
+                lambda_u += (uni_prop - suff_prop) * count
+            elif suff_prop > uni_prop:
+                lambda_s += (suff_prop - uni_prop) * count
 
         s = lambda_u + lambda_s
         lambda_u /= s

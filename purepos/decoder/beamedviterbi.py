@@ -76,7 +76,7 @@ class BeamedViterbi:
                 # SEEN, BUT LOWERCASED: First of a sentence uppercase and seen only in lowercase form
                 # word_prob_model = self.model.standard_emission_model
                 word_form = lword
-                isupper = False  # todo: Maybe to use both lower and uppercased guessers for unseen...
+                isupper = False
                 seen = True
             else:  # elif
                 # SPECIAL TOKEN?
@@ -88,7 +88,9 @@ class BeamedViterbi:
                     word_form = spec_name
                     if len(tags) > 0:
                         seen = True
-                        # else SPECIAL UNSEEN -> UNSEEN XXX why?
+                    else:
+                        print('WARNING: \'{}\' is identified as special token ({}),'
+                              ' but not seen in the training set! Using Guesser...'.format(word, spec_name))
 
         # Set guesser for casing of word_form...
         if isupper:
@@ -99,9 +101,9 @@ class BeamedViterbi:
         # User's own stuff... May overdefine (almost) everything... (left as is: isupper, lword, wordform)
         if user_anals[position] is not None:
             tags = user_anals[position].word_tags()
-            if user_anals[position].use_probabilities:  # todo: És mi van ha nem?
+            if user_anals[position].use_probabilities:
                 word_prob_model = user_anals[position]
-                seen = True
+                seen = True  # If no probabilities, handle it like the morphological analyser (but without filtering)
         # User's morph_anals do not need filtering...
         # Filter tags with morphology (tags = tags & morph_anals )
         elif len(morph_anals) > 0 and seen:  # Because if not seen tags is empty

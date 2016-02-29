@@ -26,6 +26,7 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 import io
+from collections import Counter
 from purepos.common.lemmatransformation import LemmaTransformation
 from purepos.common.spectokenmatcher import SpecTokenMatcher
 from purepos.common.corpusrepresentation import CorpusReader, Token
@@ -54,6 +55,7 @@ class Model:
         self.suffix_tree_from_rare_lemmas = suffix_tree_from_rare_lemmas
 
         self.stat = Statistics()  # Statistics about trainig
+        self.corpus_types_w_count = Counter()
 
         # Ngram model for labels: computes the probability of a tag in a particular context and the apriori tag probs
         self.tag_transition_model = NGramModel(self.tagging_order + 1)  # P(t_i|..., t_i-2, t_i-1) and P(t_i)
@@ -119,9 +121,10 @@ class Model:
                     lemmatrans = LemmaTransformation(word, lemma, tag)
                     self.lemma_suffix_tree.add_word(word, lemmatrans, 1, lemmatrans.min_cut_length())
 
+                    self.corpus_types_w_count[token] += 1  # Frequency of every unique token (type) in the corpus
                     self.tag_transition_model.add_word(prev_tags, tag)
                     self.standard_tokens_lexicon.add_token(word, tag)
-                    self.standard_tokens_stem_lexicon.add_token(lemma, (word, tag))
+                    self.standard_tokens_stem_lexicon.add_token(lemma, (word, tag))  # Used for Guesser building
                     self.standard_emission_model.add_word(context, word)
                     spec_name = self.spec_token_matcher.match_lexical_element(word)
                     if spec_name is not None:
@@ -148,10 +151,11 @@ class Model:
         self.lemma_suffix_tree.create_guesser(theta)
         # self.suffix_lemma_model = self.lemma_freq_tree.create_guesser(theta)
 
-        # Because combiner needs the document to compute lambdas!
-        self.combiner.calculate_params(document, self)
+        print(len(self.corpus_types_w_count))
+        # Because combiner needs the document to compute lambdas! (Already aggregated the data...)
+        self.combiner.calculate_params(self)
 
-    def add_rare_to_suffixtree(self, word):
+    def add_rare_to_suffixtree(self, word):  # To be able to define elswhere, that what is rare...
         lower_word = word.lower()
         if lower_word == word:  # Lower or upper case?
             suffix_tree_add_word = self.lower_suffix_tree.add_word

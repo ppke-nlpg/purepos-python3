@@ -25,26 +25,8 @@
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
-from operator import itemgetter
 from purepos.common.corpusrepresentation import Token
 from purepos.model.vocabulary import IntVocabulary
-
-
-# todo: talán ez is a model-ben jobb helyen lenne?
-# XXX Ettől lassú az egész, mert ez sokszor hívódik meg!
-def batch_convert(prob_map: dict, word: str, vocab: IntVocabulary) -> dict:
-    ret = dict()  # {token: (lemmatransf_tuple, float)}
-    inf = float('-inf')
-    for lemmatrans, prob in prob_map.items():  # (str, int), float
-        # Ami ebben a convertben van, át kéne gondolni. Amit lehet, azt ide kihozni.
-        lemma = lemmatrans.encode(word, vocab)  # token
-        # Nem egyértelmű kulcs (__postprocess). Jó lenne, ha a jobb valségű győzne, vagy legyen
-        # egyértelmű kulcs
-        # De azért ne nyerjen a kötőjeles lemma.
-        ret[lemma] = max((lemmatrans, prob), ret.get(lemma, (lemmatrans, inf)), key=itemgetter(1))
-    return ret  # Legyártja az adott tokenhez tartozó lemmához a transzformációt és a valséget...
-
-# Ezek már csak fájlon belül hívódnak meg, ha meghívódnak egyáltalán...
 
 
 def longest_substring(s1: str, s2: str) -> tuple:
@@ -70,7 +52,7 @@ def longest_substring(s1: str, s2: str) -> tuple:
 
 
 class LemmaTransformation:
-    def __init__(self, word: str, lemma: str, tag: int):
+    def __init__(self, word: str, lemma: str, tag: int):  # Decode
         """
         Bug in PurePOS: If a word case differs from its lemmas case (start of a sentence)
         it won't be included in the freq_table! (Fixed!) eg. Éves#éves#MN.NOM
@@ -79,9 +61,6 @@ class LemmaTransformation:
         :param tag: label
         :return: decoded to our representation
         """
-        word_lemma = longest_substring(word, lemma)
-        lemma_word = longest_substring(lemma, word)
-
         self.lowered = False  # is lowered?
         self.uppered = False  # is uppered?
         self.l = '-'
@@ -90,9 +69,13 @@ class LemmaTransformation:
             self.uppered = word[0].islower() and lemma[0].isupper()  # budapesti -> Budapest
             if self.lowered:
                 self.l = '_'
+                lemma = lemma[0].upper() + lemma[1:]  # Prevent redundancy in the transformation...
             elif self.uppered:
                 self.l = '^'
+                lemma = lemma[0].lower() + lemma[1:]
 
+        word_lemma = longest_substring(word, lemma)
+        lemma_word = longest_substring(lemma, word)
         self.remove_start = word_lemma[0]
         self.remove_end = len(word) - (word_lemma[0] + word_lemma[1])
         self.add_start = lemma[0:lemma_word[0]]
@@ -129,9 +112,4 @@ class LemmaTransformation:
             lemma = lemma[0].lower() + lemma[1:]
         elif len(word) > 0 and word[0] != word[0].upper() and self.uppered and len(lemma) > 0:
             lemma = lemma[0].upper() + lemma[1:]
-        # Gyuri hack a kötőjeles lemmák elkerüléséért.
-        # Lemma végi „-” leszedése.
-        # pl.: Delacroix-é -> Delacroix-[FN][POS][NOM] -> Delacroix
-        if lemma.endswith('-', 1):
-            lemma = lemma[:-1]
         return Token(word, lemma, vocab.word(self.tag))
