@@ -49,9 +49,9 @@ class Configuration:
         self.guessed_lemma_marker = guessed_lemma_marker
         self.weight = weight
 
-    EOS_EMISSION_PROB = 1.0
+    SINGLE_EMISSION_PROB = 0.0  # We are sure! P = 1 -> log(P) = 0.0
     UNKNOWN_TAG_WEIGHT = -99.0
-    UNKNOWN_TAG_TRANSITION = -99.0
+    UNK_TAG_TRANS = -99.0
     UNKNOWN_VALUE = -99.0
 
     EOS_TAG = '</S>'

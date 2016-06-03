@@ -51,7 +51,8 @@ class BeamedViterbi:
         # A token tulajdonságai határozzák meg a konkrét fv-t.
         if word == self.conf.EOS_TOKEN:
             # Next for eos token by all prev tags
-            return {prev_tags: self.next_for_eos_token(prev_tags, None, None, None, None, None)
+            return {prev_tags: self.next_for_single_tagged_token(prev_tags.token_list, None, None, None, None,
+                                                                 [self.model.eos_index], self.conf.UNK_TAG_TRANS)
                     for prev_tags in prev_tags_set}
 
         # Defaults:
@@ -116,61 +117,54 @@ class BeamedViterbi:
         elif len(morph_anals) > 0:  # Use pure morphology, else no change in tags...
             tags = morph_anals
 
+        UNK_TAG_TRANS = self.conf.SINGLE_EMISSION_PROB
         if seen:  # Seen and filtered by the morphology (if there is one)
             comp_tag_probs = self.next_for_seen_token
         elif len(tags) == 1:  # Single anal: morphology filtering as the only common anal or seen only one anal
             comp_tag_probs = self.next_for_single_tagged_token
+            UNK_TAG_TRANS = 0.0  # We are sure! P = 1 -> log(P) = 0.0
         elif len(tags) > 0:  # Not OOV (in vocabulary): the morphology filtered training set knows better...
             comp_tag_probs = self.next_for_guessed_voc_token
         else:  # OOV (guessed): do not have any clue...
             comp_tag_probs = self.next_for_guessed_oov_token
 
         # For every pev_tag list combined with every tag compute probs...
-        return {prev_tags: comp_tag_probs(prev_tags, word_form, lword, word_prob_model, guesser, tags)
+        return {prev_tags: comp_tag_probs(prev_tags.token_list, word_form, lword, word_prob_model, guesser, tags, UNK_TAG_TRANS)
                 for prev_tags in prev_tags_set}
 
-    def next_for_seen_token(self, prev_tags, word_form, __, word_prob_model, ____, tags):
+    # Single anal and eos...
+    def next_for_single_tagged_token(self, prev_tags_token_list, _, __, ___, ____, tags, UNK_TAG_TRANS):
+        tag = tags[0]
+        transion_prob = self.model.tag_transition_model.log_prob(prev_tags_token_list, tag, UNK_TAG_TRANS)
+        emission_prob = self.conf.SINGLE_EMISSION_PROB
+        return {tag: (transion_prob, emission_prob)}
+
+    def next_for_seen_token(self, prev_tags_token_list, word_form, __, word_prob_model, ____, tags, UNK_TAG_TRANS):
         tag_probs = dict()  # Seen...
         for tag in tags:
-            transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag,
-                                                                     self.conf.UNKNOWN_TAG_TRANSITION)
-            emission_prob = word_prob_model.log_prob(prev_tags.token_list + [tag], word_form, self.conf.UNKNOWN_VALUE)
+            transion_prob = self.model.tag_transition_model.log_prob(prev_tags_token_list, tag, UNK_TAG_TRANS)
+            emission_prob = word_prob_model.log_prob(prev_tags_token_list + [tag], word_form, self.conf.UNKNOWN_VALUE)
             tag_probs[tag] = (transion_prob, emission_prob)
         return tag_probs
 
-    def next_for_single_tagged_token(self, prev_tags, _, __, ___, ____, tags):  # Single anal...
-        tag = tags[0]
-        transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag, 0.0)
-        emission_prob = 0.0  # We are sure! P = 1 -> log(P) = 0.0
-        return {tag: (transion_prob, emission_prob)}
-
-    def next_for_guessed_voc_token(self, prev_tags, _, lword, ___, guesser, tags):
+    def next_for_guessed_voc_token(self, prev_tags_token_list, _, lword, ___, guesser, tags, UNK_TAG_TRANS):
         tag_probs = dict()  # VOC: Not OOV (Morphology or the training set knows better...)
         for tag in tags:  # Mapping is made one level lower...
-            transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag,
-                                                                     self.conf.UNKNOWN_TAG_TRANSITION)
+            transion_prob = self.model.tag_transition_model.log_prob(prev_tags_token_list, tag, UNK_TAG_TRANS)
             # Emission prob: tagprob - tag_apriori_prob (If not seen: UNK - 0)
             emission_prob = guesser.tag_log_probability(lword, tag, self.conf.UNKNOWN_VALUE) \
                             - self.model.tag_transition_model.apriori_log_prob(tag, 0.0)
             tag_probs[tag] = (transion_prob, emission_prob)
         return tag_probs
 
-    def next_for_guessed_oov_token(self, prev_tags, _, lword, ___, guesser, _____):
+    def next_for_guessed_oov_token(self, prev_tags_token_list, _, lword, ___, guesser, _____, UNK_TAG_TRANS):
         tag_probs = dict()  # OOV: Guessed OOV (Do not have any clue.)
-        for tag, tag_prob in guesser.tag_log_probabilities_w_max(lword, self.max_guessed_tags,
-                                                                 self.suf_theta):
-            transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag,
-                                                                     self.conf.UNKNOWN_TAG_TRANSITION)
+        for tag, tag_prob in guesser.tag_log_probabilities_w_max(lword, self.max_guessed_tags, self.suf_theta):
+            transion_prob = self.model.tag_transition_model.log_prob(prev_tags_token_list, tag, UNK_TAG_TRANS)
             # Emission prob: tag_prob - tag_apriori_prob (If not seen: UNK - 0)
             emission_prob = tag_prob - self.model.tag_transition_model.apriori_log_prob(tag, 0.0)
             tag_probs[tag] = (transion_prob, emission_prob)
         return tag_probs
-
-    def next_for_eos_token(self, prev_tags, _, __, ___, ____, _____):
-        transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, self.model.eos_index,
-                                                                 self.conf.UNKNOWN_VALUE)
-        emission_prob = self.conf.EOS_EMISSION_PROB
-        return {self.model.eos_index: (transion_prob, emission_prob)}
 
     def decode(self, observations: list, results_num: int, user_anals: list) -> list:
         # Ez a lényeg, ezt hívuk meg kívülről.
