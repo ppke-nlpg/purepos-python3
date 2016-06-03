@@ -51,7 +51,7 @@ class BeamedViterbi:
         # A token tulajdonságai határozzák meg a konkrét fv-t.
         if word == self.conf.EOS_TOKEN:
             # Next for eos token by all prev tags
-            return {prev_tags: self.next_for_eos_token(self, None, None, None, None, prev_tags, None)
+            return {prev_tags: self.next_for_eos_token(prev_tags, None, None, None, None, None)
                     for prev_tags in prev_tags_set}
 
         # Defaults:
@@ -126,10 +126,10 @@ class BeamedViterbi:
             comp_tag_probs = self.next_for_guessed_oov_token
 
         # For every pev_tag list combined with every tag compute probs...
-        return {prev_tags: comp_tag_probs(word_form, lword, seen, word_prob_model, guesser, prev_tags, tags)
+        return {prev_tags: comp_tag_probs(prev_tags, word_form, lword, word_prob_model, guesser, tags)
                 for prev_tags in prev_tags_set}
 
-    def next_for_seen_token(self, word_form, _, __, word_prob_model, ___, prev_tags, tags):
+    def next_for_seen_token(self, prev_tags, word_form, __, word_prob_model, ____, tags):
         tag_probs = dict()  # Seen...
         for tag in tags:
             transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag,
@@ -138,13 +138,13 @@ class BeamedViterbi:
             tag_probs[tag] = (transion_prob, emission_prob)
         return tag_probs
 
-    def next_for_single_tagged_token(self, _, __, ___, ____, _____, prev_tags, tags):  # Single anal...
+    def next_for_single_tagged_token(self, prev_tags, _, __, ___, ____, tags):  # Single anal...
         tag = tags[0]
         transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag, 0.0)
         emission_prob = 0.0  # We are sure! P = 1 -> log(P) = 0.0
         return {tag: (transion_prob, emission_prob)}
 
-    def next_for_guessed_voc_token(self, _, lword, __, ___, guesser, prev_tags, tags):
+    def next_for_guessed_voc_token(self, prev_tags, _, lword, ___, guesser, tags):
         tag_probs = dict()  # VOC: Not OOV (Morphology or the training set knows better...)
         for tag in tags:  # Mapping is made one level lower...
             transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, tag,
@@ -155,7 +155,7 @@ class BeamedViterbi:
             tag_probs[tag] = (transion_prob, emission_prob)
         return tag_probs
 
-    def next_for_guessed_oov_token(self, _, lword, __, ___, guesser, prev_tags, ____):
+    def next_for_guessed_oov_token(self, prev_tags, _, lword, ___, guesser, _____):
         tag_probs = dict()  # OOV: Guessed OOV (Do not have any clue.)
         for tag, tag_prob in guesser.tag_log_probabilities_w_max(lword, self.max_guessed_tags,
                                                                  self.suf_theta):
@@ -166,7 +166,7 @@ class BeamedViterbi:
             tag_probs[tag] = (transion_prob, emission_prob)
         return tag_probs
 
-    def next_for_eos_token(self, _, __, ___, ____, _____, prev_tags, ______):
+    def next_for_eos_token(self, prev_tags, _, __, ___, ____, _____):
         transion_prob = self.model.tag_transition_model.log_prob(prev_tags.token_list, self.model.eos_index,
                                                                  self.conf.UNKNOWN_VALUE)
         emission_prob = self.conf.EOS_EMISSION_PROB
