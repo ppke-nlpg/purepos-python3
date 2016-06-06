@@ -46,10 +46,16 @@ class BeamedViterbi:
         self.conf = conf
         self.beam_size = beam_size
 
-    def next_probs(self, prev_tags_set: set, word: str, position: int, user_anals: list) -> dict:
+    def next_probs(self, word: str, position: int, user_anals: list) -> dict:
         # A szóhoz tartozó tag-valószínűségeket gyűjti ki.
         # A token tulajdonságai határozzák meg a konkrét fv-t.
-        if word != self.conf.EOS_TOKEN:
+        if word == self.conf.EOS_TOKEN:
+            tags = [(self.model.eos_index, 0.0)]
+            seen = False
+            # Dummy variables, not used...
+            guesser = self.model.lower_suffix_tree
+            lword = word
+        else:
             # Defaults:
             # word_prob_model = spec_tokens_emission_model | spec_tokens_emission_model
             # tags = standard_token_lexicon | spec_tokens_lexicon
@@ -98,8 +104,8 @@ class BeamedViterbi:
             if user_anals[position] is not None:
                 tags = user_anals[position].word_tags()
                 if user_anals[position].use_probabilities:
-                    word_prob_model = user_anals[position]
-                    seen = True  # If no probabilities, handle it like the morphological analyser (but without filtering)
+                    word_prob_model = user_anals[position]  # If no probabilities, handle it like
+                    seen = True                             # the morphological analyser (but without filtering)
             # User's morph_anals do not need filtering...
             # Filter tags with morphology (tags = tags & morph_anals )
             elif len(morph_anals) > 0 and seen:  # Because if not seen tags is empty
@@ -113,20 +119,14 @@ class BeamedViterbi:
                 tags = morph_anals
             tags = [(tag, 0.0) for tag in tags]  # XXX MAKE THIS EARLIER!
 
-        UNK_TAG_TRANS = self.conf.SINGLE_EMISSION_PROB
-        if word == self.conf.EOS_TOKEN:
-            # Next for eos token by all prev tags
-            emission_prob_fun = lambda _, __: self.conf.SINGLE_EMISSION_PROB
-            tags = [(self.model.eos_index, 0.0)]
-            UNK_TAG_TRANS = 0.0  # We are sure! P = 1 -> log(P) = 0.0
-        elif seen:  # Seen and filtered by the morphology (if there is one)
-            # Seen...
+        UNK_TAG_TRANS = self.conf.UNK_TAG_TRANS
+        if seen:  # Seen and filtered by the morphology (if there is one)
             emission_prob_fun = lambda tag, prev_tags: word_prob_model.log_prob(prev_tags + [tag[0]], word_form,
-                                                                     self.conf.UNKNOWN_VALUE)
+                                                                                self.conf.UNKNOWN_VALUE)
         elif len(tags) == 1:  # Single anal: morphology filtering as the only common anal or seen only one anal
             # Single anal and eos...
-            emission_prob_fun = lambda _, __: self.conf.SINGLE_EMISSION_PROB
             UNK_TAG_TRANS = 0.0  # We are sure! P = 1 -> log(P) = 0.0
+            emission_prob_fun = lambda _, __: self.conf.SINGLE_EMISSION_PROB
         elif len(tags) > 0:  # Not OOV (in vocabulary): the morphology filtered training set knows better...
             # VOC: Not OOV (Morphology or the training set knows better...)
             # Mapping is made one level lower...
@@ -135,17 +135,10 @@ class BeamedViterbi:
                                                         - self.model.tag_transition_model.apriori_log_prob(tag[0], 0.0)
         else:  # OOV: Guessed OOV (Do not have any clue.)
             # Emission prob: tag_prob - tag_apriori_prob (If not seen: UNK - 0)
-            emission_prob_fun = lambda tag, _: tag[1] - self.model.tag_transition_model.apriori_log_prob(tag[0], 0.0)
             tags = guesser.tag_log_probabilities_w_max(lword, self.max_guessed_tags, self.suf_theta)
+            emission_prob_fun = lambda tag, _: tag[1] - self.model.tag_transition_model.apriori_log_prob(tag[0], 0.0)
 
-        # For every pev_tag list combined with every tag compute probs...
-        ret = dict()
-        # emission_prob_fun(prev_tags.token_list, word_form, lword, word_prob_model, guesser, tags, UNK_TAG_TRANS)
-        for prev_tags in prev_tags_set:
-            ret[prev_tags] = {tag[0]: (self.model.tag_transition_model.log_prob(prev_tags.token_list, tag[0],
-                                                                                UNK_TAG_TRANS),
-                                       emission_prob_fun(tag, prev_tags.token_list)) for tag in tags}
-        return ret
+        return UNK_TAG_TRANS, tags, emission_prob_fun
 
     def decode(self, observations: list, results_num: int, user_anals: list) -> list:
         # Ez a lényeg, ezt hívuk meg kívülről.
@@ -159,18 +152,21 @@ class BeamedViterbi:
         start = NGram([self.model.bos_index for _ in range(self.model.tagging_order)], self.model.tagging_order)
         # Maga az algoritmus  # beam {NGram -> Node}
         beam = {start: Node(start, 0.0, None)}
-        pos = 0
-        for obs in observations:         # obs: str
+        for pos, obs in enumerate(observations):         # obs: str
             new_beam = dict()            # {NGram -> Node}
             next_probs = dict()          # table: {(NGram, int) -> float} trololo :)
             obs_probs = dict()           # {NGram -> float}
             contexts = set(beam.keys())  # {NGram}  # {NGram -> {int -> (float, float)}}
             # XXX Innentől az 'adding observation probabilities'-al bezárólag egy ciklusban nem lenne jobb?
-            for context, next_context_probs in self.next_probs(contexts, obs, pos, user_anals).items():
-                for tag, (trans_prob, obs_prob) in next_context_probs.items():    # {int -> (float, float)}.items()
-                    # context: NGram,
-                    # next_context_probs: {int -> (float, float)}
-                    next_probs[(context, tag)], obs_probs[context.add(tag)] = trans_prob, obs_prob
+            UNK_TAG_TRANS, tags, emission_prob_fun = self.next_probs(obs, pos, user_anals)
+            # For every pev_tag list combined with every tag compute probs...
+            for context in contexts:  # context: NGram
+                for tag in tags:
+                    trans_prob, obs_prob = (self.model.tag_transition_model.log_prob(context.token_list, tag[0],
+                                                                                     UNK_TAG_TRANS),
+                                            emission_prob_fun(tag, context.token_list))
+                    next_probs[(context, tag[0])], obs_probs[context.add(tag[0])] = trans_prob, obs_prob
+
             # NGram, int
             for (context, next_tag), trans_val in next_probs.items():    # {(NGram, int) -> float}.items()
                 new_state = context.add(next_tag)   # NGram
@@ -199,7 +195,7 @@ class BeamedViterbi:
                 max_node_weight = max(n.weight for n in new_beam.values())
                 beam = {ngram: act_node for ngram, act_node in new_beam.items()
                         if act_node.weight >= max_node_weight - self.log_theta}
-            pos += 1
+
         # Find max
         sorted_nodes = sorted(beam.values(), key=lambda n: n.weight)  # [Node]
         tag_seq_list = []
