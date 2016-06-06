@@ -49,127 +49,103 @@ class BeamedViterbi:
     def next_probs(self, prev_tags_set: set, word: str, position: int, user_anals: list) -> dict:
         # A szóhoz tartozó tag-valószínűségeket gyűjti ki.
         # A token tulajdonságai határozzák meg a konkrét fv-t.
-        if word == self.conf.EOS_TOKEN:
-            # Next for eos token by all prev tags
-            return {prev_tags: self.next_for_single_tagged_token(prev_tags.token_list, None, None, None, None,
-                                                                 [self.model.eos_index], self.conf.UNK_TAG_TRANS)
-                    for prev_tags in prev_tags_set}
+        if word != self.conf.EOS_TOKEN:
+            # Defaults:
+            # word_prob_model = spec_tokens_emission_model | spec_tokens_emission_model
+            # tags = standard_token_lexicon | spec_tokens_lexicon
+            word_form = word
+            lword = word.lower()
+            isupper = not (lword == word)
+            word_prob_model = self.model.standard_emission_model
+            tags = self.model.standard_tokens_lexicon.tags(word)
+            morph_anals = [self.model.tag_vocabulary.add_element(tag) for tag in self.morphological_analyzer.tags(word)]
+            seen = False
 
-        # Defaults:
-        # word_prob_model = spec_tokens_emission_model | spec_tokens_emission_model
-        # tags = standard_token_lexicon | spec_tokens_lexicon
-        word_form = word
-        lword = word.lower()
-        isupper = not (lword == word)
-        word_prob_model = self.model.standard_emission_model
-        tags = self.model.standard_tokens_lexicon.tags(word)
-        morph_anals = [self.model.tag_vocabulary.add_element(tag) for tag in self.morphological_analyzer.tags(word)]
-        seen = False
-
-        if len(tags) > 0:
-            # SEEN EXACTLY
-            # word_prob_model = self.model.standard_emission_model
-            # word_form = word
-            seen = True
-        else:  # elif
-            tags = self.model.standard_tokens_lexicon.tags(lword)
-            if position == 0 and isupper and len(tags) > 0:
-                # SEEN, BUT LOWERCASED: First of a sentence uppercase and seen only in lowercase form
+            if len(tags) > 0:
+                # SEEN EXACTLY
                 # word_prob_model = self.model.standard_emission_model
-                word_form = lword
-                isupper = False
+                # word_form = word
                 seen = True
             else:  # elif
-                # SPECIAL TOKEN?
-                spec_name = self.spectoken_matcher_match_lexical_element(word)
-                if spec_name is not None:
-                    # Special, but was it seen?
-                    word_prob_model = self.model.spec_tokens_emission_model
-                    tags = self.model.spec_tokens_lexicon.tags(spec_name)
-                    word_form = spec_name
-                    if len(tags) > 0:
-                        seen = True
-                    else:
-                        print('WARNING: \'{}\' is identified as special token ({}),'
-                              ' but not seen in the training set! Using Guesser...'.format(word, spec_name))
+                tags = self.model.standard_tokens_lexicon.tags(lword)
+                if position == 0 and isupper and len(tags) > 0:
+                    # SEEN, BUT LOWERCASED: First of a sentence uppercase and seen only in lowercase form
+                    # word_prob_model = self.model.standard_emission_model
+                    word_form = lword
+                    isupper = False
+                    seen = True
+                else:  # elif
+                    # SPECIAL TOKEN?
+                    spec_name = self.spectoken_matcher_match_lexical_element(word)
+                    if spec_name is not None:
+                        # Special, but was it seen?
+                        word_prob_model = self.model.spec_tokens_emission_model
+                        tags = self.model.spec_tokens_lexicon.tags(spec_name)
+                        word_form = spec_name
+                        if len(tags) > 0:
+                            seen = True
+                        else:
+                            print('WARNING: \'{}\' is identified as special token ({}),'
+                                  ' but not seen in the training set! Using Guesser...'.format(word, spec_name))
 
-        # Set guesser for casing of word_form...
-        if isupper:
-            guesser = self.model.upper_suffix_tree
-        else:
-            guesser = self.model.lower_suffix_tree
-
-        # User's own stuff... May overdefine (almost) everything... (left as is: isupper, lword, wordform)
-        if user_anals[position] is not None:
-            tags = user_anals[position].word_tags()
-            if user_anals[position].use_probabilities:
-                word_prob_model = user_anals[position]
-                seen = True  # If no probabilities, handle it like the morphological analyser (but without filtering)
-        # User's morph_anals do not need filtering...
-        # Filter tags with morphology (tags = tags & morph_anals )
-        elif len(morph_anals) > 0 and seen:  # Because if not seen tags is empty
-            if word_prob_model.context_mapper is not None:
-                common = set(word_prob_model.context_mapper.filter(morph_anals, tags))
+            # Set guesser for casing of word_form...
+            if isupper:
+                guesser = self.model.upper_suffix_tree
             else:
-                common = set(morph_anals).intersection(tags)
-            if len(common) > 0:
-                tags = common
-        elif len(morph_anals) > 0:  # Use pure morphology, else no change in tags...
-            tags = morph_anals
+                guesser = self.model.lower_suffix_tree
+
+            # User's own stuff... May overdefine (almost) everything... (left as is: isupper, lword, wordform)
+            if user_anals[position] is not None:
+                tags = user_anals[position].word_tags()
+                if user_anals[position].use_probabilities:
+                    word_prob_model = user_anals[position]
+                    seen = True  # If no probabilities, handle it like the morphological analyser (but without filtering)
+            # User's morph_anals do not need filtering...
+            # Filter tags with morphology (tags = tags & morph_anals )
+            elif len(morph_anals) > 0 and seen:  # Because if not seen tags is empty
+                if word_prob_model.context_mapper is not None:
+                    common = set(word_prob_model.context_mapper.filter(morph_anals, tags))
+                else:
+                    common = set(morph_anals).intersection(tags)
+                if len(common) > 0:
+                    tags = common
+            elif len(morph_anals) > 0:  # Use pure morphology, else no change in tags...
+                tags = morph_anals
+            tags = [(tag, 0.0) for tag in tags]  # XXX MAKE THIS EARLIER!
 
         UNK_TAG_TRANS = self.conf.SINGLE_EMISSION_PROB
-        if seen:  # Seen and filtered by the morphology (if there is one)
-            comp_tag_probs = self.next_for_seen_token
+        if word == self.conf.EOS_TOKEN:
+            # Next for eos token by all prev tags
+            emission_prob_fun = lambda _, __: self.conf.SINGLE_EMISSION_PROB
+            tags = [(self.model.eos_index, 0.0)]
+            UNK_TAG_TRANS = 0.0  # We are sure! P = 1 -> log(P) = 0.0
+        elif seen:  # Seen and filtered by the morphology (if there is one)
+            # Seen...
+            emission_prob_fun = lambda tag, prev_tags: word_prob_model.log_prob(prev_tags + [tag[0]], word_form,
+                                                                     self.conf.UNKNOWN_VALUE)
         elif len(tags) == 1:  # Single anal: morphology filtering as the only common anal or seen only one anal
-            comp_tag_probs = self.next_for_single_tagged_token
+            # Single anal and eos...
+            emission_prob_fun = lambda _, __: self.conf.SINGLE_EMISSION_PROB
             UNK_TAG_TRANS = 0.0  # We are sure! P = 1 -> log(P) = 0.0
         elif len(tags) > 0:  # Not OOV (in vocabulary): the morphology filtered training set knows better...
-            comp_tag_probs = self.next_for_guessed_voc_token
-        else:  # OOV (guessed): do not have any clue...
-            comp_tag_probs = self.next_for_guessed_oov_token
+            # VOC: Not OOV (Morphology or the training set knows better...)
+            # Mapping is made one level lower...
+            # Emission prob: tagprob - tag_apriori_prob (If not seen: UNK - 0)
+            emission_prob_fun = lambda tag, _: guesser.tag_log_probability(lword, tag[0], self.conf.UNKNOWN_VALUE) \
+                                                        - self.model.tag_transition_model.apriori_log_prob(tag[0], 0.0)
+        else:  # OOV: Guessed OOV (Do not have any clue.)
+            # Emission prob: tag_prob - tag_apriori_prob (If not seen: UNK - 0)
+            emission_prob_fun = lambda tag, _: tag[1] - self.model.tag_transition_model.apriori_log_prob(tag[0], 0.0)
+            tags = guesser.tag_log_probabilities_w_max(lword, self.max_guessed_tags, self.suf_theta)
 
         # For every pev_tag list combined with every tag compute probs...
-        return {prev_tags: comp_tag_probs(prev_tags.token_list, word_form, lword, word_prob_model, guesser, tags,
-                                          UNK_TAG_TRANS)
-                for prev_tags in prev_tags_set}
-
-    def next_for_single_tagged_token(self, prev_tags_token_list, _, __, ___, ____, tags, UNK_TAG_TRANS):
-        # Single anal and eos...
-        tag = tags[0]
-        transion_prob = self.model.tag_transition_model.log_prob(prev_tags_token_list, tag, UNK_TAG_TRANS)
-        emission_prob = self.conf.SINGLE_EMISSION_PROB
-        return {tag: (transion_prob, emission_prob)}
-
-    def next_for_seen_token(self, prev_tags_token_list, word_form, __, word_prob_model, ____, tags, UNK_TAG_TRANS):
-        # Seen...
-        tag_probs = dict()
-        for tag in tags:
-            transion_prob = self.model.tag_transition_model.log_prob(prev_tags_token_list, tag, UNK_TAG_TRANS)
-            emission_prob = word_prob_model.log_prob(prev_tags_token_list + [tag], word_form, self.conf.UNKNOWN_VALUE)
-            tag_probs[tag] = (transion_prob, emission_prob)
-        return tag_probs
-
-    def next_for_guessed_voc_token(self, prev_tags_token_list, _, lword, ___, guesser, tags, UNK_TAG_TRANS):
-        # VOC: Not OOV (Morphology or the training set knows better...)
-        # Mapping is made one level lower...
-        tag_probs = dict()
-        for tag in tags:
-            transion_prob = self.model.tag_transition_model.log_prob(prev_tags_token_list, tag, UNK_TAG_TRANS)
-            # Emission prob: tagprob - tag_apriori_prob (If not seen: UNK - 0)
-            emission_prob = guesser.tag_log_probability(lword, tag, self.conf.UNKNOWN_VALUE) \
-                            - self.model.tag_transition_model.apriori_log_prob(tag, 0.0)
-            tag_probs[tag] = (transion_prob, emission_prob)
-        return tag_probs
-
-    def next_for_guessed_oov_token(self, prev_tags_token_list, _, lword, ___, guesser, _____, UNK_TAG_TRANS):
-        # OOV: Guessed OOV (Do not have any clue.)
-        tag_probs = dict()
-        for tag, tag_prob in guesser.tag_log_probabilities_w_max(lword, self.max_guessed_tags, self.suf_theta):
-            transion_prob = self.model.tag_transition_model.log_prob(prev_tags_token_list, tag, UNK_TAG_TRANS)
-            # Emission prob: tag_prob - tag_apriori_prob (If not seen: UNK - 0)
-            emission_prob = tag_prob - self.model.tag_transition_model.apriori_log_prob(tag, 0.0)
-            tag_probs[tag] = (transion_prob, emission_prob)
-        return tag_probs
+        ret = dict()
+        # emission_prob_fun(prev_tags.token_list, word_form, lword, word_prob_model, guesser, tags, UNK_TAG_TRANS)
+        for prev_tags in prev_tags_set:
+            ret[prev_tags] = {tag[0]: (self.model.tag_transition_model.log_prob(prev_tags.token_list, tag[0],
+                                                                                UNK_TAG_TRANS),
+                                       emission_prob_fun(tag, prev_tags.token_list)) for tag in tags}
+        return ret
 
     def decode(self, observations: list, results_num: int, user_anals: list) -> list:
         # Ez a lényeg, ezt hívuk meg kívülről.
