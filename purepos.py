@@ -38,6 +38,7 @@ from purepos.common.util import StandardSerializer
 from purepos.configuration import Configuration, Colors
 from purepos.tagger import MorphTagger
 from purepos.trainer import Trainer
+from purepos.common.lemmatransformation import suffix_transformation, full_transformation
 
 
 def parse_arguments():
@@ -123,6 +124,10 @@ def parse_arguments():
                         help='Configuratoin file containg tag mappings. '
                              'Defaults to do not map any tag.',
                         metavar='<file>', type=str, default=None)
+    parser.add_argument('--suffix-only-transformation',
+                        help='Use old suffix-only lemmatransformation instead of the full one',
+                        dest='transformation', default=full_transformation, action='store_const',
+                        const=suffix_transformation)
     return parser.parse_args()
 
 
@@ -320,7 +325,7 @@ class PurePos:
 
     def __init__(self, options: dict):
         self.options = options
-        configuration = Configuration()
+        configuration = Configuration(options['transformation'])
         if self.options.get('config_file') is not None:
             configuration = Configuration.read(self.options['config_file'])
         sepopts = options['input_separator'][1:].split(options['input_separator'][0])

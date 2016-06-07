@@ -40,7 +40,7 @@ class Configuration:
     # Mappingek konfigurálása külső, XML fájlon keresztül.
     # Hasznos lenne átgondolni, ill. see more:
     # https://github.com/ppke-nlpg/purepos-python3/issues/7
-    def __init__(self, tag_mappings: list=None,  # stringmapping
+    def __init__(self, transformation, tag_mappings: list=None,  # stringmapping
                  lemma_mappings: list=None,  # stringmapping
                  guessed_lemma_marker: str="",
                  weight: float=None):
@@ -48,6 +48,7 @@ class Configuration:
         self.lemma_mappings = lemma_mappings if lemma_mappings is not None else []
         self.guessed_lemma_marker = guessed_lemma_marker
         self.weight = weight
+        self.transformation = transformation
 
     SINGLE_EMISSION_PROB = 0.0  # We are sure! P = 1 -> log(P) = 0.0
     UNKNOWN_TAG_WEIGHT = -99.0
@@ -94,7 +95,7 @@ class Configuration:
         param_elements = root.findall(Configuration.SUFFIX_MODEL_PARAMETERS)
         weight = float(param_elements[0].text) if len(param_elements) > 0 else None
 
-        return Configuration(tag_mappings, lemma_mappings, guessed_marker, weight)
+        return Configuration(None, tag_mappings, lemma_mappings, guessed_marker, weight)  # todo: transformation!
 
 
 class Constants:  # todo: ötlet minden konstans egy objektumba -> egy időben több különböző PurePOS

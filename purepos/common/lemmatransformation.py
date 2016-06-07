@@ -29,7 +29,7 @@ from purepos.common.corpusrepresentation import Token
 from purepos.model.vocabulary import IntVocabulary
 
 
-# This algorithm has O(n^2) complexity!
+# This algorithm has O(n^2) complexity! (Even though it's almost 3 times faster! Now default!)
 def full_transformation(word, lemma):
     word_lemma = longest_substring(word, lemma)
     lemma_word = longest_substring(lemma, word)
@@ -79,8 +79,8 @@ def longest_substring(s1: str, s2: str) -> tuple:
     return x_longest - longest, longest
 
 
-class LemmaTransformation:  # todo: Make wire out transformation selection to the configuration
-    def __init__(self, word: str, lemma: str, tag: int, transformation=suffix_transformation):  # Decode
+class LemmaTransformation:
+    def __init__(self, word: str, lemma: str, tag: int, transformation):  # Decode
         """
         Bug in PurePOS: If a word case differs from its lemmas case (start of a sentence)
         it won't be included in the freq_table! (Fixed!) eg. Éves#éves#MN.NOM

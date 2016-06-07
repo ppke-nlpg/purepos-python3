@@ -41,6 +41,7 @@ def find_best_lemma(t: Token, position: int, analysis_queue, analyser, model, co
         stems = analyser.analyse(t.token)
 
     guessed = len(stems) == 0
+    lemma_suff_probs = dict()
     if guessed:
         # dict: lemma -> (lemmatrans, prob)
         lemma_suff_probs = {lemmatrans.encode(t.token, model.tag_vocabulary): (lemmatrans, prob)
@@ -65,7 +66,7 @@ def find_best_lemma(t: Token, position: int, analysis_queue, analyser, model, co
                 traf = pair[0]
             else:
                 traf = LemmaTransformation(poss_tok.token, poss_tok.stem,
-                                           model.tag_vocabulary.index(poss_tok.tag))  # Get
+                                           model.tag_vocabulary.index(poss_tok.tag), conf.transformation)  # Get
             comp.append((poss_tok, traf))
             if guessed:  # Append lowercased stems...
                 lower_tok = Token(poss_tok.token, poss_tok.stem.lower(), poss_tok.tag)
@@ -94,7 +95,8 @@ class LogLinearBiCombiner:
             if i % 1000 == 0:
                 print(i)
             suffix_probs = {lemmatrans.encode(tok.token, modeldata.tag_vocabulary): (lemmatrans, prob)
-                            for lemmatrans, prob in modeldata.lemma_suffix_tree.tag_log_probabilities(tok.token).items()}
+                            for lemmatrans, prob in modeldata.lemma_suffix_tree.tag_log_probabilities(tok.token).items()
+                            }
             # Tokens mapped to unigram score and the maximal score is selected
             uni_max_prob = max(modeldata.lemma_unigram_model.log_prob(t.stem, self.conf.UNKNOWN_VALUE)
                                for t in suffix_probs.keys())
