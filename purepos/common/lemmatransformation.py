@@ -29,6 +29,34 @@ from purepos.common.corpusrepresentation import Token
 from purepos.model.vocabulary import IntVocabulary
 
 
+# This algorithm has O(n^2) complexity!
+def full_transformation(word, lemma):
+    word_lemma = longest_substring(word, lemma)
+    lemma_word = longest_substring(lemma, word)
+    remove_start = word_lemma[0]
+    remove_end = len(word) - (word_lemma[0] + word_lemma[1])
+    add_start = lemma[0:lemma_word[0]]
+    add_end = lemma[lemma_word[0] + lemma_word[1]:]
+
+    return remove_start, remove_end, add_start, add_end
+
+
+# This algorithm has O(n) complexity!
+def suffix_transformation(word, lemma):
+    i = 0
+    while i < min(len(word), len(lemma)):
+        if word[i] != lemma[i]:
+            break
+        i += 1
+    word_suff = word[i:]
+    remove_start = 0
+    remove_end = len(word) - len(word_suff)
+    add_start = ''
+    add_end = lemma[i:]
+
+    return remove_start, remove_end, add_start, add_end
+
+
 def longest_substring(s1: str, s2: str) -> tuple:
     """
     Calculates the longest substring efficiently.
@@ -51,8 +79,8 @@ def longest_substring(s1: str, s2: str) -> tuple:
     return x_longest - longest, longest
 
 
-class LemmaTransformation:
-    def __init__(self, word: str, lemma: str, tag: int):  # Decode
+class LemmaTransformation:  # todo: Make wire out transformation selection to the configuration
+    def __init__(self, word: str, lemma: str, tag: int, transformation=suffix_transformation):  # Decode
         """
         Bug in PurePOS: If a word case differs from its lemmas case (start of a sentence)
         it won't be included in the freq_table! (Fixed!) eg. Éves#éves#MN.NOM
@@ -74,12 +102,7 @@ class LemmaTransformation:
                 self.l = '^'
                 lemma = lemma[0].lower() + lemma[1:]
 
-        word_lemma = longest_substring(word, lemma)
-        lemma_word = longest_substring(lemma, word)
-        self.remove_start = word_lemma[0]
-        self.remove_end = len(word) - (word_lemma[0] + word_lemma[1])
-        self.add_start = lemma[0:lemma_word[0]]
-        self.add_end = lemma[lemma_word[0] + lemma_word[1]:]
+        self.remove_start, self.remove_end, self.add_start, self.add_end = transformation(word, lemma)
         self.tag = tag
         self.str_rep = '({0},< -{1}+\'{2}\', >-{3}+\'{4}\' -{5})'.format(self.l, self.remove_start, self.add_start,
                                                                          self.remove_end, self.add_end, self.tag)

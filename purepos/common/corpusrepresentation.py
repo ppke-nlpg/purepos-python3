@@ -22,7 +22,6 @@
 # Contributors:
 #     Móréh, Tamás - initial API and implementation
 ##############################################################################
-from purepos.configuration import Colors, LEMMA_MAPPER
 
 __author__ = 'morta@digitus.itk.ppke.hu'
 
@@ -30,6 +29,7 @@ import io
 import os
 import sys
 from purepos.configuration import Configuration
+from purepos.configuration import Colors, LEMMA_MAPPER
 
 
 class ParsingException(Exception):

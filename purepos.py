@@ -34,7 +34,6 @@ import sys
 from purepos.common.analysisqueue import AnalysisQueue
 from purepos.common.morphology import Morphology
 from purepos.common.spectokenmatcher import SpecTokenMatcher
-from purepos.common.corpusrepresentation import Token
 from purepos.common.util import StandardSerializer
 from purepos.configuration import Configuration, Colors
 from purepos.tagger import MorphTagger
@@ -329,8 +328,7 @@ class PurePos:
         analysis_queue = AnalysisQueue(*sepopts)
         spec_token_matcher = SpecTokenMatcher
         Configuration.SEP = self.options['separator']
-        suff_tree_from_rare_lemmas = True  # todo: Kivezetni a parancssorig...
-                                           # (lemmák ritkaságát nézi vagy szavakét a guessehez?)
+        suff_tree_from_rare_lemmas = True  # (lemmák ritkaságát nézi vagy szavakét a guessehez?) todo: Kivezetni CLIre!
 
         if self.options['command'] == self.TRAIN_OPT:
             self.train(self.options['encoding'],
