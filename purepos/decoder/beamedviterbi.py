@@ -46,11 +46,10 @@ class BeamedViterbi:
         self.conf = conf
         self.beam_size = beam_size
 
-    def next_probs(self, word: str, position: int, user_anals: list) -> dict:
-        # A szóhoz tartozó tag-valószínűségeket gyűjti ki.
-        # A token tulajdonságai határozzák meg a konkrét fv-t.
+    def next_probs(self, word: str, position: int, user_anals: list) -> tuple:
+        # Computes the observation probabilities for the word. The acutal fuction is determied by the token's proerties!
         if word == self.conf.EOS_TOKEN:
-            tags = [(self.model.eos_index, 0.0)]
+            tags = [self.model.eos_index]
             seen = False
             # Dummy variables, not used...
             guesser = self.model.lower_suffix_tree
@@ -117,81 +116,61 @@ class BeamedViterbi:
                     tags = common
             elif len(morph_anals) > 0:  # Use pure morphology, else no change in tags...
                 tags = morph_anals
-            tags = [(tag, 0.0) for tag in tags]  # XXX MAKE THIS EARLIER!
 
+        tags = [(tag, 0.0) for tag in tags]  # todo: MAKE THIS EARLIER!
         UNK_TAG_TRANS = self.conf.UNK_TAG_TRANS
         if seen:  # Seen and filtered by the morphology (if there is one)
-            emission_prob_fun = lambda tag, prev_tags: word_prob_model.log_prob(prev_tags + [tag[0]], word_form,
-                                                                                self.conf.UNKNOWN_VALUE)
-        elif len(tags) == 1:  # Single anal: morphology filtering as the only common anal or seen only one anal
-            # Single anal and eos...
+            return UNK_TAG_TRANS, tags, lambda tag, prev_tags: word_prob_model.log_prob(prev_tags + [tag[0]], word_form,
+                                                                                        self.conf.UNKNOWN_VALUE)
+        elif len(tags) == 1:  # Single anal (or eos): morphology filtering as the only common anal or seen only one anal
             UNK_TAG_TRANS = 0.0  # We are sure! P = 1 -> log(P) = 0.0
-            emission_prob_fun = lambda _, __: self.conf.SINGLE_EMISSION_PROB
-        elif len(tags) > 0:  # Not OOV (in vocabulary): the morphology filtered training set knows better...
-            # VOC: Not OOV (Morphology or the training set knows better...)
-            # Mapping is made one level lower...
+            return UNK_TAG_TRANS, tags, lambda _, __: self.conf.SINGLE_EMISSION_PROB
+        elif len(tags) > 0:  # VOC not OOV (in vocabulary): the (morphology filtered) training set knows better...
             # Emission prob: tagprob - tag_apriori_prob (If not seen: UNK - 0)
-            emission_prob_fun = lambda tag, _: guesser.tag_log_probability(lword, tag[0], self.conf.UNKNOWN_VALUE) \
+            return UNK_TAG_TRANS, tags, lambda tag, _: guesser.tag_log_probability(lword, tag[0],
+                                                                                   self.conf.UNKNOWN_VALUE) \
                                                         - self.model.tag_transition_model.apriori_log_prob(tag[0], 0.0)
-        else:  # OOV: Guessed OOV (Do not have any clue.)
+        else:  # OOV: Guessed OOV (Do not have any clue. No tags yet!)
             # Emission prob: tag_prob - tag_apriori_prob (If not seen: UNK - 0)
             tags = guesser.tag_log_probabilities_w_max(lword, self.max_guessed_tags, self.suf_theta)
-            emission_prob_fun = lambda tag, _: tag[1] - self.model.tag_transition_model.apriori_log_prob(tag[0], 0.0)
-
-        return UNK_TAG_TRANS, tags, emission_prob_fun
+            return UNK_TAG_TRANS, tags, lambda tag, _: tag[1] - self.model.tag_transition_model.apriori_log_prob(tag[0],
+                                                                                                                 0.0)
 
     def decode(self, observations: list, results_num: int, user_anals: list) -> list:
-        # Ez a lényeg, ezt hívuk meg kívülről.
-        # A modathoz (observations) max_res_num-nyi tag-listát készít
-        # A mondathoz hozzáfűz egy <MONDATVÉGE> tokent.
-        observations = list(observations)
+        # This is called from outside: Creates max_res_num peace of tag-sequence for the input sentence (observations)
+        observations = list(observations)  # todo: Why we need this?
         if len(observations) == 0:
             return []
-        observations.append(self.conf.EOS_TOKEN)
+        observations.append(self.conf.EOS_TOKEN)  # Adds an End-of-Sentence token to the end of the sentence.
 
         start = NGram([self.model.bos_index for _ in range(self.model.tagging_order)], self.model.tagging_order)
-        # Maga az algoritmus  # beam {NGram -> Node}
-        beam = {start: Node(start, 0.0, None)}
+        beam = {start: Node(start, 0.0, None)}  # beam {NGram -> Node}
         for pos, obs in enumerate(observations):         # obs: str
             new_beam = dict()            # {NGram -> Node}
-            next_probs = dict()          # table: {(NGram, int) -> float} trololo :)
-            obs_probs = dict()           # {NGram -> float}
-            contexts = set(beam.keys())  # {NGram}  # {NGram -> {int -> (float, float)}}
-            # XXX Innentől az 'adding observation probabilities'-al bezárólag egy ciklusban nem lenne jobb?
             UNK_TAG_TRANS, tags, emission_prob_fun = self.next_probs(obs, pos, user_anals)
             # For every pev_tag list combined with every tag compute probs...
-            for context in contexts:  # context: NGram
+            for context in beam.keys():  # {NGram}  # {NGram -> {int -> (float, float)}}
                 for tag in tags:
-                    trans_prob, obs_prob = (self.model.tag_transition_model.log_prob(context.token_list, tag[0],
-                                                                                     UNK_TAG_TRANS),
-                                            emission_prob_fun(tag, context.token_list))
-                    next_probs[(context, tag[0])], obs_probs[context.add(tag[0])] = trans_prob, obs_prob
+                    next_tag = tag[0]
+                    new_state = context.add(next_tag)  # NGram
+                    from_node = beam[context]          # Node
 
-            # NGram, int
-            for (context, next_tag), trans_val in next_probs.items():    # {(NGram, int) -> float}.items()
-                new_state = context.add(next_tag)   # NGram
-                from_node = beam[context]           # Node
-                new_weight = trans_val + from_node.weight  # float
-                # Update: Set or "update if more optimal" todo változik?
-                # Hozzá veszi, ha nincs benn ilyen végű(*) tag sorozat.
-                # (*) Csak at utolsó két elemet veszi figyelembe az egyezésvizsgálatkor!
-                if new_state not in new_beam.keys():
-                    new_beam[new_state] = Node(new_state, new_weight, from_node)
-                elif new_beam[new_state].weight < new_weight:  # Update if...
-                    new_beam[new_state].prev = from_node
-                    new_beam[new_state].weight = new_weight
+                    trans_prob = self.model.tag_transition_model.log_prob(context.token_list, next_tag, UNK_TAG_TRANS)
+                    obs_prob = emission_prob_fun(tag, context.token_list)
+                    new_weight = from_node.weight + trans_prob + obs_prob  # adding trans. and observation probabilities
 
-            # adding observation probabilities
-            if len(next_probs) > 1:
-                for tag_seq in new_beam.keys():     # {NGram -> Node}.keys()
-                    new_beam[tag_seq].weight += obs_probs[tag_seq]
+                    # Update: Set or "update if more optimal": add if there is not a similar(*) ending Ngram in it.
+                    # (*) Only the last n element is checked for equality! todo változik?
+                    if new_state not in new_beam.keys():
+                        new_beam[new_state] = Node(new_state, new_weight, from_node)
+                    elif new_beam[new_state].weight < new_weight:  # Update if...
+                        new_beam[new_state].prev = from_node
+                        new_beam[new_state].weight = new_weight
 
             # Prune (newbeam -> Beam)
             if self.beam_size > 0:  # todo: better representation!
                 beam = dict(sorted(new_beam.items(), key=lambda x: x[1].weight, reverse=True)[:self.beam_size])
-            else:
-                # Egy küszöb súly alatti node-okat nem veszi be a beam-be.
-                # A küszöböt a max súlyú node-ból számolja ki.
+            else:  # Do not add nodes under a specific treshold (computed from the maximal weight) to the beam.
                 max_node_weight = max(n.weight for n in new_beam.values())
                 beam = {ngram: act_node for ngram, act_node in new_beam.items()
                         if act_node.weight >= max_node_weight - self.log_theta}
