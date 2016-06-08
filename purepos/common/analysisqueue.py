@@ -36,12 +36,12 @@ class UserProbSumNotOneError(Exception):
 
 
 class OneWordLexicalModel:  # AnalysisQueue by element...
-    def __init__(self, probs: dict, word: str, anals: set, use_probs):
+    def __init__(self, probs: dict, word: str, anals: [Token], use_probs):
         self.element_mapper = None
         self.context_mapper = None
-        self.probs = probs
+        self.probs = probs  # tag -> prob
         self.word = word
-        self.anals = list(anals)
+        self.anals = anals
         self.use_probabilities = use_probs
 
     def log_prob(self, context: list, word: str, unk_value) -> float:
@@ -57,8 +57,8 @@ class OneWordLexicalModel:  # AnalysisQueue by element...
     def word_tags(self) -> list:
         return list(self.probs.keys())
 
-    def word_anals(self) -> list:
-        return [Token(self.word, anal, prob) for anal, prob in self.probs.items()]
+    def word_anals(self, tag) -> list:
+        return [anal for anal in self.anals if anal.tag == tag]
 
 
 class AnalysisQueue:  # The user can add his or her own anals optionally with probs (This is just a parser!)
@@ -87,7 +87,7 @@ class AnalysisQueue:  # The user can add his or her own anals optionally with pr
         anals_list = anals_strs.split(self.ANAL_SEP)
 
         tags = {}
-        anals = set()
+        anals = []
         sum_probs = 0.0
         use_prob = False
         for anal in anals_list:
@@ -107,7 +107,9 @@ class AnalysisQueue:  # The user can add his or her own anals optionally with pr
             lemma = anal[:tag_rb]
             tag = tag_voc.add_element(anal[tag_rb + len(self.ANAL_TAG_OPEN):tag_lb])  # Tag transformed to ID...
             tags[tag] = prob
-            anals.add(Token(word, lemma, tag))
+            tok = Token(word, lemma, tag)
+            tok.simplify_lemma()
+            anals.append(tok)
         if 0.0 < sum_probs < 1.0:
             raise UserProbSumNotOneError('The sum of probs is ({}) not 1.0 at token: \'{}\' !'.format(sum_probs, token))
         return OneWordLexicalModel(tags, word, anals, use_prob)

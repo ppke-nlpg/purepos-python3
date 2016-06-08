@@ -52,5 +52,5 @@ class Morphology:
     def tags(self, word: str):
         return [anal[1] for anal in self.anal_source.get(word, [])]
 
-    def analyse(self, word: str):
-        return [Token(word, anal[0], anal[1]) for anal in self.anal_source.get(word, [])]
+    def analyse(self, word: str, tag: str):
+        return [Token(word, anal[0], anal[1]) for anal in self.anal_source.get(word, []) if anal[1] == tag]

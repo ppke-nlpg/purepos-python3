@@ -80,7 +80,7 @@ def longest_substring(s1: str, s2: str) -> tuple:
 
 
 class LemmaTransformation:
-    def __init__(self, word: str, lemma: str, tag: int, transformation):  # Decode
+    def __init__(self, word: str, lemma: str, tag: str, transformation):  # Decode
         """
         Bug in PurePOS: If a word case differs from its lemmas case (start of a sentence)
         it won't be included in the freq_table! (Fixed!) eg. Éves#éves#MN.NOM
@@ -127,7 +127,7 @@ class LemmaTransformation:
     def min_cut_length(self) -> int:
         return self.remove_end
 
-    def encode(self, word: str, vocab: IntVocabulary) -> Token:
+    def encode(self, word: str) -> Token:
         sub_end = max(0, len(word) - self.remove_end)
         lemma = word[0:sub_end] + self.add_end
         lemma = (self.add_start + lemma[min(self.remove_start, len(lemma)):])
@@ -135,4 +135,4 @@ class LemmaTransformation:
             lemma = lemma[0].lower() + lemma[1:]
         elif len(word) > 0 and word[0] != word[0].upper() and self.uppered and len(lemma) > 0:
             lemma = lemma[0].upper() + lemma[1:]
-        return Token(word, lemma, vocab.word(self.tag))
+        return Token(word, lemma, self.tag)

@@ -118,7 +118,8 @@ class Model:
                 if word != self.conf.BOS_TOKEN and word != self.conf.EOS_TOKEN:
                     self.stat.increment_token_count()
                     self.lemma_unigram_model[lemma] += 1  # Store lemma
-                    lemmatrans = LemmaTransformation(word, lemma, tag, self.conf.transformation)
+                    lemmatrans = LemmaTransformation(word, lemma, self.tag_vocabulary.word(tag),
+                                                     self.conf.transformation)
                     self.lemma_suffix_tree.add_word(word, lemmatrans, 1, lemmatrans.min_cut_length())
 
                     self.corpus_types_w_count[token] += 1  # Frequency of every unique token (type) in the corpus

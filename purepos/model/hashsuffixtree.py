@@ -66,16 +66,16 @@ class HashSuffixTree:
         """
         wlen = len(word)
         # Here we can add anything...
-        for suffix in (word[wlen-i:] for i in range(min_len, min(wlen, self.max_suffix_length)+1)):
-            tags_counts = self.freq_table.setdefault(suffix, [Counter(), 0])[0]  # Return or return default...
+        for suff in (word[wlen-i:] for i in range(min_len, min(wlen, self.max_suffix_length)+1)):
+            tags_counts = self.freq_table.setdefault(suff, [Counter(), 0])[0]  # Return or return default...
             tags_counts[tag] += count            # Increment (suffix, tag) count
-            self.freq_table[suffix][1] += count  # Increment suffix count
+            self.freq_table[suff][1] += count  # Increment suffix count
         self.total_tag_count += count            # Increment tag count for all tags
 
     def create_guesser(self, theta: float):
         self.theta = theta
 
-    def tag_log_probabilities(self, word) -> dict:
+    def tag_log_probabilities(self, word, filter_for_tag) -> dict:
         mret = dict()
         freq_table = self.freq_table
         theta = self.theta
@@ -86,25 +86,31 @@ class HashSuffixTree:
         # Here we do not want to accept lemmas, with - at the end...
         # todo: Ez most mit csinál ha -- a szó?
         # todo: Ez most kezeli a batch_convert-ben a többértelműséget? (Elvileg kéne neki.)
-        for suffix in (word[wlen-i:] for i in range(min(wlen, self.max_suffix_length)+1)
+        for suff in (word[wlen-i:] for i in range(min(wlen, self.max_suffix_length)+1)
                        if not word[:wlen-i].endswith('-')):
             # Brants (2000) formula 7
-            suffix, suffix_count = freq_table.get(suffix, [dict(), 0])
-            for tag, tcount in suffix.items():
+            suffix, suffix_count = freq_table.get(suff, [dict(), 0])
+            for tag, tcount in filter_for_tag(suffix.items()):
                 mret[tag] = (mret.get(tag, 0.0) + (tcount / suffix_count * theta)) / theta_plus_one
         return {k: log(v) for k, v in mret.items()}
 
     def tag_log_probability(self, word, tag, unk_value) -> float:
         if self.mapper is not None:
             tag = self.mapper.map(tag)
-        return self.tag_log_probabilities(word).get(tag, unk_value)
+        return self.tag_log_probabilities(word, lambda x: (i for i in x if i[0].tag == tag)).get(tag, unk_value)
 
     def tag_log_probabilities_w_max(self, word, max_guessed_tags: int, suf_theta: float) -> dict:
         # Prune guessed tags: Filter most probable tags to avoid them for OOVS (Brants 2000, sect 2.3, 4. point)
-        guessed_tags = self.tag_log_probabilities(word)
+        guessed_tags = self.tag_log_probabilities(word, lambda x: (i for i in x))
         min_val = max(guessed_tags.values()) - suf_theta  # Max probability - theta
         pruned_guessed_tags = {(k, v) for k, v in guessed_tags.items() if v > min_val}
         if len(pruned_guessed_tags) > max_guessed_tags:
             pruned_guessed_tags = sorted(pruned_guessed_tags, key=lambda ent: ent[1],
                                          reverse=True)[-max_guessed_tags:]
         return pruned_guessed_tags
+
+    def suff_probabilities(self, token, tag):
+        # Token -> (LemmaTransformation, Float)
+        return {lemmatrans.encode(token): (lemmatrans, prob)
+                for lemmatrans, prob in self.tag_log_probabilities(token,
+                                                                   lambda x: (i for i in x if i[0].tag == tag)).items()}

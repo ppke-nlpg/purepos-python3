@@ -46,13 +46,13 @@ class MorphTagger:
                                      beam_size)
         self.no_stemming = no_stemming
         self.toksep = toksep
-        self.find_best_lemma = lambda tok, pos: find_best_lemma(tok, pos, self.analysis_queue, self.analyser,
-                                                                self.model, self.conf)
+        self.find_best_lemma = lambda token, tag, pos: find_best_lemma(token, tag, pos, self.analysis_queue,
+                                                                       self.analyser, self.model, self.conf)
         self.analysis_queue = []
         self.analysis_queue_parser = anal_queue
         self.conf = conf
-        if not self.no_stemming:
-            self.find_best_lemma = lambda tok, _: tok
+        if self.no_stemming:
+            self.find_best_lemma = lambda token, _, __: token
 
     # todo: Ebben a függvényben és a sent_to_string() függvényben kéne a bemeneti formátumot egységesíteni...
     def tag(self, source: io.TextIOWrapper, dest: io.TextIOWrapper, max_results_number: int=1):
@@ -78,10 +78,8 @@ class MorphTagger:
                 preped_sent.append(word)
         ret = []
         for tag_list, weight in self.decoder.decode(preped_sent, max_res, self.analysis_queue):
-            sent = []
-            for idx in range(min(len(tag_list), len(preped_sent))):
-                tok = Token(preped_sent[idx], None, self.model.tag_vocabulary.word(tag_list[idx]))
-                sent.append(self.find_best_lemma(tok, idx))  # Optionally find best lemma or leave as is ...
+            sent = [self.find_best_lemma(preped_sent[idx], self.model.tag_vocabulary.word(tag_list[idx]), idx)
+                    for idx in range(min(len(tag_list), len(preped_sent)))]  # Optionally find best lemma or leave as is
             ret.append((sent, weight))  # Every tag combination with the probability for the current sentence
 
         return ret
