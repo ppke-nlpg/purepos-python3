@@ -95,10 +95,8 @@ class IntVocabulary(BiDict):
     def index(self, word):
         return self.__getitem__(word)
 
-    # todo: Should not give None, but not works then...
     def word(self, index):
-        # Better: return self.inverse[index]
-        return self.inverse.get(index)
+        return self.inverse[index]
 
     def add_element(self, element):
         return self.setdefault(element, self.__len__())

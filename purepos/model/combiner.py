@@ -40,8 +40,7 @@ def find_best_lemma(token: str, tag: str, position: int, analysis_queue, analyse
 
     guessed = len(stems) == 0
     lemma_suff_probs = dict()
-    if guessed:
-        # dict: lemma -> (lemmatrans, prob)
+    if guessed:  # dict: Token -> (lemmatrans, prob)
         lemma_suff_probs = model.lemma_suffix_tree.suff_probabilities(token, tag)
         stems = list(lemma_suff_probs.keys())
 
@@ -51,19 +50,17 @@ def find_best_lemma(token: str, tag: str, position: int, analysis_queue, analyse
         best = stems[0]
     else:
         comp = []
-        if not guessed:
-            # dict: Token -> (lemmatrans, prob)
+        if not guessed:  # dict: Token -> (lemmatrans, prob)
             lemma_suff_probs = model.lemma_suffix_tree.suff_probabilities(token, tag)
         for poss_tok in stems:
             pair = lemma_suff_probs.get(poss_tok)  # (lemmatrans, prob)
             if pair is not None:
                 traf = pair[0]
             else:
-                traf = LemmaTransformation(poss_tok.token, poss_tok.stem, poss_tok.tag, conf.transformation)  # Get
+                traf = LemmaTransformation(poss_tok.token, poss_tok.stem, poss_tok.tag, conf.transformation)
             comp.append((poss_tok, traf))
-            if guessed:  # Append lowercased stems...
-                lower_tok = Token(poss_tok.token, poss_tok.stem.lower(), poss_tok.tag)
-                comp.append((lower_tok, traf))
+            if guessed:  # Append lowercased stems... todo: Szerintem a transzformáció már maga kezeli a lowercase-lést
+                comp.append((Token(poss_tok.token, poss_tok.stem.lower(), poss_tok.tag), traf))
         best = (max(comp, key=lambda p: model.combiner.combine(p[0], p[1], model)))[0]
 
     if best.original_stem is not None:
@@ -95,7 +92,7 @@ class LogLinearBiCombiner:
             # Same with sufixes
             suffix_max_prob = max(prob for _, prob in suffix_probs.values())
             act_uni_prob = model.lemma_unigram_model.log_prob(tok.stem, self.conf.UNKNOWN_VALUE)
-            # todo: Itt lehegy egyáltalán UNKNOWN? Nem mert ezt tanulja meg...
+            # todo: Itt lehet egyáltalán UNKNOWN? Nem mert ezt tanulja meg...
             act_suff_prob = suffix_probs.get(tok, (None, self.conf.UNKNOWN_VALUE))[1]
 
             uni_prop = act_uni_prob - uni_max_prob

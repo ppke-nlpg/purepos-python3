@@ -82,7 +82,7 @@ class NGramModel:
             return math.log(elem)
         return unk_value
 
-    def count_word_apriori_probs(self):  # apriori valószínűségek számolása
+    def count_word_apriori_probs(self):
         self.word_apriori_probs = {k: v / self.root.num for k, v in self.root.words.items()}
 
     @staticmethod

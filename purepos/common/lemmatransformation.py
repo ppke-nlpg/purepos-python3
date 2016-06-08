@@ -26,7 +26,6 @@
 __author__ = 'morta@digitus.itk.ppke.hu'
 
 from purepos.common.corpusrepresentation import Token
-from purepos.model.vocabulary import IntVocabulary
 
 
 # This algorithm has O(n^2) complexity! (Even though it's almost 3 times faster! Now default!)
